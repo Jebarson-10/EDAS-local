@@ -21,10 +21,11 @@ function run(label: string, cmd: string, args: string[], allowFail = false) {
 }
 
 run("check:routes", "npm", ["run", "check:routes"]);
+run("check:pages", "npm", ["run", "check:pages"]);
 run("check:bindings (report)", "npm", ["run", "check:bindings"]);
 // Strict env gate documents blocker; expect fail until client fills REPLACE_ME
 const bindStatus = run(
-  "check:bindings --env staging (expect fail until D1/R2 ids)",
+  "check:bindings --env staging (expect fail until preview D1 id)",
   "npm",
   ["run", "check:bindings", "--", "--env", "staging"],
   true,
@@ -59,7 +60,7 @@ console.log(routes);
 console.log("\nstaging:preflight complete.");
 if (bindStatus !== 0) {
   console.log(
-    "NOTE: Cloudflare D1/R2 bindings still REPLACE_ME — §107 staging deploy blocked until client fills ids (expected).",
+    "NOTE: Cloudflare Pages preview D1 still REPLACE_ME — §107 staging deploy blocked until CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (npm run staging:raise) or a real database_id in [env.preview] (expected).",
   );
 } else {
   console.log(
