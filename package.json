@@ -33,6 +33,7 @@
     "uat:local": "tsx scripts/uat-local.ts",
     "staging:preflight": "tsx scripts/staging-preflight.ts",
     "staging:raise": "tsx scripts/staging-raise.ts",
+    "staging:temporary": "tsx scripts/staging-temporary.ts",
     "db:migrate:local": "tsx scripts/migrate-local.ts",
     "db:migrate:remote": "tsx scripts/migrate-remote.ts",
     "app": "npm run app:build && tsx scripts/run-app.ts",
