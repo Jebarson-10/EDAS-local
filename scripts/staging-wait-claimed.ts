@@ -1,10 +1,12 @@
 /**
- * Poll the Pages API until a Pages-capable token exists, then run staging:raise.
+ * Poll until a dashboard token can list Pages *and* R2, then run staging:raise.
  *
- * Unclaimed accounts 403 Pages. Claiming keeps Workers + D1; the preview
- * cfat_ token still cannot call Pages. After claim, drop a dashboard token
- * with Pages edit (and optional ACCESS_EMAIL_ROLE_MAP from OQ-010) as
- * gitignored .data/cloudflare-client.env — this loop re-resolves every poll.
+ * Unclaimed accounts 403 Pages and R2. Claiming keeps Workers + D1; the
+ * preview cfat_ token still cannot call Pages or R2. After claim, drop a
+ * dashboard token with Pages edit + Workers R2 Storage edit (and optional
+ * ACCESS_EMAIL_ROLE_MAP from OQ-010) as gitignored .data/cloudflare-client.env
+ * — this loop re-resolves every poll. Do not raise on Pages-only: UAT needs
+ * r2Ok, and a failed raise must not kill this waiter.
  *
  * Do not remint while D1 still lists — that would drop a claimed (or still
  * live) restored database. Remint only when D1 is gone (unclaimed expiry).
@@ -21,6 +23,7 @@ import {
   injectCloudflareCredentials,
   previewD1FromTemporaryToml,
   resolveCloudflareCredentials,
+  waitClaimedShouldRaise,
   waitClaimedShouldRenew,
 } from "./cloudflare-credentials.ts";
 
@@ -65,6 +68,21 @@ async function d1Listable(token: string, accountId: string): Promise<boolean> {
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+async function r2ListStatus(
+  token: string,
+  accountId: string,
+): Promise<{ ok: boolean; status: number }> {
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    return { ok: res.ok, status: res.status };
+  } catch {
+    return { ok: false, status: 0 };
   }
 }
 
@@ -152,9 +170,11 @@ async function main() {
 
     let consecutiveD1Failures = 0;
     let loggedLivePastWindow = false;
+    let loggedPagesWithoutR2 = false;
 
     for (;;) {
       const probe = await pagesApiOk(creds.token, creds.accountId);
+      const r2 = await r2ListStatus(creds.token, creds.accountId);
       const d1ok = await d1Listable(creds.token, creds.accountId);
       consecutiveD1Failures = d1ok ? 0 : consecutiveD1Failures + 1;
       const claimWindowElapsed = Date.now() >= until;
@@ -163,8 +183,10 @@ async function main() {
         : null;
       record({
         ok: false,
-        waiting: !probe.ok,
+        waiting: true,
         pagesStatus: probe.status,
+        r2Status: r2.status,
+        r2Listable: r2.ok,
         d1Listable: d1ok,
         d1Counts: counts,
         consecutiveD1Failures,
@@ -175,8 +197,15 @@ async function main() {
         claimExpiresAt: creds.claimExpiresAt ?? null,
         renews,
       });
-      if (probe.ok) {
-        console.log("Pages API reachable — running npm run staging:raise");
+      if (
+        waitClaimedShouldRaise({
+          pagesOk: probe.ok,
+          r2Listable: r2.ok,
+        })
+      ) {
+        console.log(
+          "Pages and R2 APIs reachable — running npm run staging:raise",
+        );
         injectCloudflareCredentials(creds);
         const r = spawnSync("npm", ["run", "staging:raise"], {
           cwd: ROOT,
@@ -185,11 +214,24 @@ async function main() {
         });
         record({
           ok: r.status === 0,
+          waiting: r.status !== 0,
           pagesStatus: probe.status,
+          r2Status: r2.status,
+          r2Listable: r2.ok,
           raiseExit: r.status ?? 1,
           claimUrl: creds.claimUrl ?? null,
         });
-        process.exit(r.status ?? 1);
+        if (r.status === 0) {
+          process.exit(0);
+        }
+        console.error(
+          `staging:wait-claimed — staging:raise exited ${r.status ?? 1}; keeping the poller so a later token or R2 grant can retry`,
+        );
+      } else if (probe.ok && !r2.ok && !loggedPagesWithoutR2) {
+        loggedPagesWithoutR2 = true;
+        console.log(
+          `Pages API HTTP ${probe.status} but R2 list HTTP ${r2.status} — not raising until Workers R2 Storage Edit (UAT requires r2Ok).`,
+        );
       }
 
       if (
@@ -214,7 +256,7 @@ async function main() {
       if (claimWindowElapsed && d1ok && !loggedLivePastWindow) {
         loggedLivePastWindow = true;
         console.log(
-          "Claim window elapsed but D1 still lists — not reminting (account claimed or not yet deleted). Waiting for a Pages-edit dashboard token.",
+          "Claim window elapsed but D1 still lists — not reminting (account claimed or not yet deleted). Waiting for a Pages-edit + R2 Storage Edit dashboard token.",
         );
       }
 
