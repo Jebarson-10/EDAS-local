@@ -1,0 +1,127 @@
+{
+  "name": "exam-duty-allotment",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Erode Examination Duty Allotment System — offline desktop app for theory, practical and hall duty allotment",
+  "author": "Erode CEO Office",
+  "main": "desktop/main.cjs",
+  "desktopName": "erode-exam-duty.desktop",
+  "workspaces": [
+    "frontend",
+    "shared",
+    "allocation-engine",
+    "validator",
+    "worker"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w frontend",
+    "api:local": "tsx scripts/local-api-server.ts",
+    "dev:full": "npx concurrently -k \"npm:api:local\" \"npm:dev\"",
+    "build": "npm run build -w frontend",
+    "test": "npm run test -w shared && npm run test -w allocation-engine && npm run test -w validator && npm run test -w worker --if-present && npm run test:scripts",
+    "test:scripts": "vitest run --config vitest.scripts.config.ts",
+    "lint": "npm run lint -w frontend --if-present",
+    "seed:synthetic": "tsx scripts/generate-synthetic-dataset.ts",
+    "smoke:ui": "node scripts/ui-smoke.mjs",
+    "check:responsive": "node scripts/check-mobile-render.mjs",
+    "load:theory": "tsx scripts/load-test-theory.ts",
+    "e2e:cycle": "tsx scripts/e2e-exam-cycle.ts",
+    "verify:backup": "tsx scripts/verify-backup.ts",
+    "check:routes": "tsx scripts/check-route-parity.ts",
+    "check:bindings": "tsx scripts/check-bindings.ts",
+    "uat:local": "tsx scripts/uat-local.ts",
+    "staging:preflight": "tsx scripts/staging-preflight.ts",
+    "staging:raise": "tsx scripts/staging-raise.ts",
+    "db:migrate:local": "tsx scripts/migrate-local.ts",
+    "db:migrate:remote": "tsx scripts/migrate-remote.ts",
+    "app": "npm run app:build && tsx scripts/run-app.ts",
+    "app:build": "npm run desktop:ui && npm run desktop:bundle",
+    "desktop:ui": "cd frontend && VITE_DESKTOP=1 vite build --outDir ../desktop/ui --emptyOutDir",
+    "desktop:bundle": "esbuild scripts/local-api-server.ts --bundle --platform=node --target=node20 --format=cjs --external:better-sqlite3 --outfile=desktop/dist/api-server.cjs --log-level=warning",
+    "desktop:dev": "npm run app:build && electron desktop/main.cjs",
+    "desktop:dist": "npm run app:build && electron-builder --linux AppImage",
+    "desktop:dist:win": "npm run app:build && electron-builder --win nsis",
+    "desktop:dist:win:portable": "npm run app:build && electron-builder --win zip",
+    "desktop:dist:mac": "npm run app:build && electron-builder --mac dmg",
+    "pages:build": "npm run build -w frontend",
+    "check:pages": "tsx scripts/check-pages-layout.ts",
+    "check:pages:dev": "tsx scripts/check-pages-dev.ts",
+    "check:app": "tsx scripts/check-app-server.ts",
+    "pages:deploy:preview": "npm run pages:build && npx wrangler pages deploy --project-name erode-exam-duty --branch preview",
+    "uat:staging": "tsx scripts/uat-staging.ts",
+    "typecheck": "npm run typecheck -w shared --if-present && npm run typecheck -w allocation-engine --if-present && npm run typecheck -w validator --if-present && npm run typecheck -w frontend --if-present && npm run typecheck -w worker --if-present"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3"
+  },
+  "build": {
+    "appId": "in.gov.tn.erode.examduty",
+    "productName": "Erode Exam Duty",
+    "directories": {
+      "output": "release",
+      "buildResources": "desktop/build"
+    },
+    "files": [
+      "desktop/main.cjs",
+      "desktop/dist/api-server.cjs",
+      "package.json",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/bindings/**/*",
+      "node_modules/file-uri-to-path/**/*",
+      "node_modules/node-gyp-build/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "desktop/ui",
+        "to": "app-resources/ui"
+      },
+      {
+        "from": "database",
+        "to": "app-resources/database",
+        "filter": [
+          "**/*.sql"
+        ]
+      },
+      {
+        "from": "frontend/public/demo-dataset.json",
+        "to": "app-resources/frontend/public/demo-dataset.json"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
+    ],
+    "npmRebuild": false,
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office",
+      "synopsis": "Offline examination duty allotment for the Erode CEO Office",
+      "syncDesktopName": true
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.business"
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4",
+    "electron": "^37.10.3",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.25.12",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}
