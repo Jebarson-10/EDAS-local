@@ -20,6 +20,7 @@
     "build": "npm run build -w frontend",
     "test": "npm run test -w shared && npm run test -w allocation-engine && npm run test -w validator && npm run test -w worker --if-present && npm run test -w frontend --if-present && npm run test:scripts",
     "test:scripts": "vitest run --config vitest.scripts.config.ts",
+    "prepare": "node scripts/assemble-repos.mjs",
     "lint": "npm run lint -w frontend --if-present",
     "seed:synthetic": "tsx scripts/generate-synthetic-dataset.ts",
     "smoke:ui": "node scripts/ui-smoke.mjs",
