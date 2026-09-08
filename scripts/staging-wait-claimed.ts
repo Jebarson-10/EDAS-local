@@ -1,9 +1,12 @@
 /**
- * Poll the Pages API until the temporary preview account is claimed (or a
- * client token is present), then run staging:raise.
+ * Poll the Pages API until a Pages-capable token exists, then run staging:raise.
  *
- * Unclaimed accounts 403 Pages. After claim the same token can create a
- * *.pages.dev project. Does not invent ACCESS_EMAIL_ROLE_MAP.
+ * Unclaimed accounts 403 Pages. Claiming keeps Workers + D1; the preview
+ * cfat_ token still cannot call Pages. After claim, a dashboard API token
+ * with Pages edit is required.
+ *
+ * Do not remint while D1 still lists — that would drop a claimed (or still
+ * live) restored database. Remint only when D1 is gone (unclaimed expiry).
  *
  *   npm run staging:wait-claimed
  *
@@ -13,8 +16,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  injectCloudflareCredentials,
   resolveCloudflareCredentials,
+  waitClaimedShouldRenew,
 } from "./cloudflare-credentials.ts";
 
 const ROOT = process.cwd();
@@ -49,9 +52,23 @@ async function pagesApiOk(
   return { ok: res.ok, status: res.status };
 }
 
+async function d1Listable(token: string, accountId: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database?per_page=5`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 function renewTemporary(): boolean {
   const env = { ...process.env, CF_TEMP_FORCE_NEW: "1" };
-  console.log("Renewing temporary Cloudflare account (unclaimed window elapsed or token 401)…");
+  console.log(
+    "Renewing temporary Cloudflare account (D1 unreachable — unclaimed window elapsed or token 401)…",
+  );
   const mint = spawnSync("npm", ["run", "staging:temporary"], {
     cwd: ROOT,
     stdio: "inherit",
@@ -82,24 +99,29 @@ async function main() {
   let renews = 0;
 
   while (renews <= maxRenews) {
-    injectCloudflareCredentials(creds);
     const until = deadlineMs(creds.claimExpiresAt);
     console.log(
-      `Polling Pages API on ${creds.source} account ${creds.accountId} until ${new Date(until).toISOString()}`,
+      `Polling Pages API on ${creds.source} account ${creds.accountId} until ${new Date(until).toISOString()} (D1-live accounts keep polling after that instead of reminting)`,
     );
     if (creds.claimUrl) {
       console.log(`Claim URL: ${creds.claimUrl}`);
     }
 
-    let lastStatus = 0;
-    let needRenew = false;
-    while (Date.now() < until) {
+    let consecutiveD1Failures = 0;
+    let loggedLivePastWindow = false;
+
+    for (;;) {
       const probe = await pagesApiOk(creds.token, creds.accountId);
-      lastStatus = probe.status;
+      const d1ok = await d1Listable(creds.token, creds.accountId);
+      consecutiveD1Failures = d1ok ? 0 : consecutiveD1Failures + 1;
+      const claimWindowElapsed = Date.now() >= until;
       record({
         ok: false,
         waiting: !probe.ok,
         pagesStatus: probe.status,
+        d1Listable: d1ok,
+        consecutiveD1Failures,
+        claimWindowElapsed,
         claimUrl: creds.claimUrl ?? null,
         claimExpiresAt: creds.claimExpiresAt ?? null,
         renews,
@@ -119,25 +141,39 @@ async function main() {
         });
         process.exit(r.status ?? 1);
       }
-      if (probe.status === 401) {
-        needRenew = true;
+
+      if (
+        waitClaimedShouldRenew({
+          d1Listable: d1ok,
+          consecutiveD1Failures,
+          claimWindowElapsed,
+        })
+      ) {
+        record({
+          ok: false,
+          error: "d1-unreachable",
+          pagesStatus: probe.status,
+          claimUrl: creds.claimUrl ?? null,
+          claimExpiresAt: creds.claimExpiresAt ?? null,
+          note: "D1 no longer lists. Minting a new 60-minute preview account from the canonical snapshot.",
+        });
+        console.error("staging:wait-claimed — D1 unreachable; renewing temporary account");
         break;
       }
-      const wait = Math.min(INTERVAL_MS, Math.max(5_000, until - Date.now()));
-      await new Promise((r) => setTimeout(r, wait));
-    }
 
-    if (!needRenew && lastStatus !== 401) {
-      needRenew = true;
-      record({
-        ok: false,
-        error: "claim-window-elapsed",
-        pagesStatus: lastStatus,
-        claimUrl: creds.claimUrl ?? null,
-        claimExpiresAt: creds.claimExpiresAt ?? null,
-        note: "Pages stayed 403. Minting a new 60-minute preview account from the canonical snapshot.",
-      });
-      console.error("staging:wait-claimed — claim window elapsed; renewing temporary account");
+      if (claimWindowElapsed && d1ok && !loggedLivePastWindow) {
+        loggedLivePastWindow = true;
+        console.log(
+          "Claim window elapsed but D1 still lists — not reminting (account claimed or not yet deleted). Waiting for a Pages-edit dashboard token.",
+        );
+      }
+
+      const wait = Math.min(INTERVAL_MS, 15_000);
+      await new Promise((r) => setTimeout(r, wait));
+
+      // Pick up a dashboard token if the operator exported it into this process.
+      const again = resolveCloudflareCredentials();
+      if (again) creds = again;
     }
 
     if (!renewTemporary()) {

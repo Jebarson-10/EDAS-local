@@ -4,9 +4,9 @@
  * Preference: CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (client account).
  * Fallback: wrangler-temporary-account.toml from `npm run staging:temporary`.
  *
- * After the preview account is claimed, Pages/R2 stop returning 403 on the
- * same token — staging:raise can then create a *.pages.dev project without
- * a separately pasted token. Unclaimed preview accounts cannot host Pages.
+ * Claiming keeps Workers + D1. The preview cfat_ token still cannot call
+ * Pages or R2 — staging:raise needs a dashboard API token with Pages edit.
+ * Unclaimed preview accounts are deleted after ~60 minutes.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -98,7 +98,13 @@ export function pagesForbiddenOnTemporaryAccount(
     : "\nRun npm run staging:temporary and claim the printed URL.";
   return `Pages API HTTP 403 on the temporary Cloudflare account.${claim}
 
-After claim, Pages and R2 become available on this same account — re-run npm run staging:raise (no separate token needed unless you use a different Cloudflare account). Temporary workers.dev is not §107 Pages UAT. Do not invent ACCESS_EMAIL_ROLE_MAP.`;
+After claim, create a dashboard API token on that account with D1 edit + Cloudflare Pages edit, then:
+
+  export CLOUDFLARE_API_TOKEN=...
+  export CLOUDFLARE_ACCOUNT_ID=...
+  npm run staging:raise
+
+The preview cfat_ token is not a Pages token (temporary accounts only support Workers + D1 among our bindings). Temporary workers.dev is not §107 Pages UAT. Do not invent ACCESS_EMAIL_ROLE_MAP.`;
 }
 
 export function previewD1FromTemporaryToml(toml: string): {
@@ -122,4 +128,29 @@ export function temporaryClaimExpiringSoon(
   const t = Date.parse(raw);
   if (Number.isNaN(t)) return false;
   return t - now <= withinMs;
+}
+
+/**
+ * Replace the cached preview account only when its D1 is unreachable.
+ * A live D1 after the claim deadline means the account was claimed (or not
+ * yet deleted). Pages stays 403 on the preview token either way — do not
+ * mint a second account and lose the pointer to the restored D1.
+ */
+export function shouldReplaceTemporaryAccount(d1Listable: boolean): boolean {
+  return !d1Listable;
+}
+
+/**
+ * Wait-claimed remints only when D1 is gone. Three consecutive list failures
+ * during the claim window absorb transient API blips; after the window, one
+ * failure is enough (unclaimed accounts are deleted).
+ */
+export function waitClaimedShouldRenew(opts: {
+  d1Listable: boolean;
+  consecutiveD1Failures: number;
+  claimWindowElapsed: boolean;
+}): boolean {
+  if (opts.d1Listable) return false;
+  if (opts.claimWindowElapsed) return true;
+  return opts.consecutiveD1Failures >= 3;
 }
