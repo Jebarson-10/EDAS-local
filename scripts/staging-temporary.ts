@@ -17,22 +17,13 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
-  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { countMaster } from "../worker/src/db/repos.ts";
+import { bootstrapTemporaryAccount } from "./bootstrap-temporary-account.ts";
 import { createD1HttpClient, readTemporaryAccount } from "./d1-http-client.ts";
-import {
-  resolveCloudflareCredentials,
-  temporaryClaimExpiringSoon,
-} from "./cloudflare-credentials.ts";
-import {
-  createTemporaryPreviewAccount,
-  temporaryAccountTomlPath,
-  writeTemporaryAccountToml,
-} from "./temporary-preview-account.ts";
 
 const ROOT = process.cwd();
 const DATA = join(ROOT, ".data");
@@ -90,85 +81,6 @@ function wrangler(
   }
   process.stdout.write(out);
   return out;
-}
-
-async function tokenCanListD1(): Promise<boolean> {
-  try {
-    const acct = readTemporaryAccount();
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/d1/database?per_page=20`,
-      { headers: { Authorization: `Bearer ${acct.apiToken}` } },
-    );
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function waitUntilTokenCanListD1(attempts = 8): Promise<boolean> {
-  for (let i = 0; i < attempts; i++) {
-    if (await tokenCanListD1()) return true;
-    await new Promise((r) => setTimeout(r, 400 * (i + 1)));
-  }
-  return false;
-}
-
-async function pagesApiReachable(): Promise<boolean> {
-  try {
-    const creds = resolveCloudflareCredentials();
-    if (!creds) return false;
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/pages/projects`,
-      { headers: { Authorization: `Bearer ${creds.token}` } },
-    );
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Mint (or reuse) a 60-minute preview account via the provisioning API.
- * `wrangler whoami --temporary` is not a flag; Wrangler only accepts
- * `--temporary` on deploy / D1 / KV, and refuses it when any token is set.
- *
- * Reuse is skipped when CF_TEMP_FORCE_NEW=1, when the token cannot list D1,
- * or when the claim window is nearly elapsed and Pages is still 403.
- */
-async function bootstrapTemporaryAccount(): Promise<string> {
-  const forceNew = process.env.CF_TEMP_FORCE_NEW === "1";
-  if (!forceNew && (await tokenCanListD1())) {
-    const creds = resolveCloudflareCredentials();
-    const claimed = await pagesApiReachable();
-    const expiring =
-      creds != null && temporaryClaimExpiringSoon(creds);
-    if (claimed || !expiring) {
-      const acct = readTemporaryAccount();
-      console.log(`reusing temporary account ${acct.accountId}`);
-      return "";
-    }
-    console.log(
-      "claim window nearly elapsed and Pages still forbidden — minting a new preview account",
-    );
-  }
-  const cached = temporaryAccountTomlPath();
-  if (existsSync(cached)) {
-    unlinkSync(cached);
-  }
-  console.log("minting Cloudflare temporary preview account…");
-  const preview = await createTemporaryPreviewAccount();
-  writeTemporaryAccountToml(preview);
-  if (!(await waitUntilTokenCanListD1())) {
-    throw new Error(
-      "temporary account token is not usable for D1. Re-run npm run staging:temporary.",
-    );
-  }
-  return [
-    `Temporary account ready:`,
-    `  Account:        ${preview.account.name} (created)`,
-    `  Claim within:   60 minutes`,
-    `  Claim URL:      ${preview.claim.url}`,
-  ].join("\n");
 }
 
 function parseClaim(out: string) {
