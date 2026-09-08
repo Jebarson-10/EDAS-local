@@ -1,0 +1,90 @@
+name: Materialize MCP uploads
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/payload-uploads/**"
+      - ".github/workflows/materialize-mcp-uploads.yml"
+permissions:
+  contents: write
+concurrency:
+  group: materialize-mcp
+  cancel-in-progress: false
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Inflate gzip staging payloads
+        run: |
+          python3 << 'PY'
+          import base64, gzip, hashlib, json, os, pathlib, sys
+          from collections import defaultdict
+          root = pathlib.Path(".github/payload-uploads")
+          if not root.exists():
+              print("no payload-uploads")
+              sys.exit(0)
+          groups = defaultdict(list)
+          for p in root.rglob("*.json"):
+              obj = json.loads(p.read_text())
+              groups[obj["dest"]].append((obj["index"], obj, p))
+          written = []
+          for dest, items in groups.items():
+              items.sort(key=lambda x: x[0])
+              total = items[0][1]["total"]
+              if len(items) != total:
+                  print(f"skip {dest}: {len(items)}/{total}")
+                  continue
+              b64 = "".join(x[1]["b64"] for x in items)
+              data = gzip.decompress(base64.b64decode(b64))
+              expected = items[0][1].get("sha256")
+              if expected:
+                  got = hashlib.sha256(data).hexdigest()
+                  if got != expected:
+                      raise SystemExit(f"sha mismatch {dest}: {got} != {expected}")
+              path = pathlib.Path(dest)
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(data)
+              print(f"wrote {dest} ({len(data)} bytes)")
+              written.append(dest)
+              for _, _, p in items:
+                  p.unlink()
+          for dirpath, dirnames, filenames in os.walk(root, topdown=False):
+              if not os.listdir(dirpath):
+                  os.rmdir(dirpath)
+          pathlib.Path("/tmp/materialized-files.txt").write_text("\n".join(written))
+          print("done", written)
+          PY
+      - name: Commit materialized files
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f --ignore-unmatch .mcp-upload-probe.txt || true
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: materialize MCP-uploaded large files"
+          git push origin HEAD:main
+          OTHER=cursor/standalone-desktop-app-1f95
+          if git ls-remote --heads origin "$OTHER" | grep -q .; then
+            git fetch origin "$OTHER"
+            git checkout -B "$OTHER" "origin/$OTHER"
+            for f in worker/src/db/repos.ts worker/src/db/repos.test.ts scripts/uat-local.ts database/seeds/synthetic/demo-dataset.json frontend/public/demo-dataset.json package-lock.json; do
+              if git cat-file -e "main:$f" 2>/dev/null; then
+                git checkout main -- "$f"
+              fi
+            done
+            git rm -f --ignore-unmatch .mcp-upload-probe.txt || true
+            git add -A
+            if git diff --cached --quiet; then
+              echo "feature branch already has files"
+            else
+              git commit -m "chore: materialize MCP-uploaded large files"
+              git push origin "HEAD:$OTHER"
+            fi
+          fi
