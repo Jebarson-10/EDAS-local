@@ -1,0 +1,51 @@
+name: Release Windows desktop app
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create (for example v0.1.1)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Verify source
+        run: npm run typecheck
+      - name: Run tests
+        run: npm test
+      - name: Build portable Windows app
+        run: npm run desktop:dist:win:portable
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $asset = Get-ChildItem release -Filter "*-win.zip" | Select-Object -First 1
+          if (-not $asset) { throw "Portable ZIP was not produced" }
+          $hash = (Get-FileHash -Algorithm SHA256 $asset.FullName).Hash.ToLower()
+          "$hash  $($asset.Name)" | Set-Content "$($asset.FullName).sha256" -NoNewline
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = Get-ChildItem release -Filter "*-win.zip" | ForEach-Object FullName
+          $checksums = Get-ChildItem release -Filter "*-win.zip.sha256" | ForEach-Object FullName
+          gh release create $env:RELEASE_TAG $assets $checksums --target $env:GITHUB_SHA --title "Erode Exam Duty $env:RELEASE_TAG" --generate-notes

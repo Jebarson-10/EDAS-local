@@ -64,6 +64,18 @@ migrations and seeds the synthetic dataset under the OS app-data directory — o
 File → Open data folder reveals it, and copying that folder is a full backup. The window
 binds a free loopback port; nothing is exposed to the network.
 
+When internet is available, the desktop shell compares its bundled Git commit
+with GitHub `main` and offers the Releases download page if a newer build exists.
+It never downloads or replaces the application silently.
+
+### Publishing an update
+
+Push a version tag such as `v0.1.1`, or run **Release Windows desktop app** from
+the GitHub Actions tab with that tag. The workflow verifies the source, builds
+the Windows portable ZIP, generates a SHA-256 checksum, and publishes both to
+GitHub Releases. Builds are unsigned until a Windows code-signing certificate
+is configured as a GitHub secret.
+
 ### Operator workflow
 
 1. Start in **Master data**. Add/update blocks, then schools and centres, then
