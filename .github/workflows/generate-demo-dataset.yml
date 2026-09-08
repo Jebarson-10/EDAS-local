@@ -1,0 +1,60 @@
+name: Generate synthetic demo dataset
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/generate-demo-dataset.yml"
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate seeded demo-dataset.json
+        run: npx --yes tsx scripts/generate-synthetic-dataset.ts
+      - name: Verify exact bytes
+        run: |
+          python3 - << 'PY'
+          import hashlib, pathlib
+          expected = "5e34350b07ba606a2d55152f62c6a9dadd95510edfaed83fefa240c894d91b66"
+          for p in [
+            "database/seeds/synthetic/demo-dataset.json",
+            "frontend/public/demo-dataset.json",
+          ]:
+              data = pathlib.Path(p).read_bytes()
+              got = hashlib.sha256(data).hexdigest()
+              print(p, len(data), got)
+              if got != expected:
+                  raise SystemExit(f"sha mismatch {p}: {got}")
+          PY
+      - name: Commit to main and feature branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add database/seeds/synthetic/demo-dataset.json frontend/public/demo-dataset.json
+          if git diff --cached --quiet; then
+            echo "demo-dataset already present"
+            exit 0
+          fi
+          git commit -m "chore: add seeded synthetic demo-dataset.json"
+          git push origin HEAD:main
+          OTHER=cursor/standalone-desktop-app-1f95
+          if git ls-remote --heads origin "$OTHER" | grep -q .; then
+            git fetch origin "$OTHER"
+            git checkout -B "$OTHER" "origin/$OTHER"
+            git checkout main -- database/seeds/synthetic/demo-dataset.json frontend/public/demo-dataset.json
+            git add -A
+            if git diff --cached --quiet; then
+              echo "feature branch already has demo-dataset"
+            else
+              git commit -m "chore: add seeded synthetic demo-dataset.json"
+              git push origin "HEAD:$OTHER"
+            fi
+          fi
