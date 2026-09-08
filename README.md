@@ -4,6 +4,29 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 **Correctness, auditability, and historical integrity take priority over UI polish.**
 
+## What this application does
+
+This is an offline-first application for 12th-standard public-examination duty
+allotment across Erode blocks and centres. It lets the CEO office maintain the
+master lists, generate deterministic theory/practical/hall allotments, review
+shortages and reasons, approve auditable changes, and export school-wise and
+teacher-wise outputs.
+
+- **Theory:** prevents own/clubbed-school and recent-centre conflicts; uses a
+  straight-line 10 km home-or-current-school radius; chooses HM/Principal first
+  and Senior PG fallback block-first, then district-wide.
+- **Practical:** creates balanced 50-student batches, supports distinct
+  subjects in parallel, records internal/external examiners and retains annual
+  role-switch history.
+- **Hall:** calculates one invigilator per 20 students plus 10% standby and
+  rotates eligible staff across dates/sessions.
+- **Fairness:** recent theory, practical and hall duties are a soft preference;
+  a shortage is reported rather than hidden or force-assigned.
+
+The remaining official inputs that are deliberately not guessed are the
+Department Officer staffing table by student strength and the formal report
+sign-off layout. See [`docs/open-questions.md`](docs/open-questions.md).
+
 **Local slice is frozen.** This HEAD is the in-repo product: deterministic engines, validators, admin UI, local SQLite API, and gated UAT. Do not hunt more inventable honesty bugs unless a named defect is reported. Cloudflare D1/R2, Access/IdP, staging UAT, open-question answers, and production promote stay on the client checklist — [`docs/client-inputs-checklist.md`](docs/client-inputs-checklist.md). Those items cannot be invented; filling `REPLACE_ME` or inventing officers is not progress.
 
 ## Stack
@@ -27,21 +50,35 @@ network access at all.
 npm install
 npm run desktop:dev               # run the packaged app from source
 npm run desktop:dist              # Linux AppImage → release/
-npm run desktop:dist:win:portable # Windows portable zip — builds on any OS
-npm run desktop:dist:win          # Windows installer — needs Windows or wine
+npm run desktop:dist:win:portable # Windows portable ZIP → release/
+npm run desktop:dist:win          # Windows installer
 npm run desktop:dist:mac          # macOS dmg — needs macOS
 ```
 
-The portable Windows zip is the artifact to hand over when you are not building on
-Windows: unzip it anywhere and run `Erode Exam Duty.exe`, no install and no admin
-rights. The NSIS installer additionally needs wine when built from Linux.
+For the portable Windows build, unzip `Erode Exam Duty-<version>-win.zip` and run
+`Erode Exam Duty.exe`. It does not need installation or administrator rights.
 
-The build is a single file in `release/` (about 117 MB) and needs nothing installed on
-the operator's machine. On first launch it creates its database, applies the SQL
+On first launch the application creates its database, applies the SQL
 migrations and seeds the synthetic dataset under the OS app-data directory — on Linux
 `~/.config/exam-duty-allotment/data/`, on Windows `%APPDATA%\exam-duty-allotment\data\`.
 File → Open data folder reveals it, and copying that folder is a full backup. The window
 binds a free loopback port; nothing is exposed to the network.
+
+### Operator workflow
+
+1. Start in **Master data**. Add/update blocks, then schools and centres, then
+   teachers. The teacher form filters schools by the chosen block. Coordinates,
+   capacity/student strength, designation, subject and seniority are required so
+   incomplete records do not silently enter the allocator.
+2. Import any current spreadsheet data if available; inspect the preview and
+   correct issues. Imports update current master data only — never prior duty
+   history.
+3. Create/select an exam cycle and rule version, then generate Theory,
+   Practical and Hall allocations. Read all shortage and rule-reason output.
+4. Record authorised manual exemptions/overrides as an administrator; every one
+   is audited. Publish only after validation succeeds.
+5. Export the school-wise and teacher-wise reports, and keep the automatic local
+   backup snapshots.
 
 Since there is no identity provider on a desktop install, the header role switcher is
 the identity for that machine. Hosted deployments still refuse those headers and require
@@ -68,10 +105,9 @@ npm run dev:full
 Allocation runs entirely in the browser. The local API (and Cloudflare Worker when D1/R2 are bound) persists runs, publish → history, imports, backups, and transactional restore.
 
 Nothing here needs a Cloudflare account. `.data/erode-exam-duty.sqlite` is the live
-store, and the admin shell autosaves a JSON snapshot to `.data/autosave/` after every
-change — the header badge shows the last save time and saves on click. The last twelve
-snapshots are kept alongside `latest.json`, so a crash costs at most the current edit.
-Restore any of them from Backups → Restore.
+development store, and the admin shell autosaves a JSON snapshot after every change.
+The desktop application keeps `latest.json` plus the last twelve rotating snapshots,
+so a crash costs at most the current edit. Restore them from **Backups → Restore**.
 
 ```bash
 npm run e2e:cycle        # restore → allocate → persist → publish against SQLite
@@ -111,3 +147,14 @@ npm run load:theory      # 5k teachers / 350 centres
 ## Synthetic data only
 
 Fixtures and seeds contain no real teacher PII or government credentials.
+
+## Verification
+
+```bash
+npm run typecheck
+npm test
+npm run desktop:dist:win:portable
+```
+
+The test suite covers rule parameters, history, deterministic theory/practical/hall
+allocation, independent validation, authorization and SQLite persistence.

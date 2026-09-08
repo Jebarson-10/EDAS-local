@@ -18,12 +18,21 @@ Scheduling + pairing, not only single-role assignment.
 
 ## Batching
 
-Target batch size from rule parameter (default suggestion: 50).  
-Uneven populations use a **balancing** function — do not assume `50 + remainder` unless officially confirmed (OPEN).
+Target batch size is 50. Uneven populations are split into balanced batches
+so the whole subject strength is covered (for example 70 becomes 35 + 35).
 
 ## Sessions
 
 Represent DAY + MORNING | AFTERNOON; allow parallel subjects across schools where conflict rules permit.
+
+Different subjects of the **same** school may also run in parallel. A subject's
+own batches remain sequential (for example, 100 Physics students become a
+50-student morning batch and a 50-student afternoon batch), while Physics,
+Chemistry, Biology, Computer Science and Vocational batches may share that
+morning or afternoon when they have distinct eligible examiner pairs. This
+lets multiple subject groups complete within the configured 2–3-day window;
+the conflict engine still prevents an examiner from appearing twice in one
+date/session.
 
 ## Examiners
 
@@ -54,12 +63,9 @@ subject codes back onto the demand's subject ids and passes them as
 `dataset.pairHistory`. Rows written by the cycle being generated are excluded,
 because the documented rule switches on the *next* cycle.
 
-Known limitation (OQ-008): pair memory is keyed on one school, and the switch
-only fires when both teachers are eligible for both roles at that school. Under
-the strict "internal from the host school, external from elsewhere" reading no
-stored pair can ever swap, so the persisted memory is currently inert in
-practice. Whether the switch is meant to be cross-school is a client question —
-see `docs/open-questions.md`.
+Eligibility is determined from the teacher's current school. Pair history is
+kept for the annual role switch where both teachers remain eligible for their
+respective current-school roles.
 
 ## Outputs
 

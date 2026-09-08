@@ -71,7 +71,7 @@ Precompute `teacher × centre` (or duty requirement) with:
 ## Practical strategy (current)
 
 1. Batch students with balancing function toward `practical_batch_size`.
-2. Enumerate feasible (date, session) slots within `practical_completion_days`.
+2. Enumerate feasible (date, session) slots within `practical_completion_days`; batches of the same subject are sequential, while different subjects may use a slot in parallel with distinct examiner pairs.
 3. Match internal/external with eligibility + pair history role switch preference (soft/hard per config — OPEN).
 4. If no schedule finishes in window → `NO VALID SCHEDULE` with explanation.
 
@@ -79,7 +79,7 @@ Precompute `teacher × centre` (or duty requirement) with:
 
 1. Compute required halls and standby from parameters.
 2. Generate candidates with shared eligibility helpers.
-3. Assign with fairness scoring and cross-module conflict set.
+3. Assign with fairness scoring and a cross-module conflict set. A teacher may be considered again on another date/session, but recent history and current-cycle workload are penalized so eligible colleagues are selected first.
 
 ## Fairness / scoring
 

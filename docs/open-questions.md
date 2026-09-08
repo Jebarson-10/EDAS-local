@@ -211,6 +211,26 @@ parameters for the rest of the session, but does **not** write
 
 ---
 
-## Resolved
+## Client decisions received (2026-09-08)
 
-_None yet — awaiting client responses._
+The following decisions supersede any earlier interim wording on the same
+topic. They are recorded here until the related rule-version and report
+configuration screens have received the remaining formal inputs.
+
+| Topic | Confirmed decision |
+|---|---|
+| Location eligibility | Use a straight-line 10 km radius (Haversine). A teacher is eligible if either current-school or home distance qualifies. Missing coordinates must be requested/corrected; they are not silently assumed. |
+| Repeat-centre history | The lookback period is user-defined. An approved manual exception is permitted, but requires administrator approval and an audit record. |
+| Chief designation | Principal and HM are equivalent for Chief of Examination priority. Eligible Senior PG is the fallback when this pool is short. |
+| Senior PG fallback | Use candidates from the centre's block first; only then consider district-wide candidates. |
+| Exemptions | The administrator decides physical-disability/other manual exemptions and records them. |
+| Practical batches | Determine batch count from student strength, target 50 students, and split remainders equally. Different subjects may run in parallel where distinct examiner pairs are available. |
+| Practical examiner eligibility | Use the teacher's current school. Where two teachers cover one subject, rotate internal/external roles each year when they remain eligible. |
+| Fairness | Include other recent duties. It remains a preference: a teacher may be selected when a shortage remains after other eligible teachers have been considered. |
+
+## Still required before a final official allocation
+
+1. The student-strength-to-Department-Officer staffing table and confirmation
+   of Chief count per centre/day/session.
+2. The approved school-wise and teacher-wise report columns, grouping,
+   signatures and letterhead layout.

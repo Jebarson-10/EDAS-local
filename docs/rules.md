@@ -1,8 +1,8 @@
 # Rules Catalogue
 
 Rules are stored as **versioned parameters** (`rule_versions` + `rule_parameters`).  
-This document describes the **intended rule set** from the product specification.  
-Items marked **OPEN** must not be hard-coded as final until confirmed — see `docs/open-questions.md`.
+This document describes the **confirmed rule set** from the product specification.
+The only remaining business inputs are listed in `docs/open-questions.md`.
 
 ## Rule versioning
 
@@ -58,6 +58,8 @@ HM → Senior PG → Other approved fallback category
 - `district`
 - `block`
 - `school`
+- `block_then_district` — when HM/Principal availability is exhausted, choose an
+  eligible Senior PG from the centre's block before considering the district.
 
 Active mode is a rule-version parameter.
 
@@ -65,16 +67,16 @@ Active mode is a rule-version parameter.
 
 Look back configured years (example: 2). Exclude centres assigned in that window from historical DB — not from current Excel alone.
 
-## Location policy (OPEN confirmation)
-
-Default interpretation pending official confirmation:
+## Location policy
 
 ```text
 eligible if distance_home_to_centre <= max_km
          OR distance_school_to_centre <= max_km
 ```
 
-Default `max_km` suggestion from spec: `10`. Distance = Haversine; no road routing unless client requires it.
+`max_km` is 10 by default. Distance is Haversine (straight-line), not road
+distance. A missing coordinate is a data-quality issue: the operator must
+supply it before that location can be used for allocation.
 
 ## Fairness (soft)
 
@@ -85,6 +87,11 @@ Compute from history:
 
 Recently assigned teachers are **deprioritized** (soft).  
 “Recently” has no fixed meaning until `fairness_window` is officially configured.
+
+Within a newly generated hall run, each completed assignment also increases a
+soft workload penalty. A teacher is never reused in the same date/session, but
+may be considered again on another date/session after eligible colleagues have
+been preferred. This prevents an artificial shortage across a multi-day exam.
 
 ## Fairness score (deterministic)
 
@@ -108,7 +115,7 @@ Weights live in the rule version. Prefer deterministic tie-breakers (e.g. employ
 
 | Parameter | Default suggestion | Notes |
 |-----------|-------------------|-------|
-| practical_batch_size | 50 | Balancing function for uneven counts — OPEN |
+| practical_batch_size | 50 | Split all students into near-equal batches; no batch is silently discarded |
 | practical_completion_days | configured (e.g. 2–3) | Entire school practical within window or `NO VALID SCHEDULE` |
 | subjects | Physics, Chemistry, Biology, CS, Vocational | Extensible without schema redesign |
 
