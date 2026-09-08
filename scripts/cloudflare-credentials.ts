@@ -275,3 +275,15 @@ export function waitClaimedShouldRenew(opts: {
   if (opts.claimWindowElapsed) return true;
   return opts.consecutiveD1Failures >= 3;
 }
+
+/**
+ * staging:raise + uat:staging need both Pages and a live R2 list.
+ * Pages 200 with R2 403 would deploy unbound FILES, fail r2Ok, and
+ * used to kill the waiter — wait until R2 lists (HTTP 200, empty ok).
+ */
+export function waitClaimedShouldRaise(opts: {
+  pagesOk: boolean;
+  r2Listable: boolean;
+}): boolean {
+  return opts.pagesOk && opts.r2Listable;
+}
