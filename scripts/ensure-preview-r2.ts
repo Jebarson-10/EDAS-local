@@ -43,7 +43,7 @@ export async function ensurePreviewR2(input: {
     if (isCloudflareForbidden(err)) {
       if (required) {
         throw new Error(
-          `CF_R2_PREVIEW_BUCKET=${bucket} but R2 API returned 403. Add Account / Workers R2 Storage / Edit to the dashboard token, or unset the variable to leave FILES unbound (stored:false).`,
+          `CF_R2_PREVIEW_BUCKET=${bucket} but R2 API returned 403. Add Account / Workers R2 Storage / Edit to the dashboard token, then re-run npm run staging:raise. Preview cfat_ tokens cannot list R2. Unsetting the variable still fails closed unless UAT_ALLOW_UNBOUND_R2=1.`,
         );
       }
       return { bound: false, bucket: null, created: false, reason: "forbidden" };
