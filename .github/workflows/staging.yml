@@ -2,6 +2,7 @@ name: Staging raise
 
 # Deploys Pages preview + preview D1. Never production.
 # Requires repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# Optional: ACCESS_EMAIL_ROLE_MAP (OQ-010 real officer emails only).
 on:
   workflow_dispatch:
 
@@ -14,12 +15,30 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Require Cloudflare secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Add GitHub Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (D1 edit + Pages edit), then re-run this workflow."
+            echo "Do not invent ACCESS_EMAIL_ROLE_MAP. Omit it until OQ-010 officer emails are supplied."
+            exit 1
+          fi
       - run: npm install
+      - run: npm run check:pages
       - run: npm run check:bindings
-      - run: npm run test:scripts
       - name: Raise preview D1 + Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           ACCESS_EMAIL_ROLE_MAP: ${{ secrets.ACCESS_EMAIL_ROLE_MAP }}
         run: npm run staging:raise
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-raise-evidence
+          path: |
+            .data/staging-raise-latest.json
+            .data/uat-restore-latest.json
+          if-no-files-found: ignore
