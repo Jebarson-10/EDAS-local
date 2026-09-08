@@ -3,8 +3,8 @@
  *
  * Unclaimed accounts 403 Pages. Claiming keeps Workers + D1; the preview
  * cfat_ token still cannot call Pages. After claim, drop a dashboard token
- * with Pages edit as gitignored .data/cloudflare-client.env — this loop
- * re-resolves every poll.
+ * with Pages edit (and optional ACCESS_EMAIL_ROLE_MAP from OQ-010) as
+ * gitignored .data/cloudflare-client.env — this loop re-resolves every poll.
  *
  * Do not remint while D1 still lists — that would drop a claimed (or still
  * live) restored database. Remint only when D1 is gone (unclaimed expiry).
@@ -14,10 +14,12 @@
  * Evidence: .data/staging-wait-claimed-latest.json
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  injectAccessEmailRoleMap,
   injectCloudflareCredentials,
+  previewD1FromTemporaryToml,
   resolveCloudflareCredentials,
   waitClaimedShouldRenew,
 } from "./cloudflare-credentials.ts";
@@ -63,6 +65,45 @@ async function d1Listable(token: string, accountId: string): Promise<boolean> {
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+async function d1Counts(
+  token: string,
+  accountId: string,
+): Promise<Record<string, number> | null> {
+  const tomlPath = join(ROOT, ".data/wrangler.temporary.toml");
+  if (!existsSync(tomlPath)) return null;
+  const db = previewD1FromTemporaryToml(readFileSync(tomlPath, "utf8"));
+  if (!db) return null;
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${db.id}/query`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sql: "SELECT (SELECT COUNT(*) FROM teachers) t, (SELECT COUNT(*) FROM schools) s, (SELECT COUNT(*) FROM centres) c, (SELECT COUNT(*) FROM duty_assignment_history) h",
+        }),
+      },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      result?: { results?: { t: number; s: number; c: number; h: number }[] }[];
+    };
+    const row = json.result?.[0]?.results?.[0];
+    if (!row) return null;
+    return {
+      teachers: row.t,
+      schools: row.s,
+      centres: row.c,
+      history: row.h,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -117,11 +158,15 @@ async function main() {
       const d1ok = await d1Listable(creds.token, creds.accountId);
       consecutiveD1Failures = d1ok ? 0 : consecutiveD1Failures + 1;
       const claimWindowElapsed = Date.now() >= until;
+      const counts = d1ok
+        ? await d1Counts(creds.token, creds.accountId)
+        : null;
       record({
         ok: false,
         waiting: !probe.ok,
         pagesStatus: probe.status,
         d1Listable: d1ok,
+        d1Counts: counts,
         consecutiveD1Failures,
         claimWindowElapsed,
         source: creds.source,
@@ -176,6 +221,7 @@ async function main() {
       const wait = Math.min(INTERVAL_MS, 15_000);
       await new Promise((r) => setTimeout(r, wait));
 
+      // Pick up a dashboard token from env or gitignored .data/cloudflare-client.env.
       const again = resolveCloudflareCredentials();
       if (again) {
         if (again.source !== creds.source) {
@@ -185,6 +231,10 @@ async function main() {
         }
         if (again.source === "client-env") {
           injectCloudflareCredentials(again);
+        } else {
+          // Do not inject the preview cfat_ into process.env (that would
+          // mask a later dashboard drop file). Still pass through OQ-010.
+          injectAccessEmailRoleMap(again.accessEmailRoleMap);
         }
         creds = again;
       }

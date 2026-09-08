@@ -7,8 +7,17 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { resolveCloudflareCredentials } from "./cloudflare-credentials.ts";
-import { pagesPreviewUatError, placeholderRoleMapError } from "./section-107-guards.ts";
+import {
+  pagesForbiddenOnTemporaryAccount,
+  resolveCloudflareCredentials,
+} from "./cloudflare-credentials.ts";
+import {
+  liveD1Gate,
+  liveR2Gate,
+  pagesStagingUatGate,
+  placeholderRoleMapError,
+  r2BucketsFromListJson,
+} from "./section-107-guards.ts";
 
 const ROOT = process.cwd();
 const OUT = join(ROOT, ".data/section-107-latest.json");
@@ -44,12 +53,18 @@ async function cfProbe(
   token: string,
   accountId: string,
   path: string,
-): Promise<{ ok: boolean; status: number }> {
+): Promise<{ ok: boolean; status: number; json: unknown }> {
   const res = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
-  return { ok: res.ok, status: res.status };
+  let json: unknown = null;
+  try {
+    json = JSON.parse(await res.text());
+  } catch {
+    json = null;
+  }
+  return { ok: res.ok, status: res.status, json };
 }
 
 async function main() {
@@ -57,26 +72,45 @@ async function main() {
   const creds = resolveCloudflareCredentials();
   const token = creds?.token;
   const accountId = creds?.accountId;
-  const map = process.env.ACCESS_EMAIL_ROLE_MAP?.trim();
+  const map =
+    creds?.accessEmailRoleMap?.trim() ||
+    process.env.ACCESS_EMAIL_ROLE_MAP?.trim();
 
-  const tmp = readJson(join(ROOT, ".data/uat-temporary-latest.json"));
-  const restore = readJson(join(ROOT, ".data/uat-restore-latest.json"));
-  const liveD1 =
-    restore?.ok === true ||
-    tmp?.d1Ok === true ||
-    (typeof tmp?.databaseId === "string" && tmp.databaseId.length > 0);
+  let d1ListStatus: number | null = null;
+  let d1Listed: { name?: string; id: string }[] = [];
+  if (token && accountId) {
+    const d1 = await cfProbe(token, accountId, "/d1/database?per_page=10");
+    d1ListStatus = d1.status;
+    const rows = (
+      d1.json as { result?: { name?: string; uuid?: string; id?: string }[] } | null
+    )?.result;
+    d1Listed = (rows ?? [])
+      .map((row) => ({
+        name: row.name,
+        id: String(row.uuid ?? row.id ?? ""),
+      }))
+      .filter((row) => row.id.length > 0);
+  }
+  const d1Gate = liveD1Gate({ listStatus: d1ListStatus, listed: d1Listed });
+  const waitEvidence = readJson(join(ROOT, ".data/staging-wait-claimed-latest.json"));
+  const counts = waitEvidence?.d1Counts as
+    | { teachers?: number; history?: number }
+    | undefined;
+  const d1Evidence =
+    d1Gate.status === "proven" &&
+    typeof counts?.teachers === "number" &&
+    typeof counts?.history === "number"
+      ? `${d1Gate.evidence} Waiter counts teachers=${counts.teachers} history=${counts.history}.`
+      : d1Gate.evidence;
   gates.push({
     id: "live-d1",
     required: true,
-    status: liveD1 ? "proven" : "missing",
-    evidence: liveD1
-      ? "Temporary or restored D1 exists (.data/uat-temporary-latest.json / uat-restore-latest.json). Client preview D1 still needs staging:raise."
-      : "No live D1 evidence file.",
+    status: d1Gate.status,
+    evidence: d1Evidence,
   });
 
-  let r2Status: Gate["status"] = "missing";
-  let r2Evidence =
-    "No Cloudflare credentials — cannot list R2. Unclaimed temporary accounts 403 R2.";
+  let r2ListStatus: number | null = null;
+  let r2Listed: { name: string }[] = [];
   let pagesStatus: Gate["status"] = "missing";
   let pagesEvidence =
     "No Cloudflare credentials — cannot create Pages. Unclaimed temporary accounts 403 Pages until claimed.";
@@ -84,35 +118,24 @@ async function main() {
     const src =
       creds?.source === "temporary" ? "temporary account token" : "client token";
     const r2 = await cfProbe(token, accountId, "/r2/buckets");
-    if (r2.ok) {
-      r2Status = "proven";
-      r2Evidence = `R2 API reachable with the ${src}.`;
-    } else if (r2.status === 403) {
-      r2Status =
-        creds?.source === "temporary" ? "missing" : "optional-unbound";
-      r2Evidence =
-        creds?.source === "temporary"
-          ? "R2 API 403 on the unclaimed temporary account. Claim it, or bind FILES on a client account."
-          : "R2 API 403. Backups may stay stored:false. Bind FILES when the client creates a bucket.";
-    } else {
-      r2Evidence = `R2 API HTTP ${r2.status}`;
-    }
+    r2ListStatus = r2.status;
+    r2Listed = r2BucketsFromListJson(r2.json);
     const pages = await cfProbe(token, accountId, "/pages/projects");
     if (pages.ok) {
       pagesStatus = "proven";
       pagesEvidence = `Pages API reachable with the ${src}.`;
     } else if (pages.status === 403 && creds?.source === "temporary") {
-      pagesEvidence =
-        "Pages API HTTP 403 on the unclaimed temporary account. Claim the URL in .data/uat-temporary-latest.json, then re-run npm run staging:raise.";
+      pagesEvidence = pagesForbiddenOnTemporaryAccount(creds);
     } else {
       pagesEvidence = `Pages API HTTP ${pages.status}`;
     }
   }
+  const r2Gate = liveR2Gate({ listStatus: r2ListStatus, buckets: r2Listed });
   gates.push({
     id: "live-r2",
-    required: false,
-    status: r2Status,
-    evidence: r2Evidence,
+    required: true,
+    status: r2Gate.status,
+    evidence: r2Gate.evidence,
   });
   gates.push({
     id: "pages-api",
@@ -140,19 +163,20 @@ async function main() {
   });
 
   const staging = readJson(join(ROOT, ".data/uat-staging-latest.json"));
-  const stagingUrl = String(staging?.url ?? process.env.STAGING_URL ?? "");
-  const pagesUatError = stagingUrl ? pagesPreviewUatError(stagingUrl.replace(/\/api\/health$/, "")) : "No STAGING_URL / uat-staging-latest.json.";
-  const stagingOk =
-    staging?.ok === true &&
-    !pagesUatError &&
-    (staging.health as { dbOk?: boolean } | undefined)?.dbOk === true;
+  const health = staging?.health as { dbOk?: boolean; r2Ok?: boolean } | undefined;
+  const uat = pagesStagingUatGate({
+    envUrl: process.env.STAGING_URL ?? "",
+    fileUrl: String(staging?.url ?? ""),
+    fileOk: staging?.ok === true,
+    dbOk: health?.dbOk === true,
+    r2Ok: health?.r2Ok === true,
+    allowUnboundR2: process.env.UAT_ALLOW_UNBOUND_R2 === "1",
+  });
   gates.push({
     id: "pages-staging-uat",
     required: true,
-    status: stagingOk ? "proven" : "missing",
-    evidence: stagingOk
-      ? `uat:staging dbOk on ${stagingUrl}`
-      : pagesUatError || "Run STAGING_URL=https://<preview>.pages.dev npm run uat:staging",
+    status: uat.status,
+    evidence: uat.evidence,
   });
 
   gates.push({
