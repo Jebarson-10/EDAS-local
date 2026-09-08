@@ -5,11 +5,12 @@
  *   npm run staging:restore
  *
  * Snapshot search order: CANONICAL_BACKUP, .data/uat-temporary-canonical.json,
- * fixtures/staging-canonical-d1.json. Does not invent Access maps or promote
- * production. R2 stays unbound unless the destination already has FILES.
+ * fixtures/staging-canonical-d1.json, then .json.gz / .json.gz.b64.
+ * Does not invent Access maps or promote production. R2 stays unbound
+ * unless the destination already has FILES.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
@@ -24,6 +25,7 @@ import {
 import {
   createD1HttpClient,
   findCanonicalBackup,
+  readCanonicalBackupText,
   resolveD1HttpTarget,
 } from "./d1-http-client.ts";
 
@@ -91,7 +93,7 @@ async function main() {
     );
     process.exit(0);
   }
-  const payload = JSON.parse(readFileSync(snapshot, "utf8")) as BackupPayload;
+  const payload = JSON.parse(readCanonicalBackupText(snapshot)) as BackupPayload;
   const valid = validateBackupPayload(payload);
   if (!valid.ok) throw new Error(`snapshot invalid: ${valid.error}`);
 
