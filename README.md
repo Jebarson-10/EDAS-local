@@ -118,7 +118,8 @@ npm run check:bindings   # reports REPLACE_ME; `-- --env staging` fails until pr
 npm run check:pages      # a Pages deploy would really serve /api (functions + wrangler.toml)
 npm run check:pages:dev  # runs the Pages pipeline + D1 under Miniflare — no Cloudflare account
 npm run check:app        # standalone install gate: fresh SQLite, SPA deep links, no traversal
-npm run staging:raise    # live Pages preview + D1 when CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID are set
+npm run staging:raise    # live Pages preview + D1 (client token, or a claimed temporary account)
+npm run staging:temporary # 60-minute Worker+D1 when no client token (claim URL printed)
 npm run uat:staging      # STAGING_URL=… probe of the deployed /api/health for dbOk
 npm run smoke:ui         # headless walkthrough: import → allocate → publish → reports
 npm run check:responsive # dashboard renders at 420 / 820 / 1440 px
