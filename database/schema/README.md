@@ -1,0 +1,2 @@
+-- Canonical schema reference (keep in sync with migrations)
+-- See migrations/001_initial_schema.sql
