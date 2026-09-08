@@ -45,7 +45,6 @@ type ExaminerPairRow = {
   internal_teacher_id: string;
   external_teacher_id: string;
   exam_cycle_id: string | null;
-  recorded_at?: string | null;
 };
 
 /**
@@ -55,9 +54,6 @@ type ExaminerPairRow = {
  *
  * Pairs recorded by the cycle being generated are skipped: the documented rule
  * is a switch on the *next* cycle (docs/practical-engine.md, OQ-008).
- *
- * `recordedAt` is carried through so the engine can order two pairings from the
- * same academic year (a cycle and its amendment) by which came last.
  */
 function toPairHistory(
   rows: ExaminerPairRow[],
@@ -80,7 +76,6 @@ function toPairHistory(
         academicYear: r.academic_year,
         internalTeacherId: r.internal_teacher_id,
         externalTeacherId: r.external_teacher_id,
-        ...(r.recorded_at ? { recordedAt: r.recorded_at } : {}),
       };
     });
 }

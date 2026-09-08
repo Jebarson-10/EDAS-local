@@ -17,12 +17,9 @@ export default defineConfig({
     },
   },
   server: {
-    // Dual-stack (::) so 127.0.0.1 and [::1]/localhost both reach the preview.
-    host: "::",
+    host: "127.0.0.1",
     port: 43123,
     strictPort: true,
-    // Cursor / cloud preview proxies send a Host that is not localhost.
-    allowedHosts: true,
     proxy: {
       "/api": {
         target: "http://127.0.0.1:43124",

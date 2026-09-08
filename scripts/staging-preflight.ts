@@ -21,11 +21,10 @@ function run(label: string, cmd: string, args: string[], allowFail = false) {
 }
 
 run("check:routes", "npm", ["run", "check:routes"]);
-run("check:pages", "npm", ["run", "check:pages"]);
 run("check:bindings (report)", "npm", ["run", "check:bindings"]);
 // Strict env gate documents blocker; expect fail until client fills REPLACE_ME
 const bindStatus = run(
-  "check:bindings --env staging (expect fail until preview D1 id)",
+  "check:bindings --env staging (expect fail until D1/R2 ids)",
   "npm",
   ["run", "check:bindings", "--", "--env", "staging"],
   true,
@@ -54,23 +53,13 @@ if (!existsSync(routes)) {
   console.error("Missing frontend/public/_routes.json");
   process.exit(1);
 }
-
-// The desktop executable runs this same server, so gate the offline install too.
-// It builds into desktop/ui, leaving frontend/dist as the hosted Pages bundle.
-run("app:build", "npm", ["run", "app:build"]);
-run("check:app (standalone one-port install)", "npm", ["run", "check:app"]);
-
-// Miniflare runs the same wrangler.toml, functions/ and D1 binding a deploy
-// uses, so this is the strongest staging evidence available without an account.
-run("check:pages:dev (Pages pipeline + D1 via Miniflare)", "npm", [
-  "run",
-  "check:pages:dev",
-]);
+console.log("\n=== pages /api routes file present ===");
+console.log(routes);
 
 console.log("\nstaging:preflight complete.");
 if (bindStatus !== 0) {
   console.log(
-    "NOTE: Cloudflare Pages preview D1 still REPLACE_ME — §107 staging deploy blocked until CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (npm run staging:raise) or a real database_id in [env.preview] (expected).",
+    "NOTE: Cloudflare D1/R2 bindings still REPLACE_ME — §107 staging deploy blocked until client fills ids (expected).",
   );
 } else {
   console.log(

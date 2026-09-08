@@ -65,7 +65,7 @@ import type {
 } from "@exam-duty/allocation-engine";
 import type { ValidationResult } from "@exam-duty/validator";
 import { loadDemoDataset, type DemoDataset } from "../data/demoStore";
-import { indexPracticalPages } from "../lib/practicalHydration";
+import { autosaveApi } from "../lib/api";
 
 export interface AuditEntry {
   id: string;
@@ -235,6 +235,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [hydrateReport, setHydrateReport] =
     useState<HydrateReport>(EMPTY_HYDRATE_REPORT);
   const [hydrateReady, setHydrateReady] = useState(false);
+
+  // The desktop API snapshots its canonical SQLite state after changes. A
+  // short debounce coalesces a form edit that updates several React states.
+  useEffect(() => {
+    if (!hydrateReady || role === "VIEWER") return;
+    const timer = window.setTimeout(() => {
+      void autosaveApi(role);
+    }, 750);
+    return () => window.clearTimeout(timer);
+  }, [
+    audit,
+    dataset,
+    designationHistory,
+    examCycle,
+    exemptions,
+    hydrateReady,
+    locationHistory,
+    role,
+    rules,
+    runs,
+    schoolHistory,
+  ]);
 
   const logAudit = useCallback(
     (action: string, detail: string, reason?: string) => {
@@ -514,6 +536,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               designation: String(t.designation),
               subject: t.subject ?? prior?.subject ?? null,
               seniorityRank: t.seniority_rank ?? prior?.seniorityRank ?? null,
+              joiningDate: t.joining_date ?? prior?.joiningDate ?? null,
               homeLatitude:
                 typeof t.home_latitude === "number"
                   ? t.home_latitude
@@ -696,24 +719,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (runsApi?.runs?.length) {
           const hydrated: AllocationRunRecord[] = [];
-          // Every cycle with a practical run is fetched: batch ids repeat
-          // across cycles, so one cycle's rows can neither stand in for
-          // another's nor be looked up by batch id alone.
-          const practicalCycleIds = Array.from(
-            new Set(
-              runsApi.runs
-                .filter((r) => r.module === "PRACTICAL")
-                .map((r) => String(r.exam_cycle_id ?? cycleId ?? ""))
-                .filter((id) => id.length > 0),
-            ),
-          );
-          const practicalPages = await Promise.all(
-            practicalCycleIds.map((id) =>
-              api.fetchPracticalBatchesApi("OFFICER", id),
-            ),
-          );
-          const practicalIndex = indexPracticalPages(practicalPages);
-          const { schedulesByRun } = practicalIndex;
+          const cycleIdForPractical =
+            cycleId ??
+            runsApi.runs.find((r) => r.module === "PRACTICAL")?.exam_cycle_id;
+          const practicalApi = cycleIdForPractical
+            ? await api.fetchPracticalBatchesApi("OFFICER", cycleIdForPractical)
+            : null;
+          const schedulesByRun = new Map<
+            string,
+            NonNullable<typeof practicalApi>["schedules"]
+          >();
+          const batchesByCycle = practicalApi?.batches ?? [];
+          for (const sch of practicalApi?.schedules ?? []) {
+            const rid = sch.run_id ?? "";
+            if (!rid) continue;
+            const list = schedulesByRun.get(rid) ?? [];
+            list.push(sch);
+            schedulesByRun.set(rid, list);
+          }
 
           const codesByTeacherId = new Map(
             (teachersApi?.teachers ?? []).map((t) => [
@@ -837,12 +860,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // PRACTICAL — prefer schedules from practical_batches API;
             // when those rows are missing after restore, hydrate identity
             // from persisted result traces (do not invent UNK / demand).
-            const runCycleId = String(r.exam_cycle_id ?? cycleId ?? "");
             const runSchedules = schedulesByRun.get(r.run_id) ?? [];
             const schedules =
               runSchedules.length > 0
                 ? runSchedules.map((s) => {
-                    const batch = practicalIndex.batchFor(s, runCycleId);
+                    const batch = batchesByCycle.find(
+                      (b) => b.batch_id === s.batch_id,
+                    );
                     const persistedRow = findPersistedResultForPracticalSchedule(
                       rows,
                       {
@@ -878,13 +902,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     };
                   })
                 : practicalSchedulesFromPersistedResults(rows);
-            const runBatches = practicalIndex.batchesForRun(
-              runSchedules,
-              runCycleId,
-            );
             const batchRows =
-              runBatches.length > 0
-                ? runBatches
+              runSchedules.length > 0 && batchesByCycle.length > 0
+                ? batchesByCycle
+                    .filter((b) =>
+                      runSchedules.some((s) => s.batch_id === b.batch_id),
+                    )
                     .map((b) => ({
                       batchKey: b.batch_id,
                       schoolId: b.school_id,

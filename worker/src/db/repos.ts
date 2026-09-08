@@ -689,7 +689,8 @@ async function practicalSchedulePublishSlots(
               sch.exam_date, sch.session_code, pb.school_id
        FROM practical_schedules sch
        INNER JOIN practical_batches pb
-         ON pb.exam_cycle_id = sch.exam_cycle_id AND pb.batch_id = sch.batch_id
+         ON pb.batch_id = sch.batch_id
+        AND pb.exam_cycle_id = sch.exam_cycle_id
        WHERE sch.run_id = ?`,
     )
     .bind(runId)
@@ -1848,9 +1849,14 @@ export async function transactionalRestore(
     );
   }
 
+  // Legacy backups did not repeat exam_cycle_id on schedules. Retain this
+  // lookup so they can be restored when each batch id is unambiguous.
+  const practicalBatchCycles = new Map<string, string>();
   for (const b of data.practical_batches) {
     const batchId = String(b.batch_id ?? b.batchId ?? "");
     if (!batchId) continue;
+    const examCycleId = String(b.exam_cycle_id ?? b.examCycleId ?? "");
+    practicalBatchCycles.set(batchId, examCycleId);
     stmts.push(
       db
         .prepare(
@@ -1860,7 +1866,7 @@ export async function transactionalRestore(
         )
         .bind(
           batchId,
-          String(b.exam_cycle_id ?? b.examCycleId ?? ""),
+          examCycleId,
           String(b.school_id ?? b.schoolId ?? ""),
           String(b.subject_id ?? b.subjectId ?? ""),
           Number(b.student_count ?? b.studentCount ?? 0),
@@ -1875,17 +1881,9 @@ export async function transactionalRestore(
     );
     const batchId = String(s.batch_id ?? s.batchId ?? "");
     if (!batchId) continue;
-    // Snapshots written before batches were cycle-scoped carry no cycle on the
-    // schedule; recover it from the batch rows in the same payload.
-    const scheduleCycleId = String(
-      s.exam_cycle_id ??
-        s.examCycleId ??
-        data.practical_batches.find(
-          (b) => String(b.batch_id ?? b.batchId ?? "") === batchId,
-        )?.exam_cycle_id ??
-        "",
+    const examCycleId = String(
+      s.exam_cycle_id ?? s.examCycleId ?? practicalBatchCycles.get(batchId) ?? "",
     );
-    if (!scheduleCycleId) continue;
     stmts.push(
       db
         .prepare(
@@ -1895,7 +1893,7 @@ export async function transactionalRestore(
         )
         .bind(
           scheduleId,
-          scheduleCycleId,
+          examCycleId,
           batchId,
           String(s.exam_date ?? s.examDate ?? ""),
           String(s.session_code ?? s.sessionCode ?? "MORNING"),
@@ -2189,7 +2187,7 @@ export async function listSubjects(db: DbClient, limit = 500) {
 export async function listTeachers(db: DbClient, limit = 10000) {
   const rs = await db
     .prepare(
-      `SELECT teacher_id, employee_code, name, school_id, designation, subject, seniority_rank,
+      `SELECT teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date,
               home_latitude, home_longitude, is_active, data_quality
        FROM teachers ORDER BY employee_code LIMIT ?`,
     )
@@ -2231,6 +2229,208 @@ export async function listRelationships(db: DbClient, limit = 1000) {
     .bind(limit)
     .all();
   return rs.results;
+}
+
+/** Direct master-data upserts used by the offline maintenance forms. */
+export async function upsertMasterRecord(
+  db: DbClient,
+  record:
+    | {
+        kind: "block";
+        blockId?: string;
+        blockCode: string;
+        blockName: string;
+        active?: boolean;
+      }
+    | {
+        kind: "school";
+        schoolId?: string;
+        schoolCode: string;
+        schoolName: string;
+        blockId: string;
+        latitude: number;
+        longitude: number;
+        active?: boolean;
+      }
+    | {
+        kind: "centre";
+        centreId?: string;
+        centreCode: string;
+        centreName: string;
+        blockId: string;
+        latitude: number;
+        longitude: number;
+        capacity: number;
+        active?: boolean;
+      }
+    | {
+        kind: "teacher";
+        teacherId?: string;
+        employeeCode: string;
+        name: string;
+        schoolId: string;
+        designation: string;
+        subject: string;
+        seniorityRank: number;
+        joiningDate?: string | null;
+        homeLatitude: number;
+        homeLongitude: number;
+        isActive?: boolean;
+      },
+): Promise<{ id: string; created: boolean }> {
+  const now = new Date().toISOString();
+  if (record.kind === "block") {
+    const existing = await db
+      .prepare(`SELECT block_id FROM blocks WHERE block_code = ?`)
+      .bind(record.blockCode.trim())
+      .first<{ block_id: string }>();
+    const id = existing?.block_id ?? record.blockId ?? `blk_${crypto.randomUUID()}`;
+    if (existing) {
+      await db
+        .prepare(`UPDATE blocks SET block_name=?, active=?, updated_at=? WHERE block_id=?`)
+        .bind(record.blockName.trim(), record.active !== false ? 1 : 0, now, id)
+        .run();
+    } else {
+      await db
+        .prepare(
+          `INSERT INTO blocks (block_id, block_code, block_name, active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(id, record.blockCode.trim(), record.blockName.trim(), record.active !== false ? 1 : 0, now, now)
+        .run();
+    }
+    return { id, created: !existing };
+  }
+
+  if (record.kind === "school") {
+    const parent = await db
+      .prepare(`SELECT block_id FROM blocks WHERE block_id = ?`)
+      .bind(record.blockId)
+      .first<{ block_id: string }>();
+    if (!parent) throw new Error("Select a valid block before saving");
+    const existing = await db
+      .prepare(`SELECT school_id FROM schools WHERE school_code = ?`)
+      .bind(record.schoolCode.trim())
+      .first<{ school_id: string }>();
+    const id = existing?.school_id ?? record.schoolId ?? `sch_${crypto.randomUUID()}`;
+    if (existing) {
+      await db
+        .prepare(
+          `UPDATE schools SET school_name=?, block_id=?, latitude=?, longitude=?, active=?, data_quality='ManuallyCorrected', updated_at=? WHERE school_id=?`,
+        )
+        .bind(record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, id)
+        .run();
+    } else {
+      await db
+        .prepare(
+          `INSERT INTO schools (school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'ManuallyCorrected', ?, ?)`,
+        )
+        .bind(id, record.schoolCode.trim(), record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, now)
+        .run();
+    }
+    return { id, created: !existing };
+  }
+
+  if (record.kind === "centre") {
+    const parent = await db
+      .prepare(`SELECT block_id FROM blocks WHERE block_id = ?`)
+      .bind(record.blockId)
+      .first<{ block_id: string }>();
+    if (!parent) throw new Error("Select a valid block before saving");
+    const existing = await db
+      .prepare(`SELECT centre_id FROM centres WHERE centre_code = ?`)
+      .bind(record.centreCode.trim())
+      .first<{ centre_id: string }>();
+    const id = existing?.centre_id ?? record.centreId ?? `ctr_${crypto.randomUUID()}`;
+    if (existing) {
+      await db
+        .prepare(
+          `UPDATE centres SET centre_name=?, block_id=?, latitude=?, longitude=?, capacity=?, active=?, data_quality='ManuallyCorrected', updated_at=? WHERE centre_id=?`,
+        )
+        .bind(record.centreName.trim(), record.blockId, record.latitude, record.longitude, record.capacity, record.active !== false ? 1 : 0, now, id)
+        .run();
+    } else {
+      await db
+        .prepare(
+          `INSERT INTO centres (centre_id, centre_code, centre_name, block_id, latitude, longitude, capacity, active, data_quality, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ManuallyCorrected', ?, ?)`,
+        )
+        .bind(id, record.centreCode.trim(), record.centreName.trim(), record.blockId, record.latitude, record.longitude, record.capacity, record.active !== false ? 1 : 0, now, now)
+        .run();
+    }
+    return { id, created: !existing };
+  }
+
+  const school = await db
+    .prepare(`SELECT school_id FROM schools WHERE school_id = ?`)
+    .bind(record.schoolId)
+    .first<{ school_id: string }>();
+  if (!school) throw new Error("Select a valid school before saving");
+  const existing = await db
+    .prepare(
+      `SELECT teacher_id, school_id, designation, home_latitude, home_longitude
+       FROM teachers WHERE employee_code = ?`,
+    )
+    .bind(record.employeeCode.trim())
+    .first<{
+      teacher_id: string;
+      school_id: string;
+      designation: string;
+      home_latitude: number | null;
+      home_longitude: number | null;
+    }>();
+  const id = existing?.teacher_id ?? record.teacherId ?? `tch_${crypto.randomUUID()}`;
+  await upsertTeachers(db, [
+    {
+      teacherId: id,
+      employeeCode: record.employeeCode.trim(),
+      name: record.name.trim(),
+      schoolId: record.schoolId,
+      designation: record.designation,
+      subject: record.subject,
+      seniorityRank: record.seniorityRank,
+      joiningDate: record.joiningDate ?? null,
+      homeLatitude: record.homeLatitude,
+      homeLongitude: record.homeLongitude,
+      isActive: record.isActive !== false,
+      dataQuality: "ManuallyCorrected",
+    },
+  ]);
+  const effectiveFrom = now.slice(0, 10);
+  if (!existing || existing.school_id !== record.schoolId) {
+    await db
+      .prepare(`UPDATE teacher_school_history SET effective_to=? WHERE teacher_id=? AND effective_to IS NULL`)
+      .bind(effectiveFrom, id)
+      .run();
+    await insertTeacherSchoolHistory(db, [{
+      id: crypto.randomUUID(), teacherId: id, schoolId: record.schoolId, effectiveFrom,
+    }]);
+  }
+  if (!existing || existing.designation !== record.designation) {
+    await db
+      .prepare(`UPDATE teacher_designation_history SET effective_to=? WHERE teacher_id=? AND effective_to IS NULL`)
+      .bind(effectiveFrom, id)
+      .run();
+    await insertTeacherDesignationHistory(db, [{
+      id: crypto.randomUUID(), teacherId: id, designation: record.designation, effectiveFrom,
+    }]);
+  }
+  if (
+    !existing ||
+    existing.home_latitude !== record.homeLatitude ||
+    existing.home_longitude !== record.homeLongitude
+  ) {
+    await db
+      .prepare(`UPDATE teacher_location_history SET effective_to=? WHERE teacher_id=? AND location_type='HOME' AND effective_to IS NULL`)
+      .bind(effectiveFrom, id)
+      .run();
+    await insertTeacherLocationHistory(db, [{
+      id: crypto.randomUUID(), teacherId: id, locationType: "HOME",
+      latitude: record.homeLatitude, longitude: record.homeLongitude, effectiveFrom,
+    }]);
+  }
+  return { id, created: !existing };
 }
 
 /**
@@ -2335,6 +2535,7 @@ export async function upsertTeachers(
     const designation = String(t.designation ?? "");
     const subject = t.subject ?? null;
     const seniority = t.seniorityRank ?? t.seniority_rank ?? null;
+    const joiningDate = t.joiningDate ?? t.joining_date ?? null;
     const lat = t.homeLatitude ?? t.home_latitude ?? null;
     const lon = t.homeLongitude ?? t.home_longitude ?? null;
     const active = t.isActive === false || t.is_active === 0 ? 0 : 1;
@@ -2349,7 +2550,7 @@ export async function upsertTeachers(
       await db
         .prepare(
           `UPDATE teachers SET
-             name=?, school_id=?, designation=?, subject=?, seniority_rank=?,
+             name=?, school_id=?, designation=?, subject=?, seniority_rank=?, joining_date=?,
              home_latitude=?, home_longitude=?, is_active=?, data_quality=?, updated_at=?
            WHERE teacher_id=?`,
         )
@@ -2359,6 +2560,7 @@ export async function upsertTeachers(
           designation,
           subject,
           seniority,
+          joiningDate,
           lat,
           lon,
           active,
@@ -2380,7 +2582,7 @@ export async function upsertTeachers(
         await db
           .prepare(
             `UPDATE teachers SET
-               employee_code=?, name=?, school_id=?, designation=?, subject=?, seniority_rank=?,
+               employee_code=?, name=?, school_id=?, designation=?, subject=?, seniority_rank=?, joining_date=?,
                home_latitude=?, home_longitude=?, is_active=?, data_quality=?, updated_at=?
              WHERE teacher_id=?`,
           )
@@ -2391,6 +2593,7 @@ export async function upsertTeachers(
             designation,
             subject,
             seniority,
+            joiningDate,
             lat,
             lon,
             active,
@@ -2405,8 +2608,8 @@ export async function upsertTeachers(
       await db
         .prepare(
           `INSERT INTO teachers
-            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, home_latitude, home_longitude, is_active, data_quality, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           requestedId,
@@ -2416,6 +2619,7 @@ export async function upsertTeachers(
           designation,
           subject,
           seniority,
+          joiningDate,
           lat,
           lon,
           active,
@@ -2874,9 +3078,7 @@ export async function persistPracticalBatches(
 
     const stmts: DbStatement[] = [
       db
-        .prepare(
-          `DELETE FROM practical_schedules WHERE exam_cycle_id = ?`,
-        )
+        .prepare(`DELETE FROM practical_schedules WHERE exam_cycle_id = ?`)
         .bind(input.examCycleId),
       db
         .prepare(`DELETE FROM practical_batches WHERE exam_cycle_id = ?`)
@@ -2984,20 +3186,17 @@ export async function persistPracticalBatches(
 
 /**
  * Examiner pair memory for the practical role switch. Newest academic year
- * first, then newest exam cycle: two cycles of one academic year (a cycle and
- * its amendment) can both hold a pairing for the same teachers, and the engine
- * must switch away from the later one.
+ * first so the engine sees the most recent pairing for a teacher pair.
  */
 export async function listExaminerPairs(db: DbClient, limit = 5000) {
   const rs = await db
     .prepare(
       `SELECT p.pair_id, p.teacher_a_id, p.teacher_b_id, p.subject_id, p.school_id,
               p.academic_year, p.internal_teacher_id, p.external_teacher_id, p.exam_cycle_id,
-              s.code AS subject_code, c.created_at AS recorded_at
+              s.code AS subject_code
        FROM examiner_pairs p
        LEFT JOIN subjects s ON s.subject_id = p.subject_id
-       LEFT JOIN exam_cycles c ON c.exam_cycle_id = p.exam_cycle_id
-       ORDER BY p.academic_year DESC, c.created_at DESC
+       ORDER BY p.academic_year DESC
        LIMIT ?`,
     )
     .bind(limit)
@@ -3026,11 +3225,13 @@ export async function listPracticalBatches(
       .all();
     const schedules = await db
       .prepare(
-        `SELECT sch.schedule_id, sch.exam_cycle_id, sch.batch_id, sch.exam_date,
-                sch.session_code, sch.internal_examiner_id, sch.external_examiner_id,
-                sch.run_id
+        `SELECT sch.schedule_id, sch.exam_cycle_id, sch.batch_id, sch.exam_date, sch.session_code,
+                sch.internal_examiner_id, sch.external_examiner_id, sch.run_id
          FROM practical_schedules sch
-         WHERE sch.exam_cycle_id = ?`,
+         INNER JOIN practical_batches b
+           ON b.batch_id = sch.batch_id
+          AND b.exam_cycle_id = sch.exam_cycle_id
+         WHERE b.exam_cycle_id = ?`,
       )
       .bind(examCycleId)
       .all();
@@ -3049,8 +3250,7 @@ export async function listPracticalBatches(
     .all();
   const schedules = await db
     .prepare(
-      `SELECT schedule_id, exam_cycle_id, batch_id, exam_date, session_code,
-              internal_examiner_id, external_examiner_id, run_id
+      `SELECT schedule_id, exam_cycle_id, batch_id, exam_date, session_code, internal_examiner_id, external_examiner_id, run_id
        FROM practical_schedules LIMIT ?`,
     )
     .bind(limit)
@@ -3811,8 +4011,7 @@ export async function buildCanonicalBackup(
       .then((r) => r.results),
     db
       .prepare(
-        `SELECT schedule_id, exam_cycle_id, batch_id, exam_date, session_code,
-                internal_examiner_id, external_examiner_id, run_id
+        `SELECT schedule_id, exam_cycle_id, batch_id, exam_date, session_code, internal_examiner_id, external_examiner_id, run_id
          FROM practical_schedules`,
       )
       .all()

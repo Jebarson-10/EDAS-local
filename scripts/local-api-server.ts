@@ -1,14 +1,19 @@
 /**
  * Local API server using better-sqlite3 with the same SQL as Cloudflare D1.
- * Run: npm run api:local — listens on http://127.0.0.1:43124
- *
- * The desktop build reuses this exact server: APP_STATIC_DIR makes it serve the
- * built SPA on the same port, and APP_DATA_DIR / APP_RESOURCE_DIR move the
- * database and packaged assets out of the repo checkout.
+ * Run: npm run api:local
+ * Listens on http://127.0.0.1:43124
  */
 import { createServer } from "node:http";
-import { mkdirSync, existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { extname, join, normalize, resolve as resolvePath, sep } from "node:path";
+import {
+  mkdirSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  statSync,
+  readdirSync,
+  unlinkSync,
+} from "node:fs";
+import { join, resolve, relative, extname } from "node:path";
 import { randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
 import { createSqliteClient } from "../worker/src/db/client.ts";
@@ -25,7 +30,6 @@ import {
   insertTeacherLocationHistory,
   insertTeacherSchoolHistory,
   assertExamCycleMutable,
-  getExamCycleStatus,
   buildCanonicalBackup,
   listAllocationDecisionReasons,
   listAllocationRunResults,
@@ -68,6 +72,7 @@ import {
   seedDemoDatasetIfEmpty,
   upsertExemption,
   upsertTeachers,
+  upsertMasterRecord,
   type BackupPayload,
 } from "../worker/src/db/repos.ts";
 import {
@@ -85,6 +90,7 @@ import {
   importApplyBodySchema,
   importFileRowCount,
   manualOverrideBodySchema,
+  manualMasterRecordBodySchema,
   parseBody,
   parseImportRowCountHeader,
   practicalBatchesBodySchema,
@@ -100,74 +106,85 @@ import {
 } from "../worker/src/auth/adapter.ts";
 import { hasPermission } from "../worker/src/index.ts";
 import { checkRateLimit } from "../worker/src/rateLimit.ts";
-import {
-  readLocalAutosaveMeta,
-  writeLocalAutosave,
-} from "./local-autosave.ts";
 
 const PORT = Number(process.env.API_PORT ?? 43124);
-const HOST = process.env.API_HOST ?? "127.0.0.1";
-/** Read-only assets: SQL migrations and the synthetic demo dataset. */
-const ROOT = resolvePath(process.env.APP_RESOURCE_DIR ?? process.cwd());
-const DATA_DIR = resolvePath(
-  process.env.APP_DATA_DIR ?? join(process.cwd(), ".data"),
-);
+// Electron supplies the read-only resources and writable app-data directory;
+// normal development keeps the existing repository-relative locations.
+const ROOT = process.env.APP_RESOURCE_DIR ?? process.cwd();
+const DATA_DIR = process.env.APP_DATA_DIR ?? join(ROOT, ".data");
 const DB_PATH =
-  process.env.SQLITE_PATH ?? join(DATA_DIR, "erode-exam-duty.sqlite");
+    process.env.SQLITE_PATH ?? join(DATA_DIR, "erode-exam-duty.sqlite");
 const FILES_DIR = join(DATA_DIR, "files");
-/** When set, the SPA is served from the same origin as /api (desktop build). */
-const STATIC_DIR = process.env.APP_STATIC_DIR
-  ? resolvePath(process.env.APP_STATIC_DIR)
-  : null;
+const AUTOSAVE_DIR = join(DATA_DIR, "autosave");
+const STATIC_DIR = process.env.APP_STATIC_DIR;
 
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(FILES_DIR, { recursive: true });
+mkdirSync(AUTOSAVE_DIR, { recursive: true });
 
-const CONTENT_TYPES: Record<string, string> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
+type Role = "ADMIN" | "OFFICER" | "DATA_OPERATOR" | "VIEWER";
+
+const MIME_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".ico": "image/x-icon",
+  ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".webp": "image/webp",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
   ".woff2": "font/woff2",
-  ".map": "application/json; charset=utf-8",
 };
 
-/**
- * Serve the built SPA next to the API. Returns false when the request should
- * fall through to the API/404 handling.
- */
+/** Serve the packaged SPA without allowing a URL to escape its asset folder. */
 function serveStatic(
   pathname: string,
+  method: string,
   res: import("node:http").ServerResponse,
 ): boolean {
-  if (!STATIC_DIR) return false;
-  const candidate = resolvePath(
-    join(STATIC_DIR, normalize(decodeURIComponent(pathname))),
-  );
-  // Reject traversal outside the asset root.
-  const inRoot =
-    candidate === STATIC_DIR || candidate.startsWith(STATIC_DIR + sep);
-  const isFile =
-    inRoot && existsSync(candidate) && statSync(candidate).isFile();
-  const file = isFile ? candidate : join(STATIC_DIR, "index.html");
-  if (!existsSync(file)) return false;
-  const ext = extname(file).toLowerCase();
+  if (!STATIC_DIR || (method !== "GET" && method !== "HEAD")) return false;
+  let requested: string;
+  try {
+    requested = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+  const staticRoot = resolve(STATIC_DIR);
+  const candidate = resolve(staticRoot, `.${requested}`);
+  const insideStaticRoot = relative(staticRoot, candidate);
+  if (insideStaticRoot.startsWith("..") || insideStaticRoot.includes("..\\")) {
+    res.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
+    res.end("Forbidden");
+    return true;
+  }
+  const filePath =
+    existsSync(candidate) && statSync(candidate).isFile()
+      ? candidate
+      : join(staticRoot, "index.html");
+  if (!existsSync(filePath)) return false;
+  const body = method === "HEAD" ? undefined : readFileSync(filePath);
   res.writeHead(200, {
-    "content-type": CONTENT_TYPES[ext] ?? "application/octet-stream",
-    "cache-control": isFile && ext !== ".html" ? "max-age=3600" : "no-store",
+    "content-type": MIME_TYPES[extname(filePath).toLowerCase()] ?? "application/octet-stream",
+    "cache-control": filePath.endsWith("index.html") ? "no-store" : "public, max-age=31536000, immutable",
     "x-content-type-options": "nosniff",
   });
-  res.end(readFileSync(file));
+  res.end(body);
   return true;
 }
 
-type Role = "ADMIN" | "OFFICER" | "DATA_OPERATOR" | "VIEWER";
+async function writeAutosave(db: ReturnType<typeof createSqliteClient>) {
+  const payload = await buildCanonicalBackup(db);
+  const text = JSON.stringify(payload, null, 2);
+  const savedAt = new Date().toISOString();
+  const stamp = savedAt.replace(/[:.]/g, "-");
+  writeFileSync(join(AUTOSAVE_DIR, `snapshot-${stamp}.json`), text);
+  writeFileSync(join(AUTOSAVE_DIR, "latest.json"), text);
+  const snapshots = readdirSync(AUTOSAVE_DIR)
+    .filter((name) => /^snapshot-.*\.json$/.test(name))
+    .sort();
+  for (const stale of snapshots.slice(0, Math.max(0, snapshots.length - 12))) {
+    unlinkSync(join(AUTOSAVE_DIR, stale));
+  }
+  return { savedAt, retained: Math.min(snapshots.length, 12) };
+}
 
 function auth(req: import("node:http").IncomingMessage) {
   const headers = new Headers();
@@ -279,11 +296,7 @@ async function main() {
       if (req.method === "OPTIONS") return json(res, { ok: true });
 
       const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
-      if (
-        !url.pathname.startsWith("/api/") &&
-        req.method === "GET" &&
-        serveStatic(url.pathname, res)
-      ) {
+      if (!url.pathname.startsWith("/api/") && serveStatic(url.pathname, req.method, res)) {
         return;
       }
       const a = auth(req);
@@ -301,7 +314,6 @@ async function main() {
         const emailRoleMap = parseEmailRoleMap(
           process.env.ACCESS_EMAIL_ROLE_MAP,
         );
-        const autosave = readLocalAutosaveMeta(DATA_DIR);
         return json(
           res,
           {
@@ -312,14 +324,29 @@ async function main() {
             environment: "local-sqlite",
             dbPath: DB_PATH,
             counts,
-            autosave,
             accessRoleMapConfigured: Object.keys(emailRoleMap).length > 0,
             accessRoleMapEntries: Object.keys(emailRoleMap).length,
             ...(dbError ? { dbError } : {}),
-            note: "Local SQLite is the live store. Cloudflare is not required. Autosave JSON copies live under .data/autosave/.",
+            note: "Mirrors Cloudflare D1 SQL; allocation still runs client-side; backups use local .data files (r2Ok=null)",
           },
           dbOk ? 200 : 503,
         );
+      }
+
+      // A desktop client requests this after state changes. The server writes
+      // its canonical SQLite snapshot, so browser memory is never treated as
+      // authoritative and published history remains intact.
+      if (url.pathname === "/api/autosave" && req.method === "POST") {
+        if (!requirePerm(a, "master.write", res)) return;
+        try {
+          return json(res, { ok: true, ...(await writeAutosave(db)) });
+        } catch (e) {
+          return json(
+            res,
+            { ok: false, error: e instanceof Error ? e.message : "Autosave failed" },
+            503,
+          );
+        }
       }
 
       if (url.pathname === "/api/me") {
@@ -405,6 +432,31 @@ async function main() {
         if (!requirePerm(a, "master.read", res)) return;
         return json(res, { subjects: await listSubjects(db) });
       }
+      if (url.pathname === "/api/master-records" && req.method === "POST") {
+        if (!requirePerm(a, "master.write", res)) return;
+        const raw = JSON.parse((await readBody(req)).toString("utf8"));
+        const parsed = parseBody(manualMasterRecordBodySchema, raw);
+        if (!parsed.ok) return json(res, { error: parsed.error }, 400);
+        try {
+          const result = await upsertMasterRecord(db, parsed.data);
+          await insertAudit(db, {
+            auditId: randomUUID(),
+            userId: a!.userId,
+            action: result.created ? "CREATE" : "UPDATE",
+            entity: `master_${parsed.data.kind}`,
+            entityId: result.id,
+            newValue: JSON.stringify(parsed.data),
+            reason: "Direct master-data maintenance",
+          });
+          return json(res, { ok: true, ...result });
+        } catch (e) {
+          return json(
+            res,
+            { error: e instanceof Error ? e.message : "Master data save failed" },
+            400,
+          );
+        }
+      }
       if (url.pathname === "/api/relationships" && req.method === "GET") {
         if (!requirePerm(a, "master.read", res)) return;
         return json(res, { relationships: await listRelationships(db) });
@@ -440,6 +492,9 @@ async function main() {
       }
       if (url.pathname === "/api/exemptions" && req.method === "POST") {
         if (!requirePerm(a, "master.write", res)) return;
+        if (a!.role !== "ADMIN") {
+          return json(res, { error: "Only ADMIN may record or end an exemption" }, 403);
+        }
         const raw = JSON.parse((await readBody(req)).toString("utf8"));
         const parsed = parseBody(exemptionBodySchema, raw);
         if (!parsed.ok) return json(res, { error: parsed.error }, 400);
@@ -1061,27 +1116,11 @@ async function main() {
         );
         const filePath = join(FILES_DIR, `${importId}-${filename}`);
         writeFileSync(filePath, buf);
-        const importExamCycleId =
-          (typeof req.headers["x-exam-cycle-id"] === "string"
-            ? req.headers["x-exam-cycle-id"].trim()
-            : "") || null;
-        if (
-          importExamCycleId &&
-          !(await getExamCycleStatus(db, importExamCycleId))
-        ) {
-          // The column is a foreign key: an unknown id would fail the insert.
-          return json(
-            res,
-            { error: `Unknown exam cycle ${importExamCycleId}` },
-            400,
-          );
-        }
         await insertSourceImport(db, {
           importId,
           filename,
           fileHash,
           uploadedBy: a!.userId,
-          examCycleId: importExamCycleId,
           status: "UPLOADED",
           rowCount,
           r2Key: filePath,
@@ -1110,51 +1149,6 @@ async function main() {
           stored: true,
           note: "Parse/preview/apply is client-assisted; local API stores source provenance on disk",
         });
-      }
-
-      if (url.pathname === "/api/autosave" && req.method === "GET") {
-        if (!requirePerm(a, "audit.read", res)) return;
-        return json(res, {
-          latest: readLocalAutosaveMeta(DATA_DIR),
-          stored: true,
-          storage: "filesystem",
-        });
-      }
-
-      if (url.pathname === "/api/autosave" && req.method === "POST") {
-        if (!requirePerm(a, "master.write", res)) return;
-        const limited = checkRateLimit(`autosave:${a!.userId}`, {
-          limit: 30,
-          windowMs: 60_000,
-        });
-        if (!limited.ok) {
-          return json(
-            res,
-            {
-              error: "Rate limit exceeded",
-              retryAfterSec: limited.retryAfterSec,
-            },
-            429,
-          );
-        }
-        try {
-          const payload = await buildCanonicalBackup(db);
-          // Deliberately unaudited: audit_logs are part of the snapshot, so an
-          // autosave audit row would make the next snapshot differ and every
-          // reload would churn the history ring while flooding the trail that
-          // exists to explain allotment decisions.
-          const meta = writeLocalAutosave(DATA_DIR, payload);
-          return json(res, { ok: true, stored: true, ...meta });
-        } catch (e) {
-          return json(
-            res,
-            {
-              error: "Autosave failed",
-              detail: e instanceof Error ? e.message : String(e),
-            },
-            503,
-          );
-        }
       }
 
       if (url.pathname === "/api/backups" && req.method === "GET") {
@@ -1487,16 +1481,10 @@ async function main() {
     }
   });
 
-  server.listen(PORT, HOST, () => {
-    const origin = `http://${HOST === "::" ? "127.0.0.1" : HOST}:${PORT}`;
-    console.log(
-      STATIC_DIR
-        ? `Erode exam-duty app on ${origin} (UI + API, offline)`
-        : `Local exam-duty API on ${origin}`,
-    );
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log(`Local exam-duty API on http://127.0.0.1:${PORT}`);
     console.log(`SQLite DB: ${DB_PATH}`);
-    // The desktop shell waits for this line before opening its window.
-    console.log(`APP_READY ${origin}`);
+    console.log(`APP_READY http://127.0.0.1:${PORT}`);
   });
   server.on("error", (err: NodeJS.ErrnoException) => {
     console.error("API server failed to listen:", err.message);

@@ -20,16 +20,15 @@ preview_database_id = "local-erode-exam-duty"
 # binding = "FILES"
 # bucket_name = "erode-exam-duty-files"
 
-# Align with Pages: product staging = wrangler env preview.
-[env.preview]
+[env.staging]
 vars = { ENVIRONMENT = "staging" }
-# [[env.preview.d1_databases]]
+# [[env.staging.d1_databases]]
 # binding = "DB"
-# database_name = "erode-exam-duty-preview"
+# database_name = "erode-exam-duty-staging"
 # database_id = "REPLACE_ME_STAGING"
-# [[env.preview.r2_buckets]]
+# [[env.staging.r2_buckets]]
 # binding = "FILES"
-# bucket_name = "erode-exam-duty-files-preview"
+# bucket_name = "erode-exam-duty-files-staging"
 
 [env.production]
 vars = { ENVIRONMENT = "production" }

@@ -481,6 +481,57 @@ export const centreCapacityBodySchema = z.object({
     .min(1),
 });
 
+/**
+ * Direct master-data maintenance. These rows are intentionally stricter than
+ * old spreadsheet imports: required location and capacity fields prevent an
+ * operator from saving data that the 10 km and student-strength rules cannot
+ * use. Updates are upserts; no historical duty data is deleted.
+ */
+export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("block"),
+    blockId: z.string().min(1).optional(),
+    blockCode: z.string().min(1).max(64),
+    blockName: z.string().min(1).max(200),
+    active: z.boolean().optional().default(true),
+  }),
+  z.object({
+    kind: z.literal("school"),
+    schoolId: z.string().min(1).optional(),
+    schoolCode: z.string().min(1).max(64),
+    schoolName: z.string().min(1).max(200),
+    blockId: z.string().min(1),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    active: z.boolean().optional().default(true),
+  }),
+  z.object({
+    kind: z.literal("centre"),
+    centreId: z.string().min(1).optional(),
+    centreCode: z.string().min(1).max(64),
+    centreName: z.string().min(1).max(200),
+    blockId: z.string().min(1),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    capacity: z.number().int().positive(),
+    active: z.boolean().optional().default(true),
+  }),
+  z.object({
+    kind: z.literal("teacher"),
+    teacherId: z.string().min(1).optional(),
+    employeeCode: z.string().min(1).max(64),
+    name: z.string().min(1).max(200),
+    schoolId: z.string().min(1),
+    designation: designationSchema,
+    subject: z.string().min(1).max(64),
+    seniorityRank: z.number().int().nonnegative(),
+    joiningDate: isoDate.optional().nullable(),
+    homeLatitude: z.number().min(-90).max(90),
+    homeLongitude: z.number().min(-180).max(180),
+    isActive: z.boolean().optional().default(true),
+  }),
+]);
+
 export const practicalBatchesBodySchema = z.object({
   examCycleId: z.string().min(1),
   runId: z.string().optional(),

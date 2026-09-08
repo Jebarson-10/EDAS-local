@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "../state/AppContext";
 import { apiHealth } from "../lib/api";
-import { useLocalAutosave } from "../lib/useLocalAutosave";
 import { Badge, Dot } from "../components/ui";
 import type { Role } from "@exam-duty/shared";
 
@@ -49,45 +48,14 @@ const flatLinks = groups.flatMap((g) => g.links);
 
 const roles: Role[] = ["ADMIN", "OFFICER", "DATA_OPERATOR", "VIEWER"];
 
-const WRITE_ROLES: Role[] = ["ADMIN", "OFFICER", "DATA_OPERATOR"];
-
-function autosaveLabel(
-  state: ReturnType<typeof useLocalAutosave>,
-  canWrite: boolean,
-) {
-  if (!canWrite) return "autosave read-only";
-  if (state.status === "saving") return "autosaving…";
-  if (state.status === "unavailable") return "autosave paused";
-  if (state.latest) {
-    return `saved ${new Date(state.latest.savedAt).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}`;
-  }
-  return "autosave on";
-}
-
 export function AppShell() {
-  const {
-    role,
-    setRole,
-    examCycleName,
-    examCycle,
-    hydrateReport,
-    hydrateReady,
-    runs,
-    audit,
-  } = useApp();
+  const { role, setRole, examCycleName, examCycle, hydrateReport, hydrateReady } =
+    useApp();
   const location = useLocation();
   const [apiUp, setApiUp] = useState<boolean | null>(null);
   const [dbUp, setDbUp] = useState<boolean | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [hydrateDismissed, setHydrateDismissed] = useState(false);
-  const canWrite = WRITE_ROLES.includes(role);
-  // Every persisted mutation appends an audit entry, so its count tracks the
-  // snapshot revision closely enough to debounce writes against.
-  const revision = canWrite && hydrateReady ? runs.length + audit.length : 0;
-  const autosave = useLocalAutosave(role, revision);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,37 +277,6 @@ export function AppShell() {
                   ? `hydrate missed ${hydrateReport.failed.length}`
                   : "hydrate ok"}
             </Badge>
-            <button
-              type="button"
-              data-testid="autosave-status"
-              onClick={autosave.saveNow}
-              disabled={!canWrite || autosave.status === "saving"}
-              title={
-                autosave.status === "unavailable"
-                  ? autosave.reason
-                  : autosave.latest
-                    ? `${autosave.latest.relativePath || "local snapshot"} · ${autosave.latest.checksum.slice(0, 12)}`
-                    : "Local snapshot after every change — click to save now"
-              }
-              className="rounded-full border border-[var(--color-line)] bg-white/70 px-2.5 py-0.5 text-[0.7rem] text-[var(--color-ink-muted)] disabled:opacity-70"
-            >
-              <span className="mr-1.5 inline-block align-middle">
-                <Dot
-                  tone={
-                    !canWrite
-                      ? "idle"
-                      : autosave.status === "unavailable"
-                        ? "warn"
-                        : autosave.status === "saving"
-                          ? "idle"
-                          : autosave.latest
-                            ? "ok"
-                            : "idle"
-                  }
-                />
-              </span>
-              {autosaveLabel(autosave, canWrite)}
-            </button>
           </div>
           <Outlet />
         </main>

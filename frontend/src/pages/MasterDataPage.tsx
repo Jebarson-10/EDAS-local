@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
 import { Panel } from "../components/ui";
+import { MasterEntryPanel } from "../components/MasterEntryPanel";
 import {
   apiHealth,
   fetchMasterBlocks,
@@ -23,6 +24,7 @@ type Tab =
 export function MasterDataPage() {
   const {
     dataset,
+    setDataset,
     loading,
     role,
     exemptions,
@@ -101,6 +103,12 @@ export function MasterDataPage() {
           </>
         ) : null}
       </p>
+      <MasterEntryPanel
+        dataset={dataset}
+        setDataset={setDataset}
+        role={role}
+        logAudit={logAudit}
+      />
       <div className="flex flex-wrap gap-2 mb-3">
         {(
           [
@@ -302,9 +310,9 @@ export function MasterDataPage() {
         {tab === "exemptions" && (
           <div className="p-3 space-y-3">
             <p className="text-sm text-[var(--color-ink-muted)]">
-              Officer-recorded exemptions (reason required). Who may be exempted
-              is a client policy (see open questions) — this stores the decision
-              with audit.
+              Admin-recorded exemptions (reason required). The Administrator
+              decides physical-disability and other exemption cases; every
+              decision is retained with audit.
             </p>
             <div className="flex flex-wrap gap-2 items-end">
               <label className="text-sm">
@@ -330,7 +338,7 @@ export function MasterDataPage() {
                 type="button"
                 data-testid="exemption-save"
                 disabled={
-                  role === "VIEWER" ||
+                  role !== "ADMIN" ||
                   !exTeacherId.trim() ||
                   !exReason.trim() ||
                   exBusy
@@ -429,7 +437,7 @@ export function MasterDataPage() {
                         <button
                           type="button"
                           data-testid={`exemption-end-${e.teacherId}`}
-                          disabled={role === "VIEWER" || exBusy}
+                          disabled={role !== "ADMIN" || exBusy}
                           className="text-sm underline text-[var(--color-brand)] disabled:opacity-40"
                           onClick={() => {
                             if (exBusyRef.current) return;

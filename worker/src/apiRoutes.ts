@@ -30,6 +30,7 @@ export const API_ROUTES: ApiRoute[] = [
   { method: "GET", path: "/api/centres" },
   { method: "GET", path: "/api/blocks" },
   { method: "GET", path: "/api/subjects" },
+  { method: "POST", path: "/api/master-records" },
   { method: "GET", path: "/api/relationships" },
   { method: "POST", path: "/api/relationships/clubbing" },
   { method: "GET", path: "/api/history" },
@@ -81,8 +82,6 @@ export const API_ROUTES: ApiRoute[] = [
     path: "/api/allocation-runs/:id/publish",
     matchSnippet: "/^\\/api\\/allocation-runs\\/[^/]+\\/publish$/",
   },
-  { method: "GET", path: "/api/autosave" },
-  { method: "POST", path: "/api/autosave" },
   { method: "GET", path: "/api/backups" },
   { method: "POST", path: "/api/backups" },
   {

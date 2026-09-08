@@ -6,18 +6,14 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 export type ApiRole = "ADMIN" | "OFFICER" | "DATA_OPERATOR" | "VIEWER";
 
 /**
- * Dev/desktop identity headers. Hosted production builds omit them so Access
- * claims are authoritative (OQ-010); staging/production Workers refuse X-Dev-*
- * spoof. The desktop build is a single local operator on loopback with no IdP,
- * so its role switcher is the identity.
+ * Dev-only identity headers. Production builds omit them so Access claims
+ * are authoritative (OQ-010). Staging/production Workers refuse X-Dev-* spoof.
  */
-export const IS_DESKTOP = import.meta.env.VITE_DESKTOP === "1";
-
 function headers(role: ApiRole, extra?: HeadersInit): HeadersInit {
   const base: Record<string, string> = {
     "content-type": "application/json",
   };
-  if (import.meta.env.DEV || IS_DESKTOP) {
+  if (import.meta.env.DEV) {
     base["x-dev-role"] = role;
     base["x-dev-email"] = `${role.toLowerCase()}@example.local`;
   }
@@ -137,6 +133,21 @@ export async function backupApi(
   }
 }
 
+/** Ask the local desktop API to retain a canonical SQLite crash snapshot. */
+export async function autosaveApi(
+  role: ApiRole,
+): Promise<{ ok?: boolean; savedAt?: string; error?: string } | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/autosave`, {
+      method: "POST",
+      headers: headers(role),
+    });
+    return (await res.json()) as { ok?: boolean; savedAt?: string; error?: string };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchManualOverrides(role: ApiRole) {
   try {
     const res = await fetch(`${API_BASE}/api/manual-overrides`, {
@@ -153,7 +164,6 @@ export async function fetchManualOverrides(role: ApiRole) {
         reason: string;
         old_value: string;
         new_value: string;
-        exam_cycle_id?: string | null;
         module?: string | null;
         centre_id?: string | null;
         role_code?: string | null;
@@ -200,7 +210,6 @@ export async function fetchSourceImports(role: ApiRole) {
         file_hash?: string | null;
         uploaded_by?: string | null;
         uploaded_at: string;
-        exam_cycle_id?: string | null;
         row_count?: number | null;
         status?: string | null;
       }>;
@@ -335,7 +344,7 @@ export async function fetchExamCycles(role: ApiRole) {
 export async function uploadImportApi(
   role: ApiRole,
   file: File,
-  opts?: { rowCount?: number; examCycleId?: string },
+  opts?: { rowCount?: number },
 ) {
   try {
     const buf = await file.arrayBuffer();
@@ -348,9 +357,6 @@ export async function uploadImportApi(
         ...(opts?.rowCount != null
           ? { "X-Row-Count": String(opts.rowCount) }
           : {}),
-        // Without the cycle the provenance row cannot say which cycle (or
-        // which amendment of it) the workbook was uploaded against.
-        ...(opts?.examCycleId ? { "X-Exam-Cycle-Id": opts.examCycleId } : {}),
       },
       body: buf,
     });
@@ -490,11 +496,69 @@ export async function fetchMasterTeachers(role: ApiRole) {
         designation: string;
         subject?: string | null;
         seniority_rank?: number | null;
+        joining_date?: string | null;
         home_latitude?: number | null;
         home_longitude?: number | null;
         is_active?: number;
         data_quality?: string;
       }>;
+    };
+  } catch {
+    return null;
+  }
+}
+
+export type ManualMasterRecord =
+  | { kind: "block"; blockCode: string; blockName: string; active?: boolean }
+  | {
+      kind: "school";
+      schoolCode: string;
+      schoolName: string;
+      blockId: string;
+      latitude: number;
+      longitude: number;
+      active?: boolean;
+    }
+  | {
+      kind: "centre";
+      centreCode: string;
+      centreName: string;
+      blockId: string;
+      latitude: number;
+      longitude: number;
+      capacity: number;
+      active?: boolean;
+    }
+  | {
+      kind: "teacher";
+      employeeCode: string;
+      name: string;
+      schoolId: string;
+      designation: string;
+      subject: string;
+      seniorityRank: number;
+      joiningDate?: string | null;
+      homeLatitude: number;
+      homeLongitude: number;
+      isActive?: boolean;
+    };
+
+/** Save one manually entered master record. The server validates all required fields. */
+export async function upsertManualMasterRecord(
+  role: ApiRole,
+  record: ManualMasterRecord,
+): Promise<{ ok?: boolean; id?: string; created?: boolean; error?: string } | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/master-records`, {
+      method: "POST",
+      headers: headers(role),
+      body: JSON.stringify(record),
+    });
+    return (await res.json()) as {
+      ok?: boolean;
+      id?: string;
+      created?: boolean;
+      error?: string;
     };
   } catch {
     return null;
@@ -915,7 +979,6 @@ export async function fetchExaminerPairs(role: ApiRole) {
         internal_teacher_id: string;
         external_teacher_id: string;
         exam_cycle_id: string | null;
-        recorded_at?: string | null;
       }>;
     };
   } catch {
@@ -1013,7 +1076,6 @@ export async function fetchPracticalBatchesApi(
       }>;
       schedules: Array<{
         schedule_id: string;
-        exam_cycle_id: string;
         batch_id: string;
         exam_date: string;
         session_code: string;
@@ -1192,67 +1254,6 @@ export async function fetchTeacherLocationHistory(role: ApiRole) {
         source_import_id: string | null;
         created_at: string;
       }>;
-    };
-  } catch {
-    return null;
-  }
-}
-
-export interface AutosaveMeta {
-  savedAt: string;
-  checksum: string;
-  bytes: number;
-  path: string;
-  relativePath: string;
-}
-
-/**
- * Local autosave snapshot. The SQLite/D1 rows are already the live store;
- * this writes a crash copy (.data/autosave/ locally). No Cloudflare required.
- */
-export async function autosaveApi(
-  role: ApiRole,
-): Promise<
-  | (Partial<AutosaveMeta> & { ok?: boolean; stored?: boolean; note?: string; error?: string })
-  | null
-> {
-  try {
-    const res = await fetch(`${API_BASE}/api/autosave`, {
-      method: "POST",
-      headers: headers(role),
-      body: JSON.stringify({}),
-    });
-    const body = (await res.json()) as Partial<AutosaveMeta> & {
-      ok?: boolean;
-      stored?: boolean;
-      note?: string;
-      error?: string;
-    };
-    if (!res.ok) {
-      return { ok: false, error: body.error ?? `Autosave failed (${res.status})` };
-    }
-    return body;
-  } catch {
-    return null;
-  }
-}
-
-export async function autosaveStatusApi(role: ApiRole): Promise<{
-  latest: AutosaveMeta | null;
-  stored?: boolean;
-  storage?: string | null;
-  note?: string;
-} | null> {
-  try {
-    const res = await fetch(`${API_BASE}/api/autosave`, {
-      headers: headers(role),
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as {
-      latest: AutosaveMeta | null;
-      stored?: boolean;
-      storage?: string | null;
-      note?: string;
     };
   } catch {
     return null;

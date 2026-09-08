@@ -17,7 +17,6 @@ import {
   insertTeacherLocationHistory,
   insertTeacherSchoolHistory,
   assertExamCycleMutable,
-  getExamCycleStatus,
   buildCanonicalBackup,
   listAllocationDecisionReasons,
   listAllocationRunResults,
@@ -58,6 +57,7 @@ import {
   updateSourceImportStatus,
   upsertExemption,
   upsertTeachers,
+  upsertMasterRecord,
   type BackupPayload,
 } from "./db/repos";
 import type { DbClient } from "./db/client";
@@ -76,6 +76,7 @@ import {
   importApplyBodySchema,
   importFileRowCount,
   manualOverrideBodySchema,
+  manualMasterRecordBodySchema,
   parseBody,
   parseImportRowCountHeader,
   practicalBatchesBodySchema,
@@ -310,7 +311,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
         accessRoleMapEntries: Object.keys(emailRoleMap).length,
         ...(dbError ? { dbError } : {}),
         ...(r2Error ? { r2Error } : {}),
-        note: "Allocation engine runs client-side; this API persists and authorizes only. Local SQLite autosave is the default; Cloudflare FILES is optional.",
+        note: "Allocation engine runs client-side; this API persists and authorizes only",
       },
       ok ? 200 : 503,
     );
@@ -443,6 +444,31 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     }
   }
 
+  if (url.pathname === "/api/master-records" && request.method === "POST") {
+    const denied = requirePerm(auth, "master.write");
+    if (denied) return denied;
+    const parsed = parseBody(manualMasterRecordBodySchema, await request.json());
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    try {
+      const result = await upsertMasterRecord(db, parsed.data);
+      await insertAudit(db, {
+        auditId: crypto.randomUUID(),
+        userId: auth!.userId,
+        action: result.created ? "CREATE" : "UPDATE",
+        entity: `master_${parsed.data.kind}`,
+        entityId: result.id,
+        newValue: JSON.stringify(parsed.data),
+        reason: "Direct master-data maintenance",
+      });
+      return json({ ok: true, ...result });
+    } catch (e) {
+      return json(
+        { error: e instanceof Error ? e.message : "Master data save failed" },
+        400,
+      );
+    }
+  }
+
   if (url.pathname === "/api/relationships" && request.method === "GET") {
     const denied = requirePerm(auth, "master.read");
     if (denied) return denied;
@@ -501,6 +527,9 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   if (url.pathname === "/api/exemptions" && request.method === "POST") {
     const denied = requirePerm(auth, "master.write");
     if (denied) return denied;
+    if (auth!.role !== "ADMIN") {
+      return json({ error: "Only ADMIN may record or end an exemption" }, 403);
+    }
     const parsed = parseBody(exemptionBodySchema, await request.json());
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const result = await upsertExemption(db, {
@@ -1148,27 +1177,11 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
           // R2 put failed — still record provenance in D1
         }
       }
-      // source_imports.exam_cycle_id stayed null for every upload, so import
-      // provenance could not be told apart between a cycle and its amendment.
-      const importExamCycleId =
-        request.headers.get("x-exam-cycle-id")?.trim() || null;
-      if (
-        importExamCycleId &&
-        !(await getExamCycleStatus(db, importExamCycleId))
-      ) {
-        // The column is a foreign key: an unknown id would fail the insert as
-        // a 500 after the file was already accepted.
-        return json(
-          { error: `Unknown exam cycle ${importExamCycleId}` },
-          400,
-        );
-      }
       await insertSourceImport(db, {
         importId,
         filename,
         fileHash,
         uploadedBy: auth!.userId,
-        examCycleId: importExamCycleId,
         status: "UPLOADED",
         rowCount,
         r2Key: key,
@@ -1229,90 +1242,6 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       });
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 503);
-    }
-  }
-
-  if (url.pathname === "/api/autosave" && request.method === "GET") {
-    const denied = requirePerm(auth, "audit.read");
-    if (denied) return denied;
-    if (!env.FILES) {
-      return json({
-        latest: null,
-        stored: false,
-        storage: null,
-        note: "No object store bound. Use the local SQLite API (npm run api:local) for filesystem autosave.",
-      });
-    }
-    try {
-      const obj = await env.FILES.get("autosave/latest.json");
-      if (!obj) return json({ latest: null, stored: true, storage: "r2" });
-      const text = await obj.text();
-      const checksum = await sha256Hex(text);
-      return json({
-        latest: {
-          savedAt: obj.uploaded.toISOString(),
-          checksum,
-          bytes: text.length,
-          path: "autosave/latest.json",
-          relativePath: "autosave/latest.json",
-        },
-        stored: true,
-        storage: "r2",
-      });
-    } catch (e) {
-      return json(
-        { error: e instanceof Error ? e.message : String(e) },
-        503,
-      );
-    }
-  }
-
-  if (url.pathname === "/api/autosave" && request.method === "POST") {
-    const denied = requirePerm(auth, "master.write");
-    if (denied) return denied;
-    const limited = checkRateLimit(`autosave:${auth!.userId}`, {
-      limit: 30,
-      windowMs: 60_000,
-    });
-    if (!limited.ok) {
-      return json(
-        {
-          error: "Rate limit exceeded",
-          retryAfterSec: limited.retryAfterSec,
-        },
-        429,
-      );
-    }
-    if (!env.FILES) {
-      return json({
-        ok: true,
-        stored: false,
-        note: "No object store bound. Local `npm run api:local` writes .data/autosave/ — Cloudflare is not required.",
-      });
-    }
-    try {
-      const payload = await buildCanonicalBackup(db);
-      const text = JSON.stringify(payload);
-      const checksum = await sha256Hex(text);
-      // Unaudited for the same reason as the local API: audit_logs are inside
-      // the snapshot, so auditing the write would make every snapshot differ.
-      await env.FILES.put("autosave/latest.json", text, {
-        httpMetadata: { contentType: "application/json" },
-      });
-      return json({
-        ok: true,
-        stored: true,
-        savedAt: new Date().toISOString(),
-        checksum,
-        bytes: text.length,
-        path: "autosave/latest.json",
-        relativePath: "autosave/latest.json",
-      });
-    } catch (e) {
-      return json(
-        { error: e instanceof Error ? e.message : String(e) },
-        503,
-      );
     }
   }
 

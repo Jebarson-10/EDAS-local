@@ -5155,18 +5155,10 @@ async function main() {
   const outLocal = join(ROOT, ".data/uat-local-latest.json");
   writeFileSync(outLocal, JSON.stringify(report, null, 2));
   if (existsSync("/opt/cursor/artifacts")) {
-    // Convenience copy only — a read-only or failing artifact mount must not
-    // invalidate a UAT run whose real evidence already landed in .data/.
-    try {
-      writeFileSync(
-        "/opt/cursor/artifacts/uat-local-evidence.json",
-        JSON.stringify(report, null, 2),
-      );
-    } catch (e) {
-      console.warn(
-        `Artifact copy skipped: ${e instanceof Error ? e.message : String(e)}`,
-      );
-    }
+    writeFileSync(
+      "/opt/cursor/artifacts/uat-local-evidence.json",
+      JSON.stringify(report, null, 2),
+    );
   }
 
   sqlite.close();
