@@ -59,6 +59,45 @@ export function isD1BindingReady(section: string): boolean {
   return !hasReplaceMe(liveLines);
 }
 
+export function uncommentedR2Present(section: string): boolean {
+  return /^\s*\[\[env\.[^\]]+\.r2_buckets\]\]/m.test(section);
+}
+
+export function applyR2Binding(
+  toml: string,
+  wranglerEnv: WranglerEnv,
+  r2: { bucket: string },
+): string {
+  const marker = envMarker(wranglerEnv);
+  const start = toml.indexOf(marker);
+  if (start < 0) {
+    throw new Error(`missing ${marker}`);
+  }
+  const nextEnv = toml.indexOf("\n[env.", start + marker.length);
+  const end = nextEnv < 0 ? toml.length : nextEnv;
+  let section = toml.slice(start, end);
+  const live = [
+    `[[env.${wranglerEnv}.r2_buckets]]`,
+    `binding = "FILES"`,
+    `bucket_name = "${r2.bucket}"`,
+  ].join("\n");
+
+  const commented = section.match(
+    /#\s*\[\[env\.[^\]]+\.r2_buckets\]\]\s*\n#\s*binding = "FILES"\s*\n#\s*bucket_name = "[^"]*"/,
+  );
+  if (commented) {
+    section = section.replace(commented[0], live);
+  } else if (uncommentedR2Present(section)) {
+    section = section.replace(
+      /^\s*bucket_name = "[^"]*"/m,
+      `bucket_name = "${r2.bucket}"`,
+    );
+  } else {
+    section = section.replace(/vars = \{[^}]+\}/, (m) => `${m}\n${live}`);
+  }
+  return toml.slice(0, start) + section + toml.slice(end);
+}
+
 export function applyD1Binding(
   toml: string,
   wranglerEnv: WranglerEnv,
