@@ -1,10 +1,11 @@
 /**
- * Probe a deployed Pages preview URL for the §107 D1 evidence.
+ * Probe a deployed Pages preview URL for the §107 D1 + R2 evidence.
  *
  * Usage: STAGING_URL=https://<deployment>.pages.dev npm run uat:staging
  *
- * Passing requires /api/health to answer JSON with dbOk true — an HTML body
- * means the deploy shipped the SPA without functions/ (see npm run check:pages).
+ * Passing requires /api/health to answer JSON with dbOk true and r2Ok true
+ * (FILES bound). Set UAT_ALLOW_UNBOUND_R2=1 only for an explicit unbound exception.
+ * An HTML body means the deploy shipped the SPA without functions/ (see npm run check:pages).
  * Evidence is written to .data/uat-staging-latest.json.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -98,7 +99,10 @@ async function main() {
   }
 
   const dbOk = health.dbOk === true;
-  record({ ok: dbOk, status: res.status, health });
+  const r2Ok = health.r2Ok === true;
+  const allowUnboundR2 = process.env.UAT_ALLOW_UNBOUND_R2 === "1";
+  const ok = dbOk && (r2Ok || allowUnboundR2);
+  record({ ok, status: res.status, health, allowUnboundR2 });
 
   if (!dbOk) {
     console.error(
@@ -110,7 +114,21 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`uat:staging OK — ${target} reports dbOk true.`);
+  if (!r2Ok && !allowUnboundR2) {
+    console.error(
+      `uat:staging FAILED — r2Ok=${String(health.r2Ok)} (${String(health.r2Error ?? "FILES unbound")}).`,
+    );
+    console.error(
+      "Bind FILES with a dashboard token that has Workers R2 Storage Edit (npm run staging:raise). UAT_ALLOW_UNBOUND_R2=1 is an explicit exception only.",
+    );
+    process.exit(1);
+  }
+
+  console.log(
+    r2Ok
+      ? `uat:staging OK — ${target} reports dbOk true and r2Ok true.`
+      : `uat:staging OK — ${target} reports dbOk true (UAT_ALLOW_UNBOUND_R2=1; r2Ok is not true).`,
+  );
   console.log(
     `environment=${String(health.environment ?? "?")} storage=${String(health.storage ?? "?")} r2Ok=${String(health.r2Ok)}`,
   );
