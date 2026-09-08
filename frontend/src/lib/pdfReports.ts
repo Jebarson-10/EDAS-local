@@ -50,7 +50,6 @@ export async function buildTeacherDutyPdf(
       r.name,
       r.centre,
       r.date,
-      r.date,
       r.session,
       r.role,
     ]),
