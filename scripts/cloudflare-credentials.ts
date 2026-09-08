@@ -11,7 +11,10 @@
  * Unclaimed preview accounts are deleted after ~60 minutes.
  *
  * `staging:wait-claimed` re-resolves every poll, so dropping the env file is
- * enough — do not remint while D1 still lists.
+ * enough — do not remint while D1 still lists. The drop file may include
+ * ACCESS_EMAIL_ROLE_MAP (OQ-010); that is injected into staging:raise.
+ * Preview `cfat_` tokens in process env are ignored the same way as in the
+ * drop file so they cannot mask a later dashboard token.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -32,6 +35,8 @@ export type CloudflareCredentials = {
   expiresAt?: string;
   claimUrl?: string;
   claimExpiresAt?: string;
+  /** OQ-010 JSON from env or the drop file. Never invented. */
+  accessEmailRoleMap?: string;
 };
 
 export function temporaryAccountTomlPath(
@@ -66,9 +71,7 @@ export function parseTemporaryAccountToml(text: string): Omit<
 }
 
 /** Parse KEY=VALUE drop file. Preview `cfat_` tokens are ignored (not Pages-capable). */
-export function parseClientCredentialsEnv(
-  text: string,
-): { token: string; accountId: string } | null {
+export function parseDotEnvText(text: string): Record<string, string> {
   const vars: Record<string, string> = {};
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
@@ -86,11 +89,43 @@ export function parseClientCredentialsEnv(
     }
     vars[key] = val;
   }
+  return vars;
+}
+
+export function isPreviewApiToken(token: string): boolean {
+  return token.startsWith("cfat_");
+}
+
+export function accessEmailRoleMapFromDotEnv(
+  text: string,
+): string | undefined {
+  const map = parseDotEnvText(text).ACCESS_EMAIL_ROLE_MAP?.trim();
+  return map || undefined;
+}
+
+export function parseClientCredentialsEnv(
+  text: string,
+): { token: string; accountId: string; accessEmailRoleMap?: string } | null {
+  const vars = parseDotEnvText(text);
   const token = vars.CLOUDFLARE_API_TOKEN?.trim();
   const accountId = vars.CLOUDFLARE_ACCOUNT_ID?.trim();
   if (!token || !accountId) return null;
-  if (token.startsWith("cfat_")) return null;
-  return { token, accountId };
+  if (isPreviewApiToken(token)) return null;
+  const accessEmailRoleMap = vars.ACCESS_EMAIL_ROLE_MAP?.trim();
+  return accessEmailRoleMap
+    ? { token, accountId, accessEmailRoleMap }
+    : { token, accountId };
+}
+
+function overlayAccessEmailRoleMap(
+  creds: CloudflareCredentials,
+  env: NodeJS.ProcessEnv,
+  fromDrop?: string,
+): CloudflareCredentials {
+  const fromEnv = env.ACCESS_EMAIL_ROLE_MAP?.trim();
+  const map = fromEnv || fromDrop || creds.accessEmailRoleMap;
+  if (!map || creds.accessEmailRoleMap === map) return creds;
+  return { ...creds, accessEmailRoleMap: map };
 }
 
 export function resolveCloudflareCredentials(opts?: {
@@ -101,33 +136,63 @@ export function resolveCloudflareCredentials(opts?: {
   exists?: (path: string) => boolean;
 }): CloudflareCredentials | null {
   const env = opts?.env ?? process.env;
-  const token = env.CLOUDFLARE_API_TOKEN?.trim();
-  const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
-  if (token && accountId) {
-    return { token, accountId, source: "client-env" };
-  }
-
   const exists = opts?.exists ?? existsSync;
   const read = opts?.readFile ?? ((p) => readFileSync(p, "utf8"));
   const drop = opts?.clientCredentialsFile ?? CLIENT_CREDENTIALS_FILE;
+
+  let dropMap: string | undefined;
+  let dropCreds: {
+    token: string;
+    accountId: string;
+    accessEmailRoleMap?: string;
+  } | null = null;
   if (exists(drop)) {
     try {
-      const parsed = parseClientCredentialsEnv(read(drop));
-      if (parsed) {
-        return { ...parsed, source: "client-env" };
-      }
+      const text = read(drop);
+      dropMap = accessEmailRoleMapFromDotEnv(text);
+      dropCreds = parseClientCredentialsEnv(text);
     } catch {
-      /* fall through to temporary toml */
+      /* fall through */
     }
+  }
+
+  const token = env.CLOUDFLARE_API_TOKEN?.trim();
+  const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  if (token && accountId && !isPreviewApiToken(token)) {
+    return overlayAccessEmailRoleMap(
+      { token, accountId, source: "client-env" },
+      env,
+      dropMap,
+    );
+  }
+
+  if (dropCreds) {
+    return overlayAccessEmailRoleMap(
+      { ...dropCreds, source: "client-env" },
+      env,
+      dropCreds.accessEmailRoleMap ?? dropMap,
+    );
   }
 
   const file = opts?.temporaryAccountFile ?? temporaryAccountTomlPath();
   if (!exists(file)) return null;
   try {
-    return { ...parseTemporaryAccountToml(read(file)), source: "temporary" };
+    return overlayAccessEmailRoleMap(
+      { ...parseTemporaryAccountToml(read(file)), source: "temporary" },
+      env,
+      dropMap,
+    );
   } catch {
     return null;
   }
+}
+
+/** Set ACCESS_EMAIL_ROLE_MAP when present. Does not clear an existing env map. */
+export function injectAccessEmailRoleMap(
+  map: string | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (map) env.ACCESS_EMAIL_ROLE_MAP = map;
 }
 
 export function injectCloudflareCredentials(
@@ -136,6 +201,7 @@ export function injectCloudflareCredentials(
 ): void {
   env.CLOUDFLARE_API_TOKEN = creds.token;
   env.CLOUDFLARE_ACCOUNT_ID = creds.accountId;
+  injectAccessEmailRoleMap(creds.accessEmailRoleMap, env);
 }
 
 export function pagesForbiddenOnTemporaryAccount(
@@ -147,7 +213,19 @@ export function pagesForbiddenOnTemporaryAccount(
   const claim = creds.claimUrl
     ? `\nClaim the preview account${when}:\n  ${creds.claimUrl}`
     : "\nRun npm run staging:temporary and claim the printed URL.";
-  return `Pages API HTTP 403 on the temporary Cloudflare account.${claim}\n\nAfter claim, create a dashboard API token on that account with D1 edit + Cloudflare Pages edit, then either:\n\n  export CLOUDFLARE_API_TOKEN=...\n  export CLOUDFLARE_ACCOUNT_ID=...\n  npm run staging:raise\n\nor write the same two lines to gitignored .data/cloudflare-client.env\n(staging:wait-claimed picks that file up on the next poll).\n\nThe preview cfat_ token is not a Pages token (temporary accounts only support Workers + D1 among our bindings). Temporary workers.dev is not §107 Pages UAT. Do not invent ACCESS_EMAIL_ROLE_MAP.`;
+  return `Pages API HTTP 403 on the temporary Cloudflare account.${claim}
+
+After claim, create a dashboard API token on that account with D1 edit + Cloudflare Pages edit + Workers R2 Storage edit, then either:
+
+  export CLOUDFLARE_API_TOKEN=...
+  export CLOUDFLARE_ACCOUNT_ID=...
+  npm run staging:raise
+
+or write those two lines to gitignored .data/cloudflare-client.env
+(optional ACCESS_EMAIL_ROLE_MAP from OQ-010 — never invent officer emails).
+staging:wait-claimed picks that file up on the next poll.
+
+The preview cfat_ token is not a Pages token (temporary accounts only support Workers + D1 among our bindings). Temporary workers.dev is not §107 Pages UAT. Do not invent ACCESS_EMAIL_ROLE_MAP.`;
 }
 
 export function previewD1FromTemporaryToml(toml: string): {
