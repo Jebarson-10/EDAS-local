@@ -15,4 +15,5 @@ database/seeds/synthetic/dataset.json
 release/
 desktop/dist/
 desktop/ui/
+desktop/build-info.json
 .map-inspect/

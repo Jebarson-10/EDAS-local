@@ -8,9 +8,10 @@
  */
 const { app, BrowserWindow, dialog, shell, Menu } = require("electron");
 const { spawn } = require("node:child_process");
-const { existsSync, mkdirSync } = require("node:fs");
+const { existsSync, mkdirSync, readFileSync } = require("node:fs");
 const { join } = require("node:path");
 const net = require("node:net");
+const https = require("node:https");
 
 const isPackaged = app.isPackaged;
 const resourceDir = isPackaged
@@ -26,6 +27,29 @@ const staticDir = isPackaged
 
 let serverProcess = null;
 let appUrl = null;
+
+function bundledCommit() {
+  try { return JSON.parse(readFileSync(join(app.getAppPath(), "desktop", "build-info.json"), "utf8")).commit; }
+  catch { return "unknown"; }
+}
+
+function checkForCommitUpdate(win) {
+  const current = bundledCommit();
+  if (!current || current === "unknown") return;
+  const request = https.get("https://api.github.com/repos/Jebarson-10/EDAS-local/commits/main", { headers: { "User-Agent": "Erode-Exam-Duty-Update-Check", Accept: "application/vnd.github+json" }, timeout: 8_000 }, (response) => {
+    let body = "";
+    response.on("data", (chunk) => { body += chunk; });
+    response.on("end", () => {
+      try {
+        const latest = JSON.parse(body).sha;
+        if (!latest || latest === current) return;
+        void dialog.showMessageBox(win, { type: "info", title: "Update available", message: "A newer Erode Exam Duty build is available.", detail: `Installed: ${current.slice(0, 7)}\nLatest: ${latest.slice(0, 7)}`, buttons: ["Open download page", "Later"], defaultId: 0, cancelId: 1 }).then((choice) => { if (choice.response === 0) void shell.openExternal("https://github.com/Jebarson-10/EDAS-local/releases"); });
+      } catch { /* Offline, rate-limited, or unexpected response: stay quiet. */ }
+    });
+  });
+  request.on("error", () => {});
+  request.on("timeout", () => request.destroy());
+}
 
 function dataDir() {
   const dir = join(app.getPath("userData"), "data");
@@ -174,7 +198,8 @@ if (!app.requestSingleInstanceLock()) {
     try {
       const port = Number(process.env.API_PORT ?? 0) || (await freePort());
       appUrl = await startServer(port);
-      createWindow(appUrl);
+      const win = createWindow(appUrl);
+      setTimeout(() => checkForCommitUpdate(win), 5_000);
     } catch (e) {
       dialog.showErrorBox(
         "Erode Exam Duty could not start",
