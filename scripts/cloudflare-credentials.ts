@@ -1,16 +1,26 @@
 /**
  * Resolve Cloudflare API credentials for staging:raise / section:107.
  *
- * Preference: CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (client account).
- * Fallback: wrangler-temporary-account.toml from `npm run staging:temporary`.
+ * Preference:
+ *   1. CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (process env)
+ *   2. gitignored `.data/cloudflare-client.env` (dashboard token drop file)
+ *   3. wrangler-temporary-account.toml from `npm run staging:temporary`
  *
  * Claiming keeps Workers + D1. The preview cfat_ token still cannot call
  * Pages or R2 — staging:raise needs a dashboard API token with Pages edit.
  * Unclaimed preview accounts are deleted after ~60 minutes.
+ *
+ * `staging:wait-claimed` re-resolves every poll, so dropping the env file is
+ * enough — do not remint while D1 still lists.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+
+export const CLIENT_CREDENTIALS_FILE = join(
+  process.cwd(),
+  ".data/cloudflare-client.env",
+);
 
 export type CloudflareCredentialSource = "client-env" | "temporary";
 
@@ -55,9 +65,38 @@ export function parseTemporaryAccountToml(text: string): Omit<
   };
 }
 
+/** Parse KEY=VALUE drop file. Preview `cfat_` tokens are ignored (not Pages-capable). */
+export function parseClientCredentialsEnv(
+  text: string,
+): { token: string; accountId: string } | null {
+  const vars: Record<string, string> = {};
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const stripped = line.replace(/^export\s+/, "");
+    const eq = stripped.indexOf("=");
+    if (eq < 1) continue;
+    const key = stripped.slice(0, eq).trim();
+    let val = stripped.slice(eq + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    vars[key] = val;
+  }
+  const token = vars.CLOUDFLARE_API_TOKEN?.trim();
+  const accountId = vars.CLOUDFLARE_ACCOUNT_ID?.trim();
+  if (!token || !accountId) return null;
+  if (token.startsWith("cfat_")) return null;
+  return { token, accountId };
+}
+
 export function resolveCloudflareCredentials(opts?: {
   env?: NodeJS.ProcessEnv;
   temporaryAccountFile?: string;
+  clientCredentialsFile?: string;
   readFile?: (path: string) => string;
   exists?: (path: string) => boolean;
 }): CloudflareCredentials | null {
@@ -68,9 +107,21 @@ export function resolveCloudflareCredentials(opts?: {
     return { token, accountId, source: "client-env" };
   }
 
-  const file = opts?.temporaryAccountFile ?? temporaryAccountTomlPath();
   const exists = opts?.exists ?? existsSync;
   const read = opts?.readFile ?? ((p) => readFileSync(p, "utf8"));
+  const drop = opts?.clientCredentialsFile ?? CLIENT_CREDENTIALS_FILE;
+  if (exists(drop)) {
+    try {
+      const parsed = parseClientCredentialsEnv(read(drop));
+      if (parsed) {
+        return { ...parsed, source: "client-env" };
+      }
+    } catch {
+      /* fall through to temporary toml */
+    }
+  }
+
+  const file = opts?.temporaryAccountFile ?? temporaryAccountTomlPath();
   if (!exists(file)) return null;
   try {
     return { ...parseTemporaryAccountToml(read(file)), source: "temporary" };
@@ -96,15 +147,7 @@ export function pagesForbiddenOnTemporaryAccount(
   const claim = creds.claimUrl
     ? `\nClaim the preview account${when}:\n  ${creds.claimUrl}`
     : "\nRun npm run staging:temporary and claim the printed URL.";
-  return `Pages API HTTP 403 on the temporary Cloudflare account.${claim}
-
-After claim, create a dashboard API token on that account with D1 edit + Cloudflare Pages edit, then:
-
-  export CLOUDFLARE_API_TOKEN=...
-  export CLOUDFLARE_ACCOUNT_ID=...
-  npm run staging:raise
-
-The preview cfat_ token is not a Pages token (temporary accounts only support Workers + D1 among our bindings). Temporary workers.dev is not §107 Pages UAT. Do not invent ACCESS_EMAIL_ROLE_MAP.`;
+  return `Pages API HTTP 403 on the temporary Cloudflare account.${claim}\n\nAfter claim, create a dashboard API token on that account with D1 edit + Cloudflare Pages edit, then either:\n\n  export CLOUDFLARE_API_TOKEN=...\n  export CLOUDFLARE_ACCOUNT_ID=...\n  npm run staging:raise\n\nor write the same two lines to gitignored .data/cloudflare-client.env\n(staging:wait-claimed picks that file up on the next poll).\n\nThe preview cfat_ token is not a Pages token (temporary accounts only support Workers + D1 among our bindings). Temporary workers.dev is not §107 Pages UAT. Do not invent ACCESS_EMAIL_ROLE_MAP.`;
 }
 
 export function previewD1FromTemporaryToml(toml: string): {
