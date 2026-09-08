@@ -50,7 +50,7 @@
     "check:pages": "tsx scripts/check-pages-layout.ts",
     "check:pages:dev": "tsx scripts/check-pages-dev.ts",
     "check:app": "tsx scripts/check-app-server.ts",
-    "pages:deploy:preview": "npm run pages:build && npx wrangler pages deploy --project-name erode-exam-duty --branch preview",
+    "pages:deploy:preview": "npm run pages:build && npx wrangler pages deploy --project-name erode-exam-duty --branch preview --commit-dirty=true",
     "staging:restore": "tsx scripts/d1-restore-canonical.ts",
     "uat:staging": "tsx scripts/uat-staging.ts",
     "section:107": "tsx scripts/section-107-status.ts",
