@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = resolve(import.meta.dirname, "..");
@@ -27,10 +29,16 @@ describe("db:migrate:remote argv", () => {
 
 describe("staging:raise", () => {
   it("exits 2 when Cloudflare credentials are missing", () => {
+    const home = mkdtempSync(join(tmpdir(), "edas-no-cf-"));
     const r = spawnSync("npx", ["tsx", "scripts/staging-raise.ts"], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, CLOUDFLARE_API_TOKEN: "", CLOUDFLARE_ACCOUNT_ID: "" },
+      env: {
+        ...process.env,
+        HOME: home,
+        CLOUDFLARE_API_TOKEN: "",
+        CLOUDFLARE_ACCOUNT_ID: "",
+      },
     });
     expect(r.status).toBe(2);
     expect(`${r.stdout}${r.stderr}`).toMatch(/CLOUDFLARE_API_TOKEN/);
