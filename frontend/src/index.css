@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "IBM Plex Serif", Georgia, serif;
+
+  --color-ink: #101a24;
+  --color-ink-muted: #5a6b7a;
+  --color-paper: #eef2f6;
+  --color-panel: #ffffff;
+  --color-line: #dde5ec;
+  --color-line-strong: #c3d0da;
+
+  --color-brand: #14364a;
+  --color-brand-soft: #1d4a63;
+  --color-brand-accent: #c05621;
+  --color-brand-accent-soft: #e9d5c4;
+
+  --color-ok: #16694a;
+  --color-ok-wash: #e3f4ec;
+  --color-warn: #8a5c0d;
+  --color-warn-wash: #fbf1dc;
+  --color-err: #93231f;
+  --color-err-wash: #fbe8e6;
+  --color-sky-wash: #e7f0f5;
+
+  --radius-tile: 16px;
+  --shadow-tile:
+    0 1px 2px rgb(16 26 36 / 0.04), 0 8px 24px -12px rgb(16 26 36 / 0.12);
+  --shadow-tile-hover:
+    0 2px 4px rgb(16 26 36 / 0.06), 0 16px 40px -16px rgb(16 26 36 / 0.2);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background:
+    radial-gradient(1100px 480px at 8% -12%, #d8e7f0 0%, transparent 58%),
+    radial-gradient(820px 420px at 102% -4%, #f2e2d4 0%, transparent 52%),
+    var(--color-paper);
+  background-attachment: fixed;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* ---- Bento layout primitives ---- */
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .bento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .bento {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-tile);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-tile);
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.tile-interactive:hover {
+  box-shadow: var(--shadow-tile-hover);
+  border-color: var(--color-line-strong);
+  transform: translateY(-2px);
+}
+
+.tile-brand {
+  background:
+    radial-gradient(
+      600px 220px at 100% 0%,
+      rgb(255 255 255 / 0.14) 0%,
+      transparent 60%
+    ),
+    linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-soft) 100%);
+  border-color: transparent;
+  color: var(--color-sky-wash);
+}
+
+.glass {
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: saturate(1.5) blur(10px);
+}
+
+/* Numeric readouts should not wobble as values update. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .tile-interactive:hover {
+    transition: none;
+    transform: none;
+  }
+}
