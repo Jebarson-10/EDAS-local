@@ -88,7 +88,7 @@ export class DefaultAuthAdapter implements AuthAdapter {
       return {
         userId: `access:${accessEmail}`,
         email: accessEmail,
-        role: resolveAccessRole(request, email, options),
+        role: resolveAccessRole(request, accessEmail, options),
         source: "cloudflare-access",
       };
     }
