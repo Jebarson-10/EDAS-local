@@ -26,35 +26,54 @@ jobs:
           if not root.exists():
               print("no payload-uploads")
               sys.exit(0)
+          singles = []
           groups = defaultdict(list)
           for p in root.rglob("*.json"):
               obj = json.loads(p.read_text())
-              groups[obj["dest"]].append((obj["index"], obj, p))
-          written = []
-          for dest, items in groups.items():
-              items.sort(key=lambda x: x[0])
-              total = items[0][1]["total"]
-              if len(items) != total:
-                  print(f"skip {dest}: {len(items)}/{total}")
+              if not isinstance(obj, dict) or "dest" not in obj:
+                  print("skip unknown", p)
                   continue
-              b64 = "".join(x[1]["b64"] for x in items)
-              data = gzip.decompress(base64.b64decode(b64))
-              expected = items[0][1].get("sha256")
+              if "gz_b64" in obj:
+                  singles.append((obj, p))
+              else:
+                  groups[obj["dest"]].append((obj.get("index", 0), obj, p))
+          written = []
+          def write_dest(dest, data, expected):
               if expected:
                   got = hashlib.sha256(data).hexdigest()
                   if got != expected:
-                      raise SystemExit(f"sha mismatch {dest}: {got} != {expected}")
+                      print(f"sha mismatch {dest}: {got} != {expected}")
+                      return False
               path = pathlib.Path(dest)
               path.parent.mkdir(parents=True, exist_ok=True)
               path.write_bytes(data)
               print(f"wrote {dest} ({len(data)} bytes)")
               written.append(dest)
-              for _, _, p in items:
-                  p.unlink()
+              return True
+          for obj, p in singles:
+              try:
+                  data = gzip.decompress(base64.b64decode(obj["gz_b64"]))
+                  if write_dest(obj["dest"], data, obj.get("sha256")):
+                      p.unlink()
+              except Exception as e:
+                  print(f"fail single {obj.get('dest')}: {e}")
+          for dest, items in groups.items():
+              try:
+                  items.sort(key=lambda x: x[0])
+                  total = items[0][1]["total"]
+                  if len(items) != total:
+                      print(f"skip {dest}: {len(items)}/{total}")
+                      continue
+                  b64 = "".join(x[1]["b64"] for x in items)
+                  data = gzip.decompress(base64.b64decode(b64))
+                  if write_dest(dest, data, items[0][1].get("sha256")):
+                      for _, _, p in items:
+                          p.unlink()
+              except Exception as e:
+                  print(f"fail chunked {dest}: {e}")
           for dirpath, dirnames, filenames in os.walk(root, topdown=False):
               if not os.listdir(dirpath):
                   os.rmdir(dirpath)
-          pathlib.Path("/tmp/materialized-files.txt").write_text("\n".join(written))
           print("done", written)
           PY
       - name: Commit materialized files
@@ -62,7 +81,6 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -f --ignore-unmatch .mcp-upload-probe.txt || true
           git add -A
           if git diff --cached --quiet; then
             echo "no changes to commit"
@@ -79,7 +97,6 @@ jobs:
                 git checkout main -- "$f"
               fi
             done
-            git rm -f --ignore-unmatch .mcp-upload-probe.txt || true
             git add -A
             if git diff --cached --quiet; then
               echo "feature branch already has files"
