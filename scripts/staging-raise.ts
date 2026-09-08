@@ -275,6 +275,8 @@ async function main() {
     process.env.CF_D1_PREVIEW_ID = d1.id;
     run("staging:restore", "npm", ["run", "staging:restore"]);
     run("pages:build", "npm", ["run", "pages:build"]);
+    // Never pass a positional assets dir — Wrangler would ignore wrangler.toml
+    // and ship the SPA without functions/ or the D1 binding.
     const deployOut = runCapture("pages:deploy:preview", "npx", [
       "wrangler",
       "pages",
@@ -283,6 +285,7 @@ async function main() {
       projectName,
       "--branch",
       "preview",
+      "--commit-dirty=true",
     ]);
     previewUrl = pagesPreviewUrlFromText(deployOut);
     if (previewUrl) {
