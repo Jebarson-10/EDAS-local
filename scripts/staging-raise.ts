@@ -3,6 +3,8 @@
  *
  * Credentials (first match):
  *   CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+ *   gitignored .data/cloudflare-client.env (dashboard token; optional
+ *     ACCESS_EMAIL_ROLE_MAP from OQ-010 — never invented)
  *   wrangler-temporary-account.toml from `npm run staging:temporary`
  *     (Pages stays 403 until that preview account is claimed)
  *
@@ -10,7 +12,10 @@
  *   CF_D1_PREVIEW_NAME   default erode-exam-duty-preview
  *   CF_D1_PREVIEW_ID     skip create when set
  *   CF_PAGES_PROJECT     default erode-exam-duty
- *   CF_R2_PREVIEW_BUCKET leave FILES unbound when unset (honest stored:false)
+ *   CF_R2_PREVIEW_BUCKET  bind FILES to this bucket (create if missing).
+ *     When unset, raise tries erode-exam-duty-files-preview after Pages API
+ *     succeeds and leaves FILES unbound on R2 403 (honest stored:false).
+ *   CF_R2_BIND=0           skip R2 entirely
  *   ACCESS_EMAIL_ROLE_MAP  OQ-010 JSON; never invented — set as Pages secret when present
  *
  * Does not promote production.
@@ -24,7 +29,8 @@ import {
   resolveCloudflareCredentials,
 } from "./cloudflare-credentials.ts";
 import { ensurePreviewD1 } from "./ensure-preview-d1.ts";
-import { applyD1Binding } from "./wrangler-env.ts";
+import { ensurePreviewR2 } from "./ensure-preview-r2.ts";
+import { applyD1Binding, applyR2Binding } from "./wrangler-env.ts";
 import {
   pagesPreviewUrlFromText,
   placeholderRoleMapError,
@@ -181,7 +187,27 @@ async function assertPagesApi(
 async function main() {
   const creds = resolveCloudflareCredentials();
   if (!creds) {
-    fail(`§107 staging:raise blocked — no Cloudflare credentials in this environment.\n\nNeed both:\n  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers scripts\n  CLOUDFLARE_ACCOUNT_ID    32-char account id from the Cloudflare dashboard\n\nOr claim a temporary preview account from npm run staging:temporary, then create a\ndashboard API token with D1 edit + Pages edit (the preview cfat_ token cannot\ncall Pages) and re-run this command.\n\nOptional:\n  CF_D1_PREVIEW_ID / CF_D1_PREVIEW_NAME\n  CF_R2_PREVIEW_BUCKET     omit to leave R2 unbound (stored:false backups)\n  ACCESS_EMAIL_ROLE_MAP    OQ-010 email→role JSON; never invent officer emails\n\nThen:\n  npm run staging:raise\n\nDo not paste REPLACE_ME ids. This command creates the preview D1 and deploys Pages preview.\nProduction promote still needs explicit human approval.`);
+    fail(`§107 staging:raise blocked — no Cloudflare credentials in this environment.
+
+Need both:
+  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers scripts
+  CLOUDFLARE_ACCOUNT_ID    32-char account id from the Cloudflare dashboard
+
+Or claim a temporary preview account from npm run staging:temporary, then create a
+dashboard API token with D1 edit + Pages edit (the preview cfat_ token cannot
+call Pages) and re-run this command.
+
+Optional:
+  CF_D1_PREVIEW_ID / CF_D1_PREVIEW_NAME
+  CF_R2_PREVIEW_BUCKET     bind FILES (default name tried when unset; 403 → stored:false)
+  CF_R2_BIND=0             skip R2
+  ACCESS_EMAIL_ROLE_MAP    OQ-010 email→role JSON; never invent officer emails
+
+Then:
+  npm run staging:raise
+
+Do not paste REPLACE_ME ids. This command creates the preview D1 and deploys Pages preview.
+Production promote still needs explicit human approval.`);
   }
 
   const { token, accountId } = creds;
@@ -209,12 +235,49 @@ async function main() {
       : `Using D1 ${d1.name} ${d1.id}`,
   );
 
+  const requestedR2 = process.env.CF_R2_PREVIEW_BUCKET?.trim();
+  const r2 = await ensurePreviewR2({
+    requestedBucket: requestedR2 || undefined,
+    skip: process.env.CF_R2_BIND === "0",
+    listBuckets: async () => {
+      const result = await cf<{ buckets?: Array<{ name: string }> }>(
+        token,
+        accountId,
+        "/r2/buckets",
+      );
+      return result.buckets ?? [];
+    },
+    createBucket: async (name) => {
+      await cf(token, accountId, "/r2/buckets", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+    },
+  });
+  if (r2.bound) {
+    console.log(
+      r2.created
+        ? `Created R2 ${r2.bucket} and will bind FILES.`
+        : `Using R2 ${r2.bucket} for FILES.`,
+    );
+  } else {
+    console.log(
+      r2.reason === "skipped"
+        ? "CF_R2_BIND=0 — FILES stays unbound (stored:false backups)."
+        : "R2 API not granted — FILES stays unbound (honest stored:false). Add Workers R2 Storage Edit to bind FILES.",
+    );
+  }
+
   const rootTomlPath = join(ROOT, "wrangler.toml");
   const workerTomlPath = join(ROOT, "worker/wrangler.toml");
   const originalRoot = readFileSync(rootTomlPath, "utf8");
   const originalWorker = readFileSync(workerTomlPath, "utf8");
-  const rootFilled = applyD1Binding(originalRoot, "preview", d1);
-  const workerFilled = applyD1Binding(originalWorker, "preview", d1);
+  let rootFilled = applyD1Binding(originalRoot, "preview", d1);
+  let workerFilled = applyD1Binding(originalWorker, "preview", d1);
+  if (r2.bound) {
+    rootFilled = applyR2Binding(rootFilled, "preview", { bucket: r2.bucket });
+    workerFilled = applyR2Binding(workerFilled, "preview", { bucket: r2.bucket });
+  }
   writeFileSync(rootTomlPath, rootFilled);
   writeFileSync(workerTomlPath, workerFilled);
   writeFileSync(join(DATA, "wrangler.preview.toml"), rootFilled);
@@ -246,6 +309,9 @@ async function main() {
         ENVIRONMENT: { type: "plain_text", value: "staging" },
       },
     };
+    if (r2.bound) {
+      previewBindings.r2_buckets = { FILES: { name: r2.bucket } };
+    }
     if (map) {
       (previewBindings.env_vars as Record<string, unknown>).ACCESS_EMAIL_ROLE_MAP =
         {
@@ -301,6 +367,7 @@ async function main() {
           accountId,
           credentialSource: creds.source,
           d1,
+          r2,
           pagesProject: projectName,
           error: e instanceof Error ? e.message : String(e),
         },
@@ -321,7 +388,7 @@ async function main() {
     d1,
     pagesProject: projectName,
     previewUrl,
-    r2: process.env.CF_R2_PREVIEW_BUCKET ?? null,
+    r2,
     accessRoleMapConfigured: Boolean(map),
     note:
       creds.source === "temporary" || d1.fromTemporary
@@ -344,7 +411,11 @@ async function main() {
   }
   console.log(
     previewUrl
-      ? `Probe ${previewUrl}/api/health: dbOk must be true. r2Ok may be false until a bucket is bound.`
+      ? `Probe ${previewUrl}/api/health: dbOk must be true.${
+          r2.bound
+            ? " r2Ok should be true (FILES bound)."
+            : " r2Ok may be false until a bucket is bound."
+        }`
       : "Probe the preview URL /api/health: dbOk must be true. r2Ok may be false until a bucket is bound.",
   );
   if (previewUrl) {
