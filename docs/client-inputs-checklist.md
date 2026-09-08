@@ -26,8 +26,26 @@ export CLOUDFLARE_ACCOUNT_ID=...
 npm run staging:raise
 ```
 
-That creates `erode-exam-duty-preview` D1, migrates it, and deploys Pages `--branch preview`.
+That creates `erode-exam-duty-preview` D1, migrates it, restores the canonical
+snapshot (`npm run staging:restore`), and deploys Pages `--branch preview`
+without a positional assets directory (so `functions/` and D1 actually ship).
 R2 is optional; omit it and backups report `stored: false`. Production is not deployed.
+
+Without those secrets, `npm run staging:temporary` still raises a **60-minute**
+Cloudflare Worker + D1 on a claimable temporary account (Pages is not available
+there). That is live-D1 evidence, not client staging, Access, or production.
+`npm run staging:temporary:seed` loads the synthetic demo into that D1 (VIEWER-only
+on workers.dev until OQ-010).
+
+**GitHub Actions** — same raise, once secrets exist on the repo:
+
+1. Repo Settings → Secrets and variables → Actions
+2. Add `CLOUDFLARE_API_TOKEN` (D1 edit + Pages edit) and `CLOUDFLARE_ACCOUNT_ID`
+3. Optional: `ACCESS_EMAIL_ROLE_MAP` only with real OQ-010 officer emails
+4. Actions → **Staging raise** → Run workflow
+5. `STAGING_URL=https://<preview>.pages.dev npm run uat:staging`
+
+The workflow fails closed if those secrets are missing. It never deploys production.
 
 | Item | Where it goes | Value |
 |------|---------------|-------|
@@ -131,7 +149,8 @@ npm run staging:preflight
 ## 5. Production promotion
 
 A human must explicitly authorise production deploy. Record who approved, when,
-and against which staging run ids. No agent or CI job may promote.
+and against which staging run ids in [`docs/production-promote.md`](./production-promote.md).
+No agent or CI job may promote.
 
 ---
 
