@@ -1,0 +1,4270 @@
+{
+  "meta": {
+    "generatedAt": "2026-09-08T10:04:50.457Z",
+    "note": "SYNTHETIC DATA ONLY — not real government records",
+    "counts": {
+      "blocks": 15,
+      "schools": 30,
+      "centres": 10,
+      "teachers": 120,
+      "relationships": 13,
+      "history": 240
+    },
+    "slice": "demo-ui"
+  },
+  "blocks": [
+    {
+      "blockId": "blk_01",
+      "blockCode": "B1",
+      "blockName": "Synthetic Block 1"
+    },
+    {
+      "blockId": "blk_02",
+      "blockCode": "B2",
+      "blockName": "Synthetic Block 2"
+    },
+    {
+      "blockId": "blk_03",
+      "blockCode": "B3",
+      "blockName": "Synthetic Block 3"
+    },
+    {
+      "blockId": "blk_04",
+      "blockCode": "B4",
+      "blockName": "Synthetic Block 4"
+    },
+    {
+      "blockId": "blk_05",
+      "blockCode": "B5",
+      "blockName": "Synthetic Block 5"
+    },
+    {
+      "blockId": "blk_06",
+      "blockCode": "B6",
+      "blockName": "Synthetic Block 6"
+    },
+    {
+      "blockId": "blk_07",
+      "blockCode": "B7",
+      "blockName": "Synthetic Block 7"
+    },
+    {
+      "blockId": "blk_08",
+      "blockCode": "B8",
+      "blockName": "Synthetic Block 8"
+    },
+    {
+      "blockId": "blk_09",
+      "blockCode": "B9",
+      "blockName": "Synthetic Block 9"
+    },
+    {
+      "blockId": "blk_10",
+      "blockCode": "B10",
+      "blockName": "Synthetic Block 10"
+    },
+    {
+      "blockId": "blk_11",
+      "blockCode": "B11",
+      "blockName": "Synthetic Block 11"
+    },
+    {
+      "blockId": "blk_12",
+      "blockCode": "B12",
+      "blockName": "Synthetic Block 12"
+    },
+    {
+      "blockId": "blk_13",
+      "blockCode": "B13",
+      "blockName": "Synthetic Block 13"
+    },
+    {
+      "blockId": "blk_14",
+      "blockCode": "B14",
+      "blockName": "Synthetic Block 14"
+    },
+    {
+      "blockId": "blk_15",
+      "blockCode": "B15",
+      "blockName": "Synthetic Block 15"
+    }
+  ],
+  "schools": [
+    {
+      "schoolId": "sch_0001",
+      "schoolCode": "S1",
+      "schoolName": "Synthetic School 1",
+      "blockId": "blk_01",
+      "latitude": 11.58516,
+      "longitude": 77.87975,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0002",
+      "schoolCode": "S2",
+      "schoolName": "Synthetic School 2",
+      "blockId": "blk_02",
+      "latitude": 11.46216,
+      "longitude": 77.57176,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0003",
+      "schoolCode": "S3",
+      "schoolName": "Synthetic School 3",
+      "blockId": "blk_03",
+      "latitude": 11.49685,
+      "longitude": 77.70822,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0004",
+      "schoolCode": "S4",
+      "schoolName": "Synthetic School 4",
+      "blockId": "blk_04",
+      "latitude": 11.4091,
+      "longitude": 77.85343,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0005",
+      "schoolCode": "S5",
+      "schoolName": "Synthetic School 5",
+      "blockId": "blk_05",
+      "latitude": 11.45694,
+      "longitude": 77.67417,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0006",
+      "schoolCode": "S6",
+      "schoolName": "Synthetic School 6",
+      "blockId": "blk_06",
+      "latitude": 11.40599,
+      "longitude": 77.79226,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0007",
+      "schoolCode": "S7",
+      "schoolName": "Synthetic School 7",
+      "blockId": "blk_07",
+      "latitude": 11.42665,
+      "longitude": 77.61482,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0008",
+      "schoolCode": "S8",
+      "schoolName": "Synthetic School 8",
+      "blockId": "blk_08",
+      "latitude": 11.544,
+      "longitude": 77.89302,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0009",
+      "schoolCode": "S9",
+      "schoolName": "Synthetic School 9",
+      "blockId": "blk_09",
+      "latitude": 11.22371,
+      "longitude": 77.58102,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0010",
+      "schoolCode": "S10",
+      "schoolName": "Synthetic School 10",
+      "blockId": "blk_10",
+      "latitude": 11.41364,
+      "longitude": 77.78191,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0011",
+      "schoolCode": "S11",
+      "schoolName": "Synthetic School 11",
+      "blockId": "blk_11",
+      "latitude": 11.39996,
+      "longitude": 77.95868,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0012",
+      "schoolCode": "S12",
+      "schoolName": "Synthetic School 12",
+      "blockId": "blk_12",
+      "latitude": 11.50454,
+      "longitude": 77.68661,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0013",
+      "schoolCode": "S13",
+      "schoolName": "Synthetic School 13",
+      "blockId": "blk_13",
+      "latitude": 11.47099,
+      "longitude": 77.80933,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0014",
+      "schoolCode": "S14",
+      "schoolName": "Synthetic School 14",
+      "blockId": "blk_14",
+      "latitude": 11.48522,
+      "longitude": 77.96753,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0015",
+      "schoolCode": "S15",
+      "schoolName": "Synthetic School 15",
+      "blockId": "blk_15",
+      "latitude": 11.27897,
+      "longitude": 77.87527,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0016",
+      "schoolCode": "S16",
+      "schoolName": "Synthetic School 16",
+      "blockId": "blk_01",
+      "latitude": 11.59421,
+      "longitude": 77.95818,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0017",
+      "schoolCode": "S17",
+      "schoolName": "Synthetic School 17",
+      "blockId": "blk_02",
+      "latitude": 11.36991,
+      "longitude": 77.81962,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0018",
+      "schoolCode": "S18",
+      "schoolName": "Synthetic School 18",
+      "blockId": "blk_03",
+      "latitude": 11.47385,
+      "longitude": 77.99744,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0019",
+      "schoolCode": "S19",
+      "schoolName": "Synthetic School 19",
+      "blockId": "blk_04",
+      "latitude": 11.56665,
+      "longitude": 77.89652,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0020",
+      "schoolCode": "S20",
+      "schoolName": "Synthetic School 20",
+      "blockId": "blk_05",
+      "latitude": 11.27774,
+      "longitude": 77.66149,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0021",
+      "schoolCode": "S21",
+      "schoolName": "Synthetic School 21",
+      "blockId": "blk_06",
+      "latitude": 11.41873,
+      "longitude": 77.87178,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0022",
+      "schoolCode": "S22",
+      "schoolName": "Synthetic School 22",
+      "blockId": "blk_07",
+      "latitude": 11.5834,
+      "longitude": 77.82833,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0023",
+      "schoolCode": "S23",
+      "schoolName": "Synthetic School 23",
+      "blockId": "blk_08",
+      "latitude": 11.5106,
+      "longitude": 77.63938,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0024",
+      "schoolCode": "S24",
+      "schoolName": "Synthetic School 24",
+      "blockId": "blk_09",
+      "latitude": 11.54126,
+      "longitude": 77.83258,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0025",
+      "schoolCode": "S25",
+      "schoolName": "Synthetic School 25",
+      "blockId": "blk_10",
+      "latitude": 11.50915,
+      "longitude": 77.60411,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0026",
+      "schoolCode": "S26",
+      "schoolName": "Synthetic School 26",
+      "blockId": "blk_11",
+      "latitude": 11.59109,
+      "longitude": 77.59343,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0027",
+      "schoolCode": "S27",
+      "schoolName": "Synthetic School 27",
+      "blockId": "blk_12",
+      "latitude": 11.332,
+      "longitude": 77.52552,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0028",
+      "schoolCode": "S28",
+      "schoolName": "Synthetic School 28",
+      "blockId": "blk_13",
+      "latitude": 11.57748,
+      "longitude": 77.72359,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0029",
+      "schoolCode": "S29",
+      "schoolName": "Synthetic School 29",
+      "blockId": "blk_14",
+      "latitude": 11.51777,
+      "longitude": 77.64375,
+      "active": true
+    },
+    {
+      "schoolId": "sch_0030",
+      "schoolCode": "S30",
+      "schoolName": "Synthetic School 30",
+      "blockId": "blk_15",
+      "latitude": 11.59516,
+      "longitude": 77.75193,
+      "active": true
+    }
+  ],
+  "centres": [
+    {
+      "centreId": "ctr_001",
+      "centreCode": "C1",
+      "centreName": "Synthetic Centre 1",
+      "blockId": "blk_01",
+      "latitude": 11.58516,
+      "longitude": 77.87975,
+      "capacity": 346,
+      "active": true
+    },
+    {
+      "centreId": "ctr_002",
+      "centreCode": "C2",
+      "centreName": "Synthetic Centre 2",
+      "blockId": "blk_02",
+      "latitude": 11.46216,
+      "longitude": 77.57176,
+      "capacity": 288,
+      "active": true
+    },
+    {
+      "centreId": "ctr_003",
+      "centreCode": "C3",
+      "centreName": "Synthetic Centre 3",
+      "blockId": "blk_03",
+      "latitude": 11.49685,
+      "longitude": 77.70822,
+      "capacity": 327,
+      "active": true
+    },
+    {
+      "centreId": "ctr_004",
+      "centreCode": "C4",
+      "centreName": "Synthetic Centre 4",
+      "blockId": "blk_04",
+      "latitude": 11.4091,
+      "longitude": 77.85343,
+      "capacity": 238,
+      "active": true
+    },
+    {
+      "centreId": "ctr_005",
+      "centreCode": "C5",
+      "centreName": "Synthetic Centre 5",
+      "blockId": "blk_05",
+      "latitude": 11.45694,
+      "longitude": 77.67417,
+      "capacity": 372,
+      "active": true
+    },
+    {
+      "centreId": "ctr_006",
+      "centreCode": "C6",
+      "centreName": "Synthetic Centre 6",
+      "blockId": "blk_06",
+      "latitude": 11.40599,
+      "longitude": 77.79226,
+      "capacity": 339,
+      "active": true
+    },
+    {
+      "centreId": "ctr_007",
+      "centreCode": "C7",
+      "centreName": "Synthetic Centre 7",
+      "blockId": "blk_07",
+      "latitude": 11.42665,
+      "longitude": 77.61482,
+      "capacity": 234,
+      "active": true
+    },
+    {
+      "centreId": "ctr_008",
+      "centreCode": "C8",
+      "centreName": "Synthetic Centre 8",
+      "blockId": "blk_08",
+      "latitude": 11.544,
+      "longitude": 77.89302,
+      "capacity": 236,
+      "active": true
+    },
+    {
+      "centreId": "ctr_009",
+      "centreCode": "C9",
+      "centreName": "Synthetic Centre 9",
+      "blockId": "blk_09",
+      "latitude": 11.22371,
+      "longitude": 77.58102,
+      "capacity": 322,
+      "active": true
+    },
+    {
+      "centreId": "ctr_010",
+      "centreCode": "C10",
+      "centreName": "Synthetic Centre 10",
+      "blockId": "blk_10",
+      "latitude": 11.41364,
+      "longitude": 77.78191,
+      "capacity": 298,
+      "active": true
+    }
+  ],
+  "relationships": [
+    {
+      "centreId": "ctr_001",
+      "schoolId": "sch_0001",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_001",
+      "schoolId": "sch_0004",
+      "relationshipType": "CLUBBED",
+      "effectiveFrom": "2024-01-01"
+    },
+    {
+      "centreId": "ctr_001",
+      "schoolId": "sch_0010",
+      "relationshipType": "CLUBBED",
+      "effectiveFrom": "2025-01-01"
+    },
+    {
+      "centreId": "ctr_002",
+      "schoolId": "sch_0002",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_003",
+      "schoolId": "sch_0003",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_004",
+      "schoolId": "sch_0004",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_005",
+      "schoolId": "sch_0005",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_006",
+      "schoolId": "sch_0006",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_007",
+      "schoolId": "sch_0007",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_008",
+      "schoolId": "sch_0008",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_008",
+      "schoolId": "sch_0011",
+      "relationshipType": "CLUBBED",
+      "effectiveFrom": "2024-01-01"
+    },
+    {
+      "centreId": "ctr_009",
+      "schoolId": "sch_0009",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "centreId": "ctr_010",
+      "schoolId": "sch_0010",
+      "relationshipType": "HOST",
+      "effectiveFrom": "2020-01-01"
+    }
+  ],
+  "teachers": [
+    {
+      "teacherId": "tch_00001",
+      "employeeCode": "SYN00001",
+      "name": "Synthetic Teacher 1",
+      "schoolId": "sch_0001",
+      "designation": "HM",
+      "subject": "ENG",
+      "seniorityRank": 1,
+      "homeLatitude": 11.5781,
+      "homeLongitude": 77.88543,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00002",
+      "employeeCode": "SYN00002",
+      "name": "Synthetic Teacher 2",
+      "schoolId": "sch_0002",
+      "designation": "PRINCIPAL",
+      "subject": "BIO",
+      "seniorityRank": 2,
+      "homeLatitude": 11.46962,
+      "homeLongitude": 77.56344,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00003",
+      "employeeCode": "SYN00003",
+      "name": "Synthetic Teacher 3",
+      "schoolId": "sch_0003",
+      "designation": "PG",
+      "subject": "PHY",
+      "seniorityRank": 3,
+      "homeLatitude": 11.47792,
+      "homeLongitude": 77.72048,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00004",
+      "employeeCode": "SYN00004",
+      "name": "Synthetic Teacher 4",
+      "schoolId": "sch_0004",
+      "designation": "HM",
+      "subject": "PHY",
+      "seniorityRank": 4,
+      "homeLatitude": 11.41453,
+      "homeLongitude": 77.85787,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00005",
+      "employeeCode": "SYN00005",
+      "name": "Synthetic Teacher 5",
+      "schoolId": "sch_0005",
+      "designation": "PRINCIPAL",
+      "subject": "CHE",
+      "seniorityRank": 5,
+      "homeLatitude": 11.46166,
+      "homeLongitude": 77.66228,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00006",
+      "employeeCode": "SYN00006",
+      "name": "Synthetic Teacher 6",
+      "schoolId": "sch_0006",
+      "designation": "SENIOR_PG",
+      "subject": "CS",
+      "seniorityRank": 6,
+      "homeLatitude": 11.40455,
+      "homeLongitude": 77.8068,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00007",
+      "employeeCode": "SYN00007",
+      "name": "Synthetic Teacher 7",
+      "schoolId": "sch_0007",
+      "designation": "PG",
+      "subject": "ENG",
+      "seniorityRank": 7,
+      "homeLatitude": 11.41795,
+      "homeLongitude": 77.59567,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00008",
+      "employeeCode": "SYN00008",
+      "name": "Synthetic Teacher 8",
+      "schoolId": "sch_0008",
+      "designation": "PRINCIPAL",
+      "subject": "MAT",
+      "seniorityRank": 8,
+      "homeLatitude": 11.54469,
+      "homeLongitude": 77.87599,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00009",
+      "employeeCode": "SYN00009",
+      "name": "Synthetic Teacher 9",
+      "schoolId": "sch_0009",
+      "designation": "PG",
+      "subject": "BIO",
+      "seniorityRank": 9,
+      "homeLatitude": 11.22558,
+      "homeLongitude": 77.57333,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00010",
+      "employeeCode": "SYN00010",
+      "name": "Synthetic Teacher 10",
+      "schoolId": "sch_0010",
+      "designation": "SENIOR_PG",
+      "subject": "CS",
+      "seniorityRank": 10,
+      "homeLatitude": 11.43859,
+      "homeLongitude": 77.78564,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00011",
+      "employeeCode": "SYN00011",
+      "name": "Synthetic Teacher 11",
+      "schoolId": "sch_0011",
+      "designation": "HM",
+      "subject": "MAT",
+      "seniorityRank": 11,
+      "homeLatitude": 11.4069,
+      "homeLongitude": 77.97373,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00012",
+      "employeeCode": "SYN00012",
+      "name": "Synthetic Teacher 12",
+      "schoolId": "sch_0012",
+      "designation": "SENIOR_PG",
+      "subject": "CHE",
+      "seniorityRank": 12,
+      "homeLatitude": 11.51577,
+      "homeLongitude": 77.69723,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00013",
+      "employeeCode": "SYN00013",
+      "name": "Synthetic Teacher 13",
+      "schoolId": "sch_0013",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 13,
+      "homeLatitude": 11.46157,
+      "homeLongitude": 77.79368,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00014",
+      "employeeCode": "SYN00014",
+      "name": "Synthetic Teacher 14",
+      "schoolId": "sch_0014",
+      "designation": "PG",
+      "subject": "BIO",
+      "seniorityRank": 14,
+      "homeLatitude": 11.46693,
+      "homeLongitude": 77.96706,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00015",
+      "employeeCode": "SYN00015",
+      "name": "Synthetic Teacher 15",
+      "schoolId": "sch_0015",
+      "designation": "PRINCIPAL",
+      "subject": "CS",
+      "seniorityRank": 15,
+      "homeLatitude": 11.26141,
+      "homeLongitude": 77.87119,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00016",
+      "employeeCode": "SYN00016",
+      "name": "Synthetic Teacher 16",
+      "schoolId": "sch_0016",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 16,
+      "homeLatitude": 11.6041,
+      "homeLongitude": 77.98273,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00017",
+      "employeeCode": "SYN00017",
+      "name": "Synthetic Teacher 17",
+      "schoolId": "sch_0017",
+      "designation": "PG",
+      "subject": "ENG",
+      "seniorityRank": 17,
+      "homeLatitude": 11.3627,
+      "homeLongitude": 77.83773,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00018",
+      "employeeCode": "SYN00018",
+      "name": "Synthetic Teacher 18",
+      "schoolId": "sch_0018",
+      "designation": "PRINCIPAL",
+      "subject": "MAT",
+      "seniorityRank": 18,
+      "homeLatitude": 11.46316,
+      "homeLongitude": 78.00318,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00019",
+      "employeeCode": "SYN00019",
+      "name": "Synthetic Teacher 19",
+      "schoolId": "sch_0019",
+      "designation": "SENIOR_PG",
+      "subject": "CHE",
+      "seniorityRank": 19,
+      "homeLatitude": 11.58986,
+      "homeLongitude": 77.87392,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00020",
+      "employeeCode": "SYN00020",
+      "name": "Synthetic Teacher 20",
+      "schoolId": "sch_0020",
+      "designation": "PRINCIPAL",
+      "subject": "CHE",
+      "seniorityRank": 20,
+      "homeLatitude": 11.27106,
+      "homeLongitude": 77.67052,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00021",
+      "employeeCode": "SYN00021",
+      "name": "Synthetic Teacher 21",
+      "schoolId": "sch_0021",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 21,
+      "homeLatitude": 11.41264,
+      "homeLongitude": 77.8727,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00022",
+      "employeeCode": "SYN00022",
+      "name": "Synthetic Teacher 22",
+      "schoolId": "sch_0022",
+      "designation": "SENIOR_PG",
+      "subject": "PHY",
+      "seniorityRank": 22,
+      "homeLatitude": 11.59259,
+      "homeLongitude": 77.83229,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00023",
+      "employeeCode": "SYN00023",
+      "name": "Synthetic Teacher 23",
+      "schoolId": "sch_0023",
+      "designation": "HM",
+      "subject": "MAT",
+      "seniorityRank": 23,
+      "homeLatitude": 11.49624,
+      "homeLongitude": 77.62403,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00024",
+      "employeeCode": "SYN00024",
+      "name": "Synthetic Teacher 24",
+      "schoolId": "sch_0024",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 24,
+      "homeLatitude": 11.54018,
+      "homeLongitude": 77.82468,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00025",
+      "employeeCode": "SYN00025",
+      "name": "Synthetic Teacher 25",
+      "schoolId": "sch_0025",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 25,
+      "homeLatitude": 11.50305,
+      "homeLongitude": 77.60687,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00026",
+      "employeeCode": "SYN00026",
+      "name": "Synthetic Teacher 26",
+      "schoolId": "sch_0026",
+      "designation": "PG",
+      "subject": "ENG",
+      "seniorityRank": 26,
+      "homeLatitude": 11.58062,
+      "homeLongitude": 77.57477,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00027",
+      "employeeCode": "SYN00027",
+      "name": "Synthetic Teacher 27",
+      "schoolId": "sch_0027",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 27,
+      "homeLatitude": 11.33416,
+      "homeLongitude": 77.53394,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00028",
+      "employeeCode": "SYN00028",
+      "name": "Synthetic Teacher 28",
+      "schoolId": "sch_0028",
+      "designation": "PRINCIPAL",
+      "subject": "PHY",
+      "seniorityRank": 28,
+      "homeLatitude": 11.58152,
+      "homeLongitude": 77.71192,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00029",
+      "employeeCode": "SYN00029",
+      "name": "Synthetic Teacher 29",
+      "schoolId": "sch_0029",
+      "designation": "PRINCIPAL",
+      "subject": "MAT",
+      "seniorityRank": 29,
+      "homeLatitude": 11.51334,
+      "homeLongitude": 77.6566,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00030",
+      "employeeCode": "SYN00030",
+      "name": "Synthetic Teacher 30",
+      "schoolId": "sch_0030",
+      "designation": "PRINCIPAL",
+      "subject": "BIO",
+      "seniorityRank": 30,
+      "homeLatitude": 11.57818,
+      "homeLongitude": 77.77101,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00031",
+      "employeeCode": "SYN00031",
+      "name": "Synthetic Teacher 31",
+      "schoolId": "sch_0001",
+      "designation": "SENIOR_PG",
+      "subject": "BIO",
+      "seniorityRank": 31,
+      "homeLatitude": 11.40038,
+      "homeLongitude": 77.54765,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00032",
+      "employeeCode": "SYN00032",
+      "name": "Synthetic Teacher 32",
+      "schoolId": "sch_0002",
+      "designation": "PRINCIPAL",
+      "subject": "BIO",
+      "seniorityRank": 32,
+      "homeLatitude": 11.38691,
+      "homeLongitude": 77.71463,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00033",
+      "employeeCode": "SYN00033",
+      "name": "Synthetic Teacher 33",
+      "schoolId": "sch_0003",
+      "designation": "HM",
+      "subject": "ENG",
+      "seniorityRank": 33,
+      "homeLatitude": 11.22341,
+      "homeLongitude": 77.75212,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00034",
+      "employeeCode": "SYN00034",
+      "name": "Synthetic Teacher 34",
+      "schoolId": "sch_0004",
+      "designation": "PG",
+      "subject": "ENG",
+      "seniorityRank": 34,
+      "homeLatitude": 11.48647,
+      "homeLongitude": 77.51807,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00035",
+      "employeeCode": "SYN00035",
+      "name": "Synthetic Teacher 35",
+      "schoolId": "sch_0005",
+      "designation": "SENIOR_PG",
+      "subject": "BIO",
+      "seniorityRank": 35,
+      "homeLatitude": 11.42115,
+      "homeLongitude": 77.9653,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00036",
+      "employeeCode": "SYN00036",
+      "name": "Synthetic Teacher 36",
+      "schoolId": "sch_0006",
+      "designation": "PRINCIPAL",
+      "subject": "PHY",
+      "seniorityRank": 36,
+      "homeLatitude": 11.53832,
+      "homeLongitude": 77.54276,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00037",
+      "employeeCode": "SYN00037",
+      "name": "Synthetic Teacher 37",
+      "schoolId": "sch_0007",
+      "designation": "HM",
+      "subject": "CHE",
+      "seniorityRank": 37,
+      "homeLatitude": 11.51954,
+      "homeLongitude": 77.99503,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00038",
+      "employeeCode": "SYN00038",
+      "name": "Synthetic Teacher 38",
+      "schoolId": "sch_0008",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 38,
+      "homeLatitude": 11.54242,
+      "homeLongitude": 77.57218,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00039",
+      "employeeCode": "SYN00039",
+      "name": "Synthetic Teacher 39",
+      "schoolId": "sch_0009",
+      "designation": "SENIOR_PG",
+      "subject": "PHY",
+      "seniorityRank": 39,
+      "homeLatitude": 11.57818,
+      "homeLongitude": 77.8255,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00040",
+      "employeeCode": "SYN00040",
+      "name": "Synthetic Teacher 40",
+      "schoolId": "sch_0010",
+      "designation": "HM",
+      "subject": "ENG",
+      "seniorityRank": 40,
+      "homeLatitude": 11.23106,
+      "homeLongitude": 77.65929,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00041",
+      "employeeCode": "SYN00041",
+      "name": "Synthetic Teacher 41",
+      "schoolId": "sch_0011",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 41,
+      "homeLatitude": 11.5299,
+      "homeLongitude": 77.90031,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00042",
+      "employeeCode": "SYN00042",
+      "name": "Synthetic Teacher 42",
+      "schoolId": "sch_0012",
+      "designation": "PG",
+      "subject": "CS",
+      "seniorityRank": 42,
+      "homeLatitude": 11.36778,
+      "homeLongitude": 77.56908,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00043",
+      "employeeCode": "SYN00043",
+      "name": "Synthetic Teacher 43",
+      "schoolId": "sch_0013",
+      "designation": "SENIOR_PG",
+      "subject": "CHE",
+      "seniorityRank": 43,
+      "homeLatitude": 11.22332,
+      "homeLongitude": 77.54651,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00044",
+      "employeeCode": "SYN00044",
+      "name": "Synthetic Teacher 44",
+      "schoolId": "sch_0014",
+      "designation": "PRINCIPAL",
+      "subject": "PHY",
+      "seniorityRank": 44,
+      "homeLatitude": 11.41405,
+      "homeLongitude": 77.72789,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00045",
+      "employeeCode": "SYN00045",
+      "name": "Synthetic Teacher 45",
+      "schoolId": "sch_0015",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 45,
+      "homeLatitude": 11.36207,
+      "homeLongitude": 77.8505,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00046",
+      "employeeCode": "SYN00046",
+      "name": "Synthetic Teacher 46",
+      "schoolId": "sch_0016",
+      "designation": "SENIOR_PG",
+      "subject": "CS",
+      "seniorityRank": 46,
+      "homeLatitude": 11.52954,
+      "homeLongitude": 77.90412,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00047",
+      "employeeCode": "SYN00047",
+      "name": "Synthetic Teacher 47",
+      "schoolId": "sch_0017",
+      "designation": "PG",
+      "subject": "MAT",
+      "seniorityRank": 47,
+      "homeLatitude": 11.57373,
+      "homeLongitude": 77.9654,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00048",
+      "employeeCode": "SYN00048",
+      "name": "Synthetic Teacher 48",
+      "schoolId": "sch_0018",
+      "designation": "PG",
+      "subject": "PHY",
+      "seniorityRank": 48,
+      "homeLatitude": 11.54621,
+      "homeLongitude": 77.86255,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00049",
+      "employeeCode": "SYN00049",
+      "name": "Synthetic Teacher 49",
+      "schoolId": "sch_0019",
+      "designation": "PG",
+      "subject": "MAT",
+      "seniorityRank": 49,
+      "homeLatitude": 11.34666,
+      "homeLongitude": 77.56542,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00050",
+      "employeeCode": "SYN00050",
+      "name": "Synthetic Teacher 50",
+      "schoolId": "sch_0020",
+      "designation": "PRINCIPAL",
+      "subject": "CS",
+      "seniorityRank": 50,
+      "homeLatitude": 11.50924,
+      "homeLongitude": 77.74388,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00051",
+      "employeeCode": "SYN00051",
+      "name": "Synthetic Teacher 51",
+      "schoolId": "sch_0021",
+      "designation": "PG",
+      "subject": "BIO",
+      "seniorityRank": 51,
+      "homeLatitude": 11.36013,
+      "homeLongitude": 77.64876,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00052",
+      "employeeCode": "SYN00052",
+      "name": "Synthetic Teacher 52",
+      "schoolId": "sch_0022",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 52,
+      "homeLatitude": 11.45535,
+      "homeLongitude": 77.67898,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00053",
+      "employeeCode": "SYN00053",
+      "name": "Synthetic Teacher 53",
+      "schoolId": "sch_0023",
+      "designation": "PG",
+      "subject": "CHE",
+      "seniorityRank": 53,
+      "homeLatitude": 11.40016,
+      "homeLongitude": 77.76767,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00054",
+      "employeeCode": "SYN00054",
+      "name": "Synthetic Teacher 54",
+      "schoolId": "sch_0024",
+      "designation": "PRINCIPAL",
+      "subject": "BIO",
+      "seniorityRank": 54,
+      "homeLatitude": 11.23761,
+      "homeLongitude": 77.84498,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00055",
+      "employeeCode": "SYN00055",
+      "name": "Synthetic Teacher 55",
+      "schoolId": "sch_0025",
+      "designation": "SENIOR_PG",
+      "subject": "CS",
+      "seniorityRank": 55,
+      "homeLatitude": 11.33321,
+      "homeLongitude": 77.56084,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00056",
+      "employeeCode": "SYN00056",
+      "name": "Synthetic Teacher 56",
+      "schoolId": "sch_0026",
+      "designation": "PG",
+      "subject": "MAT",
+      "seniorityRank": 56,
+      "homeLatitude": 11.50027,
+      "homeLongitude": 77.85796,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00057",
+      "employeeCode": "SYN00057",
+      "name": "Synthetic Teacher 57",
+      "schoolId": "sch_0027",
+      "designation": "PG",
+      "subject": "PHY",
+      "seniorityRank": 57,
+      "homeLatitude": 11.28124,
+      "homeLongitude": 77.70688,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00058",
+      "employeeCode": "SYN00058",
+      "name": "Synthetic Teacher 58",
+      "schoolId": "sch_0028",
+      "designation": "PRINCIPAL",
+      "subject": "CHE",
+      "seniorityRank": 58,
+      "homeLatitude": 11.29922,
+      "homeLongitude": 77.7796,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00059",
+      "employeeCode": "SYN00059",
+      "name": "Synthetic Teacher 59",
+      "schoolId": "sch_0029",
+      "designation": "PG",
+      "subject": "BIO",
+      "seniorityRank": 59,
+      "homeLatitude": 11.49551,
+      "homeLongitude": 77.57976,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00060",
+      "employeeCode": "SYN00060",
+      "name": "Synthetic Teacher 60",
+      "schoolId": "sch_0030",
+      "designation": "SENIOR_PG",
+      "subject": "CS",
+      "seniorityRank": 60,
+      "homeLatitude": 11.29958,
+      "homeLongitude": 77.94535,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00061",
+      "employeeCode": "SYN00061",
+      "name": "Synthetic Teacher 61",
+      "schoolId": "sch_0001",
+      "designation": "SENIOR_PG",
+      "subject": "CHE",
+      "seniorityRank": 61,
+      "homeLatitude": 11.33124,
+      "homeLongitude": 77.62521,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00062",
+      "employeeCode": "SYN00062",
+      "name": "Synthetic Teacher 62",
+      "schoolId": "sch_0002",
+      "designation": "PG",
+      "subject": "PHY",
+      "seniorityRank": 62,
+      "homeLatitude": 11.46632,
+      "homeLongitude": 77.82719,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00063",
+      "employeeCode": "SYN00063",
+      "name": "Synthetic Teacher 63",
+      "schoolId": "sch_0003",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 63,
+      "homeLatitude": 11.39981,
+      "homeLongitude": 78.00689,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00064",
+      "employeeCode": "SYN00064",
+      "name": "Synthetic Teacher 64",
+      "schoolId": "sch_0004",
+      "designation": "PG",
+      "subject": "PHY",
+      "seniorityRank": 64,
+      "homeLatitude": 11.30179,
+      "homeLongitude": 77.98038,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00065",
+      "employeeCode": "SYN00065",
+      "name": "Synthetic Teacher 65",
+      "schoolId": "sch_0005",
+      "designation": "HM",
+      "subject": "ENG",
+      "seniorityRank": 65,
+      "homeLatitude": 11.39692,
+      "homeLongitude": 77.61978,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00066",
+      "employeeCode": "SYN00066",
+      "name": "Synthetic Teacher 66",
+      "schoolId": "sch_0006",
+      "designation": "HM",
+      "subject": "MAT",
+      "seniorityRank": 66,
+      "homeLatitude": 11.60358,
+      "homeLongitude": 77.86954,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00067",
+      "employeeCode": "SYN00067",
+      "name": "Synthetic Teacher 67",
+      "schoolId": "sch_0007",
+      "designation": "HM",
+      "subject": "CHE",
+      "seniorityRank": 67,
+      "homeLatitude": 11.45648,
+      "homeLongitude": 77.70589,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00068",
+      "employeeCode": "SYN00068",
+      "name": "Synthetic Teacher 68",
+      "schoolId": "sch_0008",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 68,
+      "homeLatitude": 11.41523,
+      "homeLongitude": 77.73439,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00069",
+      "employeeCode": "SYN00069",
+      "name": "Synthetic Teacher 69",
+      "schoolId": "sch_0009",
+      "designation": "HM",
+      "subject": "PHY",
+      "seniorityRank": 69,
+      "homeLatitude": 11.56972,
+      "homeLongitude": 77.73816,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00070",
+      "employeeCode": "SYN00070",
+      "name": "Synthetic Teacher 70",
+      "schoolId": "sch_0010",
+      "designation": "PG",
+      "subject": "MAT",
+      "seniorityRank": 70,
+      "homeLatitude": 11.18884,
+      "homeLongitude": 77.82671,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00071",
+      "employeeCode": "SYN00071",
+      "name": "Synthetic Teacher 71",
+      "schoolId": "sch_0011",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 71,
+      "homeLatitude": 11.44925,
+      "homeLongitude": 77.92298,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00072",
+      "employeeCode": "SYN00072",
+      "name": "Synthetic Teacher 72",
+      "schoolId": "sch_0012",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 72,
+      "homeLatitude": 11.39792,
+      "homeLongitude": 77.99664,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00073",
+      "employeeCode": "SYN00073",
+      "name": "Synthetic Teacher 73",
+      "schoolId": "sch_0013",
+      "designation": "HM",
+      "subject": "PHY",
+      "seniorityRank": 73,
+      "homeLatitude": 11.57325,
+      "homeLongitude": 77.63454,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00074",
+      "employeeCode": "SYN00074",
+      "name": "Synthetic Teacher 74",
+      "schoolId": "sch_0014",
+      "designation": "HM",
+      "subject": "ENG",
+      "seniorityRank": 74,
+      "homeLatitude": 11.45821,
+      "homeLongitude": 77.51753,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00075",
+      "employeeCode": "SYN00075",
+      "name": "Synthetic Teacher 75",
+      "schoolId": "sch_0015",
+      "designation": "PG",
+      "subject": "PHY",
+      "seniorityRank": 75,
+      "homeLatitude": 11.49091,
+      "homeLongitude": 77.776,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00076",
+      "employeeCode": "SYN00076",
+      "name": "Synthetic Teacher 76",
+      "schoolId": "sch_0016",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 76,
+      "homeLatitude": 11.33874,
+      "homeLongitude": 77.9421,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00077",
+      "employeeCode": "SYN00077",
+      "name": "Synthetic Teacher 77",
+      "schoolId": "sch_0017",
+      "designation": "PRINCIPAL",
+      "subject": "CS",
+      "seniorityRank": 77,
+      "homeLatitude": 11.56742,
+      "homeLongitude": 77.85068,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00078",
+      "employeeCode": "SYN00078",
+      "name": "Synthetic Teacher 78",
+      "schoolId": "sch_0018",
+      "designation": "PRINCIPAL",
+      "subject": "MAT",
+      "seniorityRank": 78,
+      "homeLatitude": 11.25911,
+      "homeLongitude": 77.82203,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00079",
+      "employeeCode": "SYN00079",
+      "name": "Synthetic Teacher 79",
+      "schoolId": "sch_0019",
+      "designation": "PG",
+      "subject": "PHY",
+      "seniorityRank": 79,
+      "homeLatitude": 11.3552,
+      "homeLongitude": 77.79996,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00080",
+      "employeeCode": "SYN00080",
+      "name": "Synthetic Teacher 80",
+      "schoolId": "sch_0020",
+      "designation": "HM",
+      "subject": "CS",
+      "seniorityRank": 80,
+      "homeLatitude": 11.437,
+      "homeLongitude": 77.835,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00081",
+      "employeeCode": "SYN00081",
+      "name": "Synthetic Teacher 81",
+      "schoolId": "sch_0021",
+      "designation": "HM",
+      "subject": "PHY",
+      "seniorityRank": 81,
+      "homeLatitude": 11.46358,
+      "homeLongitude": 77.5642,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00082",
+      "employeeCode": "SYN00082",
+      "name": "Synthetic Teacher 82",
+      "schoolId": "sch_0022",
+      "designation": "PG",
+      "subject": "CHE",
+      "seniorityRank": 82,
+      "homeLatitude": 11.27792,
+      "homeLongitude": 78.00833,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00083",
+      "employeeCode": "SYN00083",
+      "name": "Synthetic Teacher 83",
+      "schoolId": "sch_0023",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 83,
+      "homeLatitude": 11.26311,
+      "homeLongitude": 77.80596,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00084",
+      "employeeCode": "SYN00084",
+      "name": "Synthetic Teacher 84",
+      "schoolId": "sch_0024",
+      "designation": "PG",
+      "subject": "MAT",
+      "seniorityRank": 84,
+      "homeLatitude": 11.27762,
+      "homeLongitude": 77.9721,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00085",
+      "employeeCode": "SYN00085",
+      "name": "Synthetic Teacher 85",
+      "schoolId": "sch_0025",
+      "designation": "PG",
+      "subject": "CHE",
+      "seniorityRank": 85,
+      "homeLatitude": 11.45232,
+      "homeLongitude": 77.88805,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00086",
+      "employeeCode": "SYN00086",
+      "name": "Synthetic Teacher 86",
+      "schoolId": "sch_0026",
+      "designation": "PG",
+      "subject": "BIO",
+      "seniorityRank": 86,
+      "homeLatitude": 11.3108,
+      "homeLongitude": 77.74239,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00087",
+      "employeeCode": "SYN00087",
+      "name": "Synthetic Teacher 87",
+      "schoolId": "sch_0027",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 87,
+      "homeLatitude": 11.36384,
+      "homeLongitude": 77.89815,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00088",
+      "employeeCode": "SYN00088",
+      "name": "Synthetic Teacher 88",
+      "schoolId": "sch_0028",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 88,
+      "homeLatitude": 11.58179,
+      "homeLongitude": 77.63972,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00089",
+      "employeeCode": "SYN00089",
+      "name": "Synthetic Teacher 89",
+      "schoolId": "sch_0029",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 89,
+      "homeLatitude": 11.56965,
+      "homeLongitude": 77.69808,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00090",
+      "employeeCode": "SYN00090",
+      "name": "Synthetic Teacher 90",
+      "schoolId": "sch_0030",
+      "designation": "PG",
+      "subject": "ENG",
+      "seniorityRank": 90,
+      "homeLatitude": 11.51838,
+      "homeLongitude": 77.64393,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00091",
+      "employeeCode": "SYN00091",
+      "name": "Synthetic Teacher 91",
+      "schoolId": "sch_0001",
+      "designation": "SENIOR_PG",
+      "subject": "PHY",
+      "seniorityRank": 91,
+      "homeLatitude": 11.35581,
+      "homeLongitude": 77.73877,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00092",
+      "employeeCode": "SYN00092",
+      "name": "Synthetic Teacher 92",
+      "schoolId": "sch_0002",
+      "designation": "SENIOR_PG",
+      "subject": "PHY",
+      "seniorityRank": 92,
+      "homeLatitude": 11.23856,
+      "homeLongitude": 77.74086,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00093",
+      "employeeCode": "SYN00093",
+      "name": "Synthetic Teacher 93",
+      "schoolId": "sch_0003",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 93,
+      "homeLatitude": 11.45069,
+      "homeLongitude": 77.53125,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00094",
+      "employeeCode": "SYN00094",
+      "name": "Synthetic Teacher 94",
+      "schoolId": "sch_0004",
+      "designation": "PG",
+      "subject": "CS",
+      "seniorityRank": 94,
+      "homeLatitude": 11.46279,
+      "homeLongitude": 77.67781,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00095",
+      "employeeCode": "SYN00095",
+      "name": "Synthetic Teacher 95",
+      "schoolId": "sch_0005",
+      "designation": "PRINCIPAL",
+      "subject": "BIO",
+      "seniorityRank": 95,
+      "homeLatitude": 11.38269,
+      "homeLongitude": 77.81382,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00096",
+      "employeeCode": "SYN00096",
+      "name": "Synthetic Teacher 96",
+      "schoolId": "sch_0006",
+      "designation": "SENIOR_PG",
+      "subject": "CHE",
+      "seniorityRank": 96,
+      "homeLatitude": 11.42286,
+      "homeLongitude": 77.69254,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00097",
+      "employeeCode": "SYN00097",
+      "name": "Synthetic Teacher 97",
+      "schoolId": "sch_0007",
+      "designation": "PG",
+      "subject": "CS",
+      "seniorityRank": 97,
+      "homeLatitude": 11.52332,
+      "homeLongitude": 77.97655,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00098",
+      "employeeCode": "SYN00098",
+      "name": "Synthetic Teacher 98",
+      "schoolId": "sch_0008",
+      "designation": "PG",
+      "subject": "CS",
+      "seniorityRank": 98,
+      "homeLatitude": 11.3475,
+      "homeLongitude": 77.70481,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00099",
+      "employeeCode": "SYN00099",
+      "name": "Synthetic Teacher 99",
+      "schoolId": "sch_0009",
+      "designation": "PG",
+      "subject": "BIO",
+      "seniorityRank": 99,
+      "homeLatitude": 11.24497,
+      "homeLongitude": 77.77822,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00100",
+      "employeeCode": "SYN00100",
+      "name": "Synthetic Teacher 100",
+      "schoolId": "sch_0010",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 100,
+      "homeLatitude": 11.23058,
+      "homeLongitude": 77.70829,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00101",
+      "employeeCode": "SYN00101",
+      "name": "Synthetic Teacher 101",
+      "schoolId": "sch_0011",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 101,
+      "homeLatitude": 11.43733,
+      "homeLongitude": 77.86682,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00102",
+      "employeeCode": "SYN00102",
+      "name": "Synthetic Teacher 102",
+      "schoolId": "sch_0012",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 102,
+      "homeLatitude": 11.28673,
+      "homeLongitude": 77.73629,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00103",
+      "employeeCode": "SYN00103",
+      "name": "Synthetic Teacher 103",
+      "schoolId": "sch_0013",
+      "designation": "SENIOR_PG",
+      "subject": "CHE",
+      "seniorityRank": 103,
+      "homeLatitude": 11.36012,
+      "homeLongitude": 77.62374,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00104",
+      "employeeCode": "SYN00104",
+      "name": "Synthetic Teacher 104",
+      "schoolId": "sch_0014",
+      "designation": "HM",
+      "subject": "MAT",
+      "seniorityRank": 104,
+      "homeLatitude": 11.37149,
+      "homeLongitude": 77.49601,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00105",
+      "employeeCode": "SYN00105",
+      "name": "Synthetic Teacher 105",
+      "schoolId": "sch_0015",
+      "designation": "HM",
+      "subject": "ENG",
+      "seniorityRank": 105,
+      "homeLatitude": 11.41349,
+      "homeLongitude": 77.75244,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00106",
+      "employeeCode": "SYN00106",
+      "name": "Synthetic Teacher 106",
+      "schoolId": "sch_0016",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 106,
+      "homeLatitude": 11.4896,
+      "homeLongitude": 77.88123,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00107",
+      "employeeCode": "SYN00107",
+      "name": "Synthetic Teacher 107",
+      "schoolId": "sch_0017",
+      "designation": "HM",
+      "subject": "CS",
+      "seniorityRank": 107,
+      "homeLatitude": 11.24655,
+      "homeLongitude": 77.58557,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00108",
+      "employeeCode": "SYN00108",
+      "name": "Synthetic Teacher 108",
+      "schoolId": "sch_0018",
+      "designation": "PRINCIPAL",
+      "subject": "MAT",
+      "seniorityRank": 108,
+      "homeLatitude": 11.45463,
+      "homeLongitude": 77.99329,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00109",
+      "employeeCode": "SYN00109",
+      "name": "Synthetic Teacher 109",
+      "schoolId": "sch_0019",
+      "designation": "HM",
+      "subject": "MAT",
+      "seniorityRank": 109,
+      "homeLatitude": 11.2817,
+      "homeLongitude": 77.83588,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00110",
+      "employeeCode": "SYN00110",
+      "name": "Synthetic Teacher 110",
+      "schoolId": "sch_0020",
+      "designation": "SENIOR_PG",
+      "subject": "MAT",
+      "seniorityRank": 110,
+      "homeLatitude": 11.49917,
+      "homeLongitude": 77.61754,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00111",
+      "employeeCode": "SYN00111",
+      "name": "Synthetic Teacher 111",
+      "schoolId": "sch_0021",
+      "designation": "PG",
+      "subject": "MAT",
+      "seniorityRank": 111,
+      "homeLatitude": 11.34656,
+      "homeLongitude": 77.69832,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00112",
+      "employeeCode": "SYN00112",
+      "name": "Synthetic Teacher 112",
+      "schoolId": "sch_0022",
+      "designation": "SENIOR_PG",
+      "subject": "ENG",
+      "seniorityRank": 112,
+      "homeLatitude": 11.42346,
+      "homeLongitude": 77.93305,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00113",
+      "employeeCode": "SYN00113",
+      "name": "Synthetic Teacher 113",
+      "schoolId": "sch_0023",
+      "designation": "PRINCIPAL",
+      "subject": "MAT",
+      "seniorityRank": 113,
+      "homeLatitude": 11.46138,
+      "homeLongitude": 77.76695,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00114",
+      "employeeCode": "SYN00114",
+      "name": "Synthetic Teacher 114",
+      "schoolId": "sch_0024",
+      "designation": "SENIOR_PG",
+      "subject": "ENG",
+      "seniorityRank": 114,
+      "homeLatitude": 11.30229,
+      "homeLongitude": 77.87374,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00115",
+      "employeeCode": "SYN00115",
+      "name": "Synthetic Teacher 115",
+      "schoolId": "sch_0025",
+      "designation": "SENIOR_PG",
+      "subject": "CHE",
+      "seniorityRank": 115,
+      "homeLatitude": 11.48726,
+      "homeLongitude": 77.83106,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00116",
+      "employeeCode": "SYN00116",
+      "name": "Synthetic Teacher 116",
+      "schoolId": "sch_0026",
+      "designation": "PRINCIPAL",
+      "subject": "MAT",
+      "seniorityRank": 116,
+      "homeLatitude": 11.21408,
+      "homeLongitude": 77.84561,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00117",
+      "employeeCode": "SYN00117",
+      "name": "Synthetic Teacher 117",
+      "schoolId": "sch_0027",
+      "designation": "HM",
+      "subject": "BIO",
+      "seniorityRank": 117,
+      "homeLatitude": 11.2304,
+      "homeLongitude": 77.59518,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00118",
+      "employeeCode": "SYN00118",
+      "name": "Synthetic Teacher 118",
+      "schoolId": "sch_0028",
+      "designation": "PRINCIPAL",
+      "subject": "PHY",
+      "seniorityRank": 118,
+      "homeLatitude": 11.4158,
+      "homeLongitude": 77.82956,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00119",
+      "employeeCode": "SYN00119",
+      "name": "Synthetic Teacher 119",
+      "schoolId": "sch_0029",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 119,
+      "homeLatitude": 11.29532,
+      "homeLongitude": 77.94797,
+      "isActive": true,
+      "dataQuality": "Imported"
+    },
+    {
+      "teacherId": "tch_00120",
+      "employeeCode": "SYN00120",
+      "name": "Synthetic Teacher 120",
+      "schoolId": "sch_0030",
+      "designation": "PRINCIPAL",
+      "subject": "ENG",
+      "seniorityRank": 120,
+      "homeLatitude": 11.44468,
+      "homeLongitude": 77.87777,
+      "isActive": true,
+      "dataQuality": "Imported"
+    }
+  ],
+  "history": [
+    {
+      "teacherId": "tch_00001",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00001",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00002",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00002",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00003",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00003",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00004",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00004",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00005",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00005",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00006",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00006",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00007",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00007",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00008",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00008",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00009",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00009",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00010",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00010",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00011",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00011",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00012",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00012",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00013",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00013",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00014",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00014",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00015",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00015",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00016",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00016",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00017",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00017",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00018",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00018",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00019",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00019",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00020",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00020",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00021",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00021",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00022",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00022",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00023",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00023",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00024",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00024",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00025",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00025",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00026",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00026",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00027",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00027",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00028",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00028",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00029",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00029",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00030",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00030",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00031",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00031",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00032",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00032",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00033",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00033",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00034",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00034",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00035",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00035",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00036",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00036",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00037",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00037",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00038",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00038",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00039",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00039",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00040",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00040",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00041",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00041",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00042",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00042",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00043",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00043",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00044",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00044",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00045",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00045",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00046",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00046",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00047",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00047",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00048",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00048",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00049",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00049",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00050",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00050",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00051",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00051",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00052",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00052",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00053",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00053",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00054",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00054",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00055",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00055",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00056",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00056",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00057",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00057",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00058",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00058",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00059",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00059",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00060",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00060",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00061",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00061",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00062",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00062",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00063",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00063",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00064",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00064",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00065",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00065",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00066",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00066",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00067",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00067",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00068",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00068",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00069",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00069",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00070",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00070",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00071",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00071",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00072",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00072",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00073",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00073",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00074",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00074",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00075",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00075",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00076",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00076",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00077",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00077",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00078",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00078",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00079",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00079",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00080",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00080",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00081",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00081",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00082",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00082",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00083",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00083",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00084",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00084",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00085",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00085",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00086",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00086",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00087",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00087",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00088",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00088",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00089",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00089",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00090",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00090",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00091",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00091",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00092",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00092",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00093",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00093",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00094",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00094",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00095",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00095",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00096",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00096",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00097",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00097",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00098",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00098",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00099",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00099",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00100",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00100",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00101",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00101",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00102",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00102",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00103",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00103",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00104",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00104",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00105",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00105",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00106",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00106",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00107",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00107",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00108",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00108",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00109",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00109",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00110",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00110",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00111",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00111",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00112",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00112",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00113",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00113",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00114",
+      "centreId": "ctr_004",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00114",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00115",
+      "centreId": "ctr_005",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00115",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00116",
+      "centreId": "ctr_006",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00116",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00117",
+      "centreId": "ctr_007",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00117",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00118",
+      "centreId": "ctr_008",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00118",
+      "centreId": "ctr_001",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00119",
+      "centreId": "ctr_009",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00119",
+      "centreId": "ctr_002",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00120",
+      "centreId": "ctr_010",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2025-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2025",
+      "dataQuality": "Confirmed"
+    },
+    {
+      "teacherId": "tch_00120",
+      "centreId": "ctr_003",
+      "dutyTypeCode": "CHIEF_EXAMINATION",
+      "examDate": "2026-03-12",
+      "sessionCode": "MORNING",
+      "academicYear": "2026",
+      "dataQuality": "Confirmed"
+    }
+  ]
+}
