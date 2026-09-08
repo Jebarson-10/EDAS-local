@@ -22,6 +22,7 @@
     "test:scripts": "vitest run --config vitest.scripts.config.ts",
     "lint": "npm run lint -w frontend --if-present",
     "seed:synthetic": "tsx scripts/generate-synthetic-dataset.ts",
+    "maps:build-index": "node scripts/build-offline-geocode-index.mjs",
     "smoke:ui": "node scripts/ui-smoke.mjs",
     "check:responsive": "node scripts/check-mobile-render.mjs",
     "load:theory": "tsx scripts/load-test-theory.ts",

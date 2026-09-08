@@ -148,6 +148,23 @@ npm run load:theory      # 5k teachers / 350 centres
 
 Fixtures and seeds contain no real teacher PII or government credentials.
 
+## Offline OpenStreetMap coordinate lookup
+
+`frontend/public/offline-geocode-index.json` is a compact Erode-area search
+index derived from OpenStreetMap data. In **Master data**, enter a school name,
+locality or address and choose a suggested coordinate; the operator must verify
+the suggestion before saving. It works without internet after installation.
+
+The raw GeoPackage is intentionally not committed. To refresh the index from a
+new OpenStreetMap GeoPackage extract:
+
+```bash
+npm run maps:build-index -- path/to/erode.osm.gpkg
+```
+
+Contains OpenStreetMap data © OpenStreetMap contributors, available under the
+Open Database Licence (ODbL).
+
 ## Verification
 
 ```bash

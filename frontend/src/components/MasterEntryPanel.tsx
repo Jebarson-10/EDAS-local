@@ -7,6 +7,7 @@ import {
 } from "../lib/api";
 
 type EntryKind = ManualMasterRecord["kind"];
+type OfflinePlace = { id: string; name: string; address: string | null; place: string | null; kind: string; latitude: number; longitude: number };
 
 const designations = ["PRINCIPAL", "HM", "SENIOR_PG", "PG", "OTHER"];
 
@@ -37,6 +38,9 @@ export function MasterEntryPanel({
   const [capacity, setCapacity] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [lookup, setLookup] = useState("");
+  const [places, setPlaces] = useState<OfflinePlace[] | null>(null);
+  const [matches, setMatches] = useState<OfflinePlace[]>([]);
 
   const filteredSchools = useMemo(
     () => dataset.schools.filter((school) => !blockId || school.blockId === blockId),
@@ -50,6 +54,20 @@ export function MasterEntryPanel({
     setCode(""); setName(""); setSchoolId(""); setDesignation("PG");
     setSubject(""); setSeniority(""); setJoiningDate(""); setLatitude("");
     setLongitude(""); setCapacity(""); setMessage(null);
+  }
+
+  async function findCoordinates() {
+    const query = lookup.trim().toLocaleLowerCase();
+    if (query.length < 3) return setMessage("Enter at least three address or school-name characters.");
+    try {
+      const index = places ?? (await fetch("/offline-geocode-index.json").then((r) => r.ok ? r.json() : Promise.reject(new Error("index missing")))).records as OfflinePlace[];
+      setPlaces(index);
+      const words = query.split(/\s+/).filter(Boolean);
+      setMatches(index.filter((p) => {
+        const haystack = `${p.name} ${p.address ?? ""} ${p.place ?? ""}`.toLocaleLowerCase();
+        return words.every((word) => haystack.includes(word));
+      }).slice(0, 8));
+    } catch { setMessage("Offline map index is not installed. Ask an administrator to add the Erode OSM data pack."); }
   }
 
   function applyToSession(record: ManualMasterRecord, id: string) {
@@ -139,6 +157,7 @@ export function MasterEntryPanel({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {kind !== "block" && <div className="sm:col-span-2 lg:col-span-4 rounded border border-[var(--color-line)] bg-white p-2"><label className="text-sm">Offline OSM address / school lookup<input className={inputClass} value={lookup} onChange={(e) => setLookup(e.target.value)} placeholder="School name, locality, or address" /></label><button type="button" className="mt-2 rounded border border-[var(--color-brand)] px-2 py-1 text-sm text-[var(--color-brand)]" onClick={() => void findCoordinates()}>Find local coordinates</button>{matches.length > 0 && <div className="mt-2 space-y-1">{matches.map((place) => <button key={place.id} type="button" className="block w-full rounded bg-[var(--color-sky-wash)] px-2 py-1 text-left text-xs" onClick={() => { setLatitude(String(place.latitude)); setLongitude(String(place.longitude)); setMessage(`Coordinates selected from OSM: ${place.name}. Verify before saving.`); }}>{place.name}{place.place ? ` · ${place.place}` : ""} — {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}</button>)}</div>}<p className="mt-1 text-xs text-[var(--color-ink-muted)]">Offline OpenStreetMap suggestion only. Select and verify the location before saving.</p></div>}
         {kind !== "block" && <label className="text-sm">Block<select className={inputClass} value={blockId} onChange={(e) => { setBlockId(e.target.value); setSchoolId(""); }} required><option value="">Select block</option>{dataset.blocks.map((block) => <option key={block.blockId} value={block.blockId}>{block.blockCode} · {block.blockName}</option>)}</select></label>}
         <label className="text-sm">{kind === "block" ? "Block code" : kind === "school" ? "School code" : kind === "centre" ? "Centre code" : "Employee code"}<input className={inputClass} value={code} onChange={(e) => setCode(e.target.value)} required /></label>
         <label className="text-sm">{kind === "block" ? "Block name" : kind === "school" ? "School name" : kind === "centre" ? "Centre name" : "Teacher name"}<input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required /></label>
