@@ -19,7 +19,7 @@ const seedRows = [
     value_type: "number",
   },
   { param_key: "fairness_window_days", param_value: "365", value_type: "number" },
-  { param_key: "seniority_mode", param_value: '"district"', value_type: "string" },
+  { param_key: "seniority_mode", param_value: '"block_then_district"', value_type: "string" },
   {
     param_key: "block_priority_mode",
     param_value: '"none"',

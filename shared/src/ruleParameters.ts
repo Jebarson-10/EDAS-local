@@ -26,6 +26,7 @@ const SENIORITY_MODES: RuleParameters["seniority_mode"][] = [
   "district",
   "block",
   "school",
+  "block_then_district",
 ];
 const ROLE_SWITCH_MODES: RuleParameters["role_switch_mode"][] = ["soft", "hard"];
 const MISSING_COORD_POLICIES: RuleParameters["missing_coordinates_policy"][] = [

@@ -40,7 +40,7 @@ export interface RuleParameters {
   practical_batch_size: number;
   practical_completion_days: number;
   fairness_window_days: number;
-  seniority_mode: "district" | "block" | "school";
+  seniority_mode: "district" | "block" | "school" | "block_then_district";
   block_priority_mode: string;
   designation_priority_order: string[];
   hm_fallback_designations: string[];
@@ -70,7 +70,7 @@ export const DEFAULT_RULE_PARAMETERS: RuleParameters = {
   practical_batch_size: 50,
   practical_completion_days: 3,
   fairness_window_days: 365,
-  seniority_mode: "district",
+  seniority_mode: "block_then_district",
   block_priority_mode: "none",
   designation_priority_order: ["HM", "PRINCIPAL", "SENIOR_PG", "PG"],
   hm_fallback_designations: ["SENIOR_PG"],
