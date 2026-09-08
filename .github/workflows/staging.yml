@@ -1,0 +1,25 @@
+name: Staging raise
+
+# Deploys Pages preview + preview D1. Never production.
+# Requires repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+on:
+  workflow_dispatch:
+
+jobs:
+  raise:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm install
+      - run: npm run check:bindings
+      - run: npm run test:scripts
+      - name: Raise preview D1 + Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ACCESS_EMAIL_ROLE_MAP: ${{ secrets.ACCESS_EMAIL_ROLE_MAP }}
+        run: npm run staging:raise

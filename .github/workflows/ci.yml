@@ -1,0 +1,45 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm install
+      - run: npm run lint --if-present
+      - run: npm run typecheck --if-present
+      - run: npm run check:routes
+      - run: npm run check:bindings
+      - run: npm test
+      - run: npm run build
+      - run: npm run e2e:cycle
+      - run: npm run uat:local
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Start API + UI
+        run: |
+          npm run api:local > /tmp/api-local.log 2>&1 &
+          npm run dev > /tmp/vite-dev.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:43124/api/health >/dev/null \
+              && curl -sf http://127.0.0.1:43123/ >/dev/null; then
+              echo "services ready after ${i}s"
+              break
+            fi
+            if [ "$i" -eq 90 ]; then
+              echo "=== api log ==="; tail -n 80 /tmp/api-local.log || true
+              echo "=== vite log ==="; tail -n 80 /tmp/vite-dev.log || true
+              exit 1
+            fi
+            sleep 1
+          done
+      - run: npm run smoke:ui
+      - run: npm run check:responsive

@@ -1,0 +1,5 @@
+{
+  "name": "erode-exam-duty",
+  "install": "npm install",
+  "start": "npx concurrently -k \"npm:api:local\" \"npm:dev\""
+}
