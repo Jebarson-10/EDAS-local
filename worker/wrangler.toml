@@ -1,0 +1,42 @@
+name = "erode-exam-duty-api"
+main = "src/index.ts"
+compatibility_date = "2026-03-01"
+
+[vars]
+ENVIRONMENT = "development"
+# ALLOWED_ORIGINS = "https://erode-exam-duty.pages.dev"
+# OQ-010 — set after client provides Access email → role mapping (never invent):
+# ACCESS_EMAIL_ROLE_MAP = "{\"admin@example.gov.in\":\"ADMIN\"}"
+# ACCESS_ROLE_HEADER = "X-Access-Role"
+
+# Local/dev D1 — replace database_id for remote staging/production in dashboard
+[[d1_databases]]
+binding = "DB"
+database_name = "erode-exam-duty"
+database_id = "00000000-0000-0000-0000-000000000001"
+preview_database_id = "local-erode-exam-duty"
+
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "erode-exam-duty-files"
+
+# Align with Pages: product staging = wrangler env preview.
+[env.preview]
+vars = { ENVIRONMENT = "staging" }
+# [[env.preview.d1_databases]]
+# binding = "DB"
+# database_name = "erode-exam-duty-preview"
+# database_id = "REPLACE_ME_STAGING"
+# [[env.preview.r2_buckets]]
+# binding = "FILES"
+# bucket_name = "erode-exam-duty-files-preview"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "erode-exam-duty"
+# database_id = "REPLACE_ME_PRODUCTION"
+# [[env.production.r2_buckets]]
+# binding = "FILES"
+# bucket_name = "erode-exam-duty-files"
