@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 import type { DbClient, DbStatement } from "../worker/src/db/client.ts";
 import {
   extractEnvSection,
@@ -174,6 +175,8 @@ export function canonicalBackupCandidates(cwd = process.cwd()): string[] {
     process.env.CANONICAL_BACKUP,
     join(cwd, ".data/uat-temporary-canonical.json"),
     join(cwd, "fixtures/staging-canonical-d1.json"),
+    join(cwd, "fixtures/staging-canonical-d1.json.gz"),
+    join(cwd, "fixtures/staging-canonical-d1.json.gz.b64"),
   ].filter((p): p is string => Boolean(p));
 }
 
@@ -182,6 +185,18 @@ export function findCanonicalBackup(cwd = process.cwd()): string | null {
     if (existsSync(p)) return p;
   }
   return null;
+}
+
+/** JSON, gzip JSON, or gzip+base64 JSON (MCP-sized fixture on GitHub). */
+export function readCanonicalBackupText(path: string): string {
+  if (path.endsWith(".gz.b64")) {
+    const b64 = readFileSync(path, "utf8").replace(/\s+/g, "");
+    return gunzipSync(Buffer.from(b64, "base64")).toString("utf8");
+  }
+  if (path.endsWith(".gz")) {
+    return gunzipSync(readFileSync(path)).toString("utf8");
+  }
+  return readFileSync(path, "utf8");
 }
 
 export function readTemporaryAccount(
