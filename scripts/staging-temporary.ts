@@ -25,6 +25,10 @@ import { join } from "node:path";
 import { countMaster } from "../worker/src/db/repos.ts";
 import { createD1HttpClient, readTemporaryAccount } from "./d1-http-client.ts";
 import {
+  resolveCloudflareCredentials,
+  temporaryClaimExpiringSoon,
+} from "./cloudflare-credentials.ts";
+import {
   createTemporaryPreviewAccount,
   temporaryAccountTomlPath,
   writeTemporaryAccountToml,
@@ -109,16 +113,43 @@ async function waitUntilTokenCanListD1(attempts = 8): Promise<boolean> {
   return false;
 }
 
+async function pagesApiReachable(): Promise<boolean> {
+  try {
+    const creds = resolveCloudflareCredentials();
+    if (!creds) return false;
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/pages/projects`,
+      { headers: { Authorization: `Bearer ${creds.token}` } },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Mint (or reuse) a 60-minute preview account via the provisioning API.
  * `wrangler whoami --temporary` is not a flag; Wrangler only accepts
  * `--temporary` on deploy / D1 / KV, and refuses it when any token is set.
+ *
+ * Reuse is skipped when CF_TEMP_FORCE_NEW=1, when the token cannot list D1,
+ * or when the claim window is nearly elapsed and Pages is still 403.
  */
 async function bootstrapTemporaryAccount(): Promise<string> {
-  if (await tokenCanListD1()) {
-    const acct = readTemporaryAccount();
-    console.log(`reusing temporary account ${acct.accountId}`);
-    return "";
+  const forceNew = process.env.CF_TEMP_FORCE_NEW === "1";
+  if (!forceNew && (await tokenCanListD1())) {
+    const creds = resolveCloudflareCredentials();
+    const claimed = await pagesApiReachable();
+    const expiring =
+      creds != null && temporaryClaimExpiringSoon(creds);
+    if (claimed || !expiring) {
+      const acct = readTemporaryAccount();
+      console.log(`reusing temporary account ${acct.accountId}`);
+      return "";
+    }
+    console.log(
+      "claim window nearly elapsed and Pages still forbidden — minting a new preview account",
+    );
   }
   const cached = temporaryAccountTomlPath();
   if (existsSync(cached)) {

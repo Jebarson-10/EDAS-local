@@ -110,3 +110,16 @@ export function previewD1FromTemporaryToml(toml: string): {
   if (!id || !name) return null;
   return { name, id };
 }
+
+/** True when the preview claim/account expires within `withinMs` (default 8 minutes). */
+export function temporaryClaimExpiringSoon(
+  creds: { claimExpiresAt?: string; expiresAt?: string },
+  now = Date.now(),
+  withinMs = 8 * 60_000,
+): boolean {
+  const raw = creds.claimExpiresAt ?? creds.expiresAt;
+  if (!raw) return false;
+  const t = Date.parse(raw);
+  if (Number.isNaN(t)) return false;
+  return t - now <= withinMs;
+}

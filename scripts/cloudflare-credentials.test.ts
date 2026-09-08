@@ -4,6 +4,7 @@ import {
   parseTemporaryAccountToml,
   previewD1FromTemporaryToml,
   resolveCloudflareCredentials,
+  temporaryClaimExpiringSoon,
 } from "./cloudflare-credentials.ts";
 
 const TOML = `[account]
@@ -85,6 +86,28 @@ describe("pagesForbiddenOnTemporaryAccount", () => {
     expect(message).toContain("claimToken=abc");
     expect(message).toMatch(/Do not invent ACCESS_EMAIL_ROLE_MAP/);
     expect(message).not.toMatch(/example\.gov\.in/);
+  });
+});
+
+describe("temporaryClaimExpiringSoon", () => {
+  it("is true when claim expiry is within the window", () => {
+    expect(
+      temporaryClaimExpiringSoon(
+        { claimExpiresAt: "2026-09-08T14:20:36.493Z" },
+        Date.parse("2026-09-08T14:15:00Z"),
+        8 * 60_000,
+      ),
+    ).toBe(true);
+  });
+
+  it("is false when more than the window remains", () => {
+    expect(
+      temporaryClaimExpiringSoon(
+        { claimExpiresAt: "2026-09-08T14:20:36.493Z" },
+        Date.parse("2026-09-08T14:00:00Z"),
+        8 * 60_000,
+      ),
+    ).toBe(false);
   });
 });
 
