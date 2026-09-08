@@ -2,8 +2,11 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { gzipSync } from "node:zlib";
 import {
+  canonicalBackupCandidates,
   createD1HttpClient,
+  readCanonicalBackupText,
   readTemporaryAccount,
   resolveD1HttpTarget,
 } from "./d1-http-client.ts";
@@ -101,6 +104,32 @@ describe("D1 HTTP client", () => {
       "DELETE FROM teachers",
       "INSERT INTO teachers (teacher_id) VALUES ('t1')",
     ]);
+  });
+});
+
+describe("canonical snapshot files", () => {
+  it("lists gzip encodings after the uncompressed json path", () => {
+    const paths = canonicalBackupCandidates("/tmp/edas-snap");
+    const json = paths.indexOf("/tmp/edas-snap/fixtures/staging-canonical-d1.json");
+    const gz = paths.indexOf("/tmp/edas-snap/fixtures/staging-canonical-d1.json.gz");
+    const b64 = paths.indexOf(
+      "/tmp/edas-snap/fixtures/staging-canonical-d1.json.gz.b64",
+    );
+    expect(json).toBeGreaterThanOrEqual(0);
+    expect(gz).toBeGreaterThan(json);
+    expect(b64).toBeGreaterThan(gz);
+  });
+
+  it("inflates gzip and gzip+base64 snapshots", () => {
+    const dir = mkdtempSync(join(tmpdir(), "edas-snap-"));
+    const body = JSON.stringify({ teachers: [{ teacherId: "t1" }], history: [] });
+    const gz = gzipSync(Buffer.from(body, "utf8"));
+    const gzPath = join(dir, "snap.json.gz");
+    const b64Path = join(dir, "snap.json.gz.b64");
+    writeFileSync(gzPath, gz);
+    writeFileSync(b64Path, gz.toString("base64"));
+    expect(readCanonicalBackupText(gzPath)).toBe(body);
+    expect(readCanonicalBackupText(b64Path)).toBe(body);
   });
 });
 
