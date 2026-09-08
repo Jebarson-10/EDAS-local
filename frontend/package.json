@@ -1,0 +1,38 @@
+{
+  "name": "@exam-duty/frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host :: --port 43123",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host :: --port 43123",
+    "lint": "oxlint src",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@exam-duty/allocation-engine": "*",
+    "@exam-duty/shared": "*",
+    "@exam-duty/validator": "*",
+    "exceljs": "^4.4.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.14",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.0.0",
+    "oxlint": "^1.79.0",
+    "playwright": "^1.62.1",
+    "tailwindcss": "^4.0.14",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.2",
+    "vitest": "^3.0.9"
+  }
+}

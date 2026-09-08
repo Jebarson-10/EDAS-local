@@ -1,0 +1,47 @@
+name = "erode-exam-duty"
+compatibility_date = "2026-03-01"
+pages_build_output_dir = "frontend/dist"
+
+[vars]
+ENVIRONMENT = "development"
+# ALLOWED_ORIGINS = "https://erode-exam-duty.pages.dev"
+
+# Bindings — set real database_id / bucket in Cloudflare dashboard for staging/production.
+# Never commit live ids or secrets.
+# Cloudflare Pages only applies [env.preview] and [env.production].
+# Product "staging" / UAT = wrangler env "preview" (ENVIRONMENT var stays "staging").
+
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "erode-exam-duty"
+# database_id = "REPLACE_ME"
+#
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "erode-exam-duty-files"
+
+# --- Staging UAT (Pages preview deployments) ---
+[env.preview]
+vars = { ENVIRONMENT = "staging" }
+# [[env.preview.d1_databases]]
+# binding = "DB"
+# database_name = "erode-exam-duty-preview"
+# database_id = "REPLACE_ME_STAGING"
+# [[env.preview.r2_buckets]]
+# binding = "FILES"
+# bucket_name = "erode-exam-duty-files-preview"
+
+# --- Production (promote only after UAT + explicit human approval) ---
+[env.production]
+vars = { ENVIRONMENT = "production" }
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "erode-exam-duty"
+# database_id = "REPLACE_ME_PRODUCTION"
+# [[env.production.r2_buckets]]
+# binding = "FILES"
+# bucket_name = "erode-exam-duty-files"
+
+# Then: npm run db:migrate:remote -- --env staging && npm run pages:deploy:preview
+# Or with a token: npm run staging:raise
+# Never promote production without explicit human approval.

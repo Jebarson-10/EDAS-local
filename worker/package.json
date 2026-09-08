@@ -1,0 +1,23 @@
+{
+  "name": "@exam-duty/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@exam-duty/shared": "*",
+    "better-sqlite3": "^13.0.3",
+    "exceljs": "^4.4.0",
+    "hono": "^4.13.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250317.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9",
+    "wrangler": "^4.0.0"
+  }
+}
