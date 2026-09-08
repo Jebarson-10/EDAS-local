@@ -16,14 +16,14 @@
  * Does not promote production.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   injectCloudflareCredentials,
   pagesForbiddenOnTemporaryAccount,
-  previewD1FromTemporaryToml,
   resolveCloudflareCredentials,
 } from "./cloudflare-credentials.ts";
+import { ensurePreviewD1 } from "./ensure-preview-d1.ts";
 import { applyD1Binding } from "./wrangler-env.ts";
 import {
   pagesPreviewUrlFromText,
@@ -103,30 +103,33 @@ async function cf<T>(
 async function ensureD1(token: string, accountId: string) {
   const name = process.env.CF_D1_PREVIEW_NAME ?? "erode-exam-duty-preview";
   const givenId = process.env.CF_D1_PREVIEW_ID;
-  if (givenId) {
-    return { name, id: givenId, created: false };
-  }
-  const listed = await cf<Array<{ uuid?: string; id?: string; name: string }>>(
-    token,
+  const d1 = await ensurePreviewD1({
     accountId,
-    "/d1/database?per_page=100",
-  );
-  const rows = Array.isArray(listed) ? listed : [];
-  const existing = rows.find((d) => d.name === name);
-  if (existing) {
-    const id = existing.uuid ?? existing.id;
-    if (!id) throw new Error(`D1 ${name} listed without uuid`);
-    return { name, id, created: false };
+    previewName: name,
+    givenId,
+    dataDir: DATA,
+    listDatabases: () =>
+      cf<Array<{ uuid?: string; id?: string; name: string }>>(
+        token,
+        accountId,
+        "/d1/database?per_page=100",
+      ).then((rows) => (Array.isArray(rows) ? rows : [])),
+    createDatabase: (createName) =>
+      cf<{ uuid?: string; id?: string; name: string }>(
+        token,
+        accountId,
+        "/d1/database",
+        { method: "POST", body: JSON.stringify({ name: createName }) },
+      ),
+  });
+  if (!d1.created) {
+    console.log(
+      d1.fromTemporary
+        ? `Reusing D1 ${d1.name} ${d1.id} (temporary-same-account).`
+        : `Reusing D1 ${d1.name} ${d1.id}.`,
+    );
   }
-  const created = await cf<{ uuid?: string; id?: string; name: string }>(
-    token,
-    accountId,
-    "/d1/database",
-    { method: "POST", body: JSON.stringify({ name }) },
-  );
-  const id = created.uuid ?? created.id;
-  if (!id) throw new Error("D1 create response missing uuid");
-  return { name: created.name ?? name, id, created: true };
+  return d1;
 }
 
 async function ensurePagesProject(
@@ -178,46 +181,11 @@ async function assertPagesApi(
 async function main() {
   const creds = resolveCloudflareCredentials();
   if (!creds) {
-    fail(`§107 staging:raise blocked — no Cloudflare credentials in this environment.
-
-Need both:
-  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers scripts
-  CLOUDFLARE_ACCOUNT_ID    32-char account id from the Cloudflare dashboard
-
-Or claim a temporary preview account from npm run staging:temporary, then re-run this command
-(the same token gains Pages after claim).
-
-Optional:
-  CF_D1_PREVIEW_ID / CF_D1_PREVIEW_NAME
-  CF_R2_PREVIEW_BUCKET     omit to leave R2 unbound (stored:false backups)
-  ACCESS_EMAIL_ROLE_MAP    OQ-010 email→role JSON; never invent officer emails
-
-Then:
-  npm run staging:raise
-
-Do not paste REPLACE_ME ids. This command creates the preview D1 and deploys Pages preview.
-Production promote still needs explicit human approval.`);
+    fail(`§107 staging:raise blocked — no Cloudflare credentials in this environment.\n\nNeed both:\n  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers scripts\n  CLOUDFLARE_ACCOUNT_ID    32-char account id from the Cloudflare dashboard\n\nOr claim a temporary preview account from npm run staging:temporary, then create a\ndashboard API token with D1 edit + Pages edit (the preview cfat_ token cannot\ncall Pages) and re-run this command.\n\nOptional:\n  CF_D1_PREVIEW_ID / CF_D1_PREVIEW_NAME\n  CF_R2_PREVIEW_BUCKET     omit to leave R2 unbound (stored:false backups)\n  ACCESS_EMAIL_ROLE_MAP    OQ-010 email→role JSON; never invent officer emails\n\nThen:\n  npm run staging:raise\n\nDo not paste REPLACE_ME ids. This command creates the preview D1 and deploys Pages preview.\nProduction promote still needs explicit human approval.`);
   }
 
   const { token, accountId } = creds;
   injectCloudflareCredentials(creds);
-
-  if (
-    creds.source === "temporary" &&
-    !process.env.CF_D1_PREVIEW_ID &&
-    existsSync(join(DATA, "wrangler.temporary.toml"))
-  ) {
-    const existing = previewD1FromTemporaryToml(
-      readFileSync(join(DATA, "wrangler.temporary.toml"), "utf8"),
-    );
-    if (existing) {
-      process.env.CF_D1_PREVIEW_ID = existing.id;
-      process.env.CF_D1_PREVIEW_NAME = existing.name;
-      console.log(
-        `Reusing temporary D1 ${existing.name} ${existing.id} (already restored).`,
-      );
-    }
-  }
 
   mkdirSync(DATA, { recursive: true });
 
@@ -251,7 +219,7 @@ Production promote still needs explicit human approval.`);
   writeFileSync(workerTomlPath, workerFilled);
   writeFileSync(join(DATA, "wrangler.preview.toml"), rootFilled);
   const restoreCommittedToml = () => {
-    if (creds.source !== "temporary") return;
+    if (creds.source !== "temporary" && !d1.fromTemporary) return;
     writeFileSync(rootTomlPath, originalRoot);
     writeFileSync(workerTomlPath, originalWorker);
   };
@@ -307,8 +275,6 @@ Production promote still needs explicit human approval.`);
     process.env.CF_D1_PREVIEW_ID = d1.id;
     run("staging:restore", "npm", ["run", "staging:restore"]);
     run("pages:build", "npm", ["run", "pages:build"]);
-    // Never pass a positional assets dir — Wrangler would ignore wrangler.toml
-    // and ship the SPA without functions/ or the D1 binding.
     const deployOut = runCapture("pages:deploy:preview", "npx", [
       "wrangler",
       "pages",
@@ -355,7 +321,7 @@ Production promote still needs explicit human approval.`);
     r2: process.env.CF_R2_PREVIEW_BUCKET ?? null,
     accessRoleMapConfigured: Boolean(map),
     note:
-      creds.source === "temporary"
+      creds.source === "temporary" || d1.fromTemporary
         ? "Raised Pages on a claimed temporary account. Temporary D1 ids were not left in committed wrangler.toml. Production was not deployed."
         : "Production was not deployed. Human promote still required. OQ answers still client-supplied.",
   };
@@ -364,7 +330,7 @@ Production promote still needs explicit human approval.`);
     JSON.stringify(evidence, null, 2),
   );
   console.log("\nWrote .data/staging-raise-latest.json");
-  if (creds.source === "temporary") {
+  if (creds.source === "temporary" || d1.fromTemporary) {
     console.log(
       "Temporary D1 ids were written only to .data/wrangler.preview.toml — committed wrangler.toml was restored.",
     );
