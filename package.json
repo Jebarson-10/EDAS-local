@@ -36,7 +36,7 @@
     "db:migrate:remote": "tsx scripts/migrate-remote.ts",
     "app": "npm run app:build && tsx scripts/run-app.ts",
     "app:build": "npm run desktop:ui && npm run desktop:bundle",
-    "desktop:ui": "cd frontend && VITE_DESKTOP=1 vite build --outDir ../desktop/ui --emptyOutDir",
+    "desktop:ui": "node scripts/build-desktop-ui.mjs",
     "desktop:bundle": "esbuild scripts/local-api-server.ts --bundle --platform=node --target=node20 --format=cjs --external:better-sqlite3 --outfile=desktop/dist/api-server.cjs --log-level=warning",
     "desktop:dev": "npm run app:build && electron desktop/main.cjs",
     "desktop:dist": "npm run app:build && electron-builder --linux AppImage",

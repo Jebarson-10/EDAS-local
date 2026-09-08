@@ -39,7 +39,7 @@ INSERT INTO rule_parameters (id, rule_version_id, param_key, param_value, value_
   ('rp-6', 'rv-2027-1', 'practical_batch_size', '50', 'number'),
   ('rp-7', 'rv-2027-1', 'practical_completion_days', '3', 'number'),
   ('rp-8', 'rv-2027-1', 'fairness_window_days', '365', 'number'),
-  ('rp-9', 'rv-2027-1', 'seniority_mode', '"district"', 'string'),
+  ('rp-9', 'rv-2027-1', 'seniority_mode', '"block_then_district"', 'string'),
   ('rp-10', 'rv-2027-1', 'block_priority_mode', '"none"', 'string'),
   ('rp-11', 'rv-2027-1', 'designation_priority_order', '["HM","PRINCIPAL","SENIOR_PG","PG"]', 'json'),
   ('rp-12', 'rv-2027-1', 'hm_fallback_designations', '["SENIOR_PG"]', 'json'),

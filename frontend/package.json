@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host :: --port 43123",
+    "dev": "vite --host 127.0.0.1 --port 43123",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host :: --port 43123",
+    "preview": "vite preview --host 127.0.0.1 --port 43123",
     "lint": "oxlint src",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run --passWithNoTests"

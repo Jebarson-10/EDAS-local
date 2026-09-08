@@ -548,8 +548,8 @@ export function allocateTheory(
       continue;
     }
 
-    const pick = (list: CandidateEvaluation[]) =>
-      list.find((c) => {
+    const pick = (list: CandidateEvaluation[], blockFirst: boolean) => {
+      const eligible = list.filter((c) => {
         if (assignedTeachers.has(c.teacherId)) return false;
         if (
           hasSessionConflict(
@@ -563,8 +563,26 @@ export function allocateTheory(
           return false;
         return true;
       });
+      // Senior PG fallback is block-first; the district pool is considered
+      // only when that block cannot satisfy the requirement. Within either
+      // pool the existing deterministic seniority/fairness ordering remains.
+      if (blockFirst && rules.seniority_mode === "block_then_district") {
+        const candidateBlockId = (candidate: CandidateEvaluation) => {
+          const teacher = dataset.teachers.find(
+            (item) => item.teacherId === candidate.teacherId,
+          );
+          return teacher ? schoolById.get(teacher.schoolId)?.blockId : undefined;
+        };
+        return (
+          eligible.find(
+            (candidate) => candidateBlockId(candidate) === centre.blockId,
+          ) ?? eligible[0]
+        );
+      }
+      return eligible[0];
+    };
 
-    let chosen = pick(pool.preferred);
+    let chosen = pick(pool.preferred, false);
     let usedFallback = false;
     let fallbackMeta:
       | {
@@ -579,7 +597,7 @@ export function allocateTheory(
     ).length;
 
     if (!chosen && req.fallbackDesignations.length > 0) {
-      chosen = pick(pool.fallback);
+      chosen = pick(pool.fallback, true);
       usedFallback = Boolean(chosen);
       fallbackMeta = {
         preferredEligible: preferredRemaining,
@@ -618,6 +636,19 @@ export function allocateTheory(
 
     const teacher = dataset.teachers.find((t) => t.teacherId === chosen!.teacherId)!;
     const reasons = [...chosen.hardReasons, ...chosen.softNotes];
+    const selectedSchool = schoolById.get(teacher.schoolId);
+    if (
+      usedFallback &&
+      rules.seniority_mode === "block_then_district" &&
+      selectedSchool?.blockId !== centre.blockId
+    ) {
+      reasons.unshift({
+        ruleCode: "INFO-DISTRICT-FALLBACK",
+        severity: "WARNING",
+        message: "No eligible candidate in the centre block; selected from the district pool",
+        details: { centreBlockId: centre.blockId, teacherBlockId: selectedSchool?.blockId },
+      });
+    }
     if (usedFallback) {
       reasons.unshift({
         ruleCode: "INFO-HM-FALLBACK",

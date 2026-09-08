@@ -212,6 +212,47 @@ describe("theory allocation", () => {
     ).toBe(true);
   });
 
+  it("uses a Senior PG from the centre block before the wider district", () => {
+    const dataset = baseDataset({
+      teachers: [
+        teacher({
+          teacherId: "t-block",
+          employeeCode: "E010",
+          name: "Block PG",
+          schoolId: "s2",
+          designation: "SENIOR_PG",
+          seniorityRank: 20,
+        }),
+        teacher({
+          teacherId: "t-district",
+          employeeCode: "E011",
+          name: "District PG",
+          schoolId: "s4",
+          designation: "SENIOR_PG",
+          seniorityRank: 1,
+        }),
+      ],
+      schools: [
+        ...baseDataset().schools,
+        {
+          schoolId: "s4", schoolCode: "S4", schoolName: "District School", blockId: "b2",
+          latitude: 11.344, longitude: 77.724, active: true,
+        },
+      ],
+    });
+    const requirements: TheoryRequirement[] = [{
+      requirementKey: "c1-chief", centreId: "c1", roleCode: "CHIEF_EXAMINATION",
+      examDate: "2027-03-10", sessionCode: "MORNING",
+      preferredDesignations: ["HM"], fallbackDesignations: ["SENIOR_PG"],
+    }];
+
+    const result = allocateTheory(requirements, dataset, {
+      ...rules, seniority_mode: "block_then_district",
+    });
+    expect(result.assignments[0]?.teacherId).toBe("t-block");
+    expect(result.assignments[0]?.usedFallbackBand).toBe(true);
+  });
+
   it("does not assign exempted teachers", () => {
     const dataset = baseDataset({
       exemptions: [

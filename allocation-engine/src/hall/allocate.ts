@@ -10,7 +10,9 @@ import type {
 } from "@exam-duty/shared";
 import { haversineKm, roundKm } from "@exam-duty/shared";
 
-export const HALL_ALGORITHM_VERSION = "hall-1.0.0";
+// 1.1 permits a teacher to be considered again on a different date/session,
+// while the dynamic workload score gives every eligible teacher a turn first.
+export const HALL_ALGORITHM_VERSION = "hall-1.1.0";
 
 export interface HallCentreDemand {
   centreId: string;
@@ -81,7 +83,10 @@ export function allocateHall(
   const schoolById = new Map(dataset.schools.map((s) => [s.schoolId, s]));
   const centreById = new Map(dataset.centres.map((c) => [c.centreId, c]));
   const occupied = new Set<string>();
-  const assigned = new Set<string>();
+  // A teacher may invigilate on another date/session.  `occupied` is the
+  // hard same-session guard; this count is a soft current-cycle fairness
+  // guard and avoids needlessly reporting a shortage after one assignment.
+  const assignmentCountByTeacher = new Map<string, number>();
   const assignments: HallAssignment[] = [];
   const shortages: HallResult["shortages"] = [];
   const requiredHallsByCentre: Record<string, number> = {};
@@ -121,7 +126,7 @@ export function allocateHall(
     const cy = yearNum(dataset.academicYear);
 
     const eligible = dataset.teachers.filter((t) => {
-      if (!t.isActive || assigned.has(t.teacherId)) return false;
+      if (!t.isActive) return false;
       if (
         dataset.exemptions.some(
           (e) =>
@@ -192,10 +197,25 @@ export function allocateHall(
     eligible.sort((a, b) => {
       const score = (t: Teacher) => {
         let recent = 0;
+        const asOf = Date.parse(dataset.asOfDate);
+        const fairnessWindowMs = rules.fairness_window_days * 86_400_000;
         for (const h of dataset.history) {
-          if (h.teacherId === t.teacherId) recent += 1;
+          if (h.teacherId !== t.teacherId) continue;
+          const dutyDate = Date.parse(h.examDate);
+          const elapsedMs = asOf - dutyDate;
+          if (
+            Number.isNaN(asOf) ||
+            Number.isNaN(dutyDate) ||
+            (elapsedMs >= 0 && elapsedMs <= fairnessWindowMs)
+          ) {
+            recent += 1;
+          }
         }
-        return recent + (t.seniorityRank ?? 9999) * 0.0001;
+        return (
+          rules.scoring_weights.recent_duty * recent +
+          rules.scoring_weights.workload * (assignmentCountByTeacher.get(t.teacherId) ?? 0) +
+          (t.seniorityRank ?? 9999) * 0.0001
+        );
       };
       const sa = score(a);
       const sb = score(b);
@@ -228,7 +248,10 @@ export function allocateHall(
         employeeCode: t.employeeCode,
         score: i,
       });
-      assigned.add(t.teacherId);
+      assignmentCountByTeacher.set(
+        t.teacherId,
+        (assignmentCountByTeacher.get(t.teacherId) ?? 0) + 1,
+      );
       occupied.add(`${t.teacherId}|${demand.examDate}|${demand.sessionCode}`);
     }
   }

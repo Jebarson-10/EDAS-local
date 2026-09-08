@@ -7,7 +7,10 @@ import type {
   DutyCalendarEvent,
 } from "@exam-duty/shared";
 
-export const PRACTICAL_ALGORITHM_VERSION = "practical-1.0.0";
+// 1.1 schedules different subjects in parallel.  A subject's own batches
+// still remain in morning/afternoon order, which models the 50 + 50 pattern
+// without incorrectly treating all subjects in one school as one queue.
+export const PRACTICAL_ALGORITHM_VERSION = "practical-1.1.0";
 
 export interface PracticalSchoolDemand {
   schoolId: string;
@@ -165,22 +168,51 @@ export function schedulePractical(
   for (const [schoolId, schoolBatches] of [...bySchool.entries()].sort((a, b) =>
     a[0].localeCompare(b[0]),
   )) {
-    // Completion window: all batches for school must fit within practical_completion_days
+    // Completion window: each subject can use one morning/afternoon sequence
+    // in the school's window. Different subjects may run in the same slot
+    // with different examiner pairs. This is required for, for example,
+    // Maths-Biology, Maths-Computer and Vocational groups at one school.
     const windowDates = sortedDates.slice(0, rules.practical_completion_days);
     const windowSlots = sessionsForDates(windowDates);
-    if (schoolBatches.length > windowSlots.length) {
+    const batchesBySubject = new Map<string, PracticalBatch[]>();
+    for (const batch of schoolBatches) {
+      const subjectBatches = batchesBySubject.get(batch.subjectId) ?? [];
+      subjectBatches.push(batch);
+      batchesBySubject.set(batch.subjectId, subjectBatches);
+    }
+    const longestSubjectRun = Math.max(
+      0,
+      ...[...batchesBySubject.values()].map((subjectBatches) => subjectBatches.length),
+    );
+    if (longestSubjectRun > windowSlots.length) {
       return {
         algorithmVersion: PRACTICAL_ALGORITHM_VERSION,
         batches,
         schedules,
         feasible: false,
-        message: `NO VALID SCHEDULE — school ${schoolId} needs ${schoolBatches.length} sessions but only ${windowSlots.length} within ${rules.practical_completion_days} days`,
+        message: `NO VALID SCHEDULE — school ${schoolId} has a subject requiring ${longestSubjectRun} sessions but only ${windowSlots.length} within ${rules.practical_completion_days} days`,
       };
     }
 
-    let slotIdx = 0;
-    for (const batch of schoolBatches.sort((a, b) => a.batchKey.localeCompare(b.batchKey))) {
-      const slot = windowSlots[slotIdx++]!;
+    // Interleave subject runs by batch number. Hence batch 1 of Physics,
+    // Chemistry and Biology can all take place in the same morning, while
+    // batch 2 of each takes place in the following afternoon. `occupied`
+    // below remains the hard guard against reusing either examiner.
+    const schoolScheduleOrder: Array<{ batch: PracticalBatch; slotIndex: number }> = [];
+    const subjectRuns = [...batchesBySubject.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, subjectBatches]) =>
+        [...subjectBatches].sort((a, b) => a.batchIndex - b.batchIndex || a.batchKey.localeCompare(b.batchKey)),
+      );
+    for (let slotIndex = 0; slotIndex < longestSubjectRun; slotIndex++) {
+      for (const subjectBatches of subjectRuns) {
+        const batch = subjectBatches[slotIndex];
+        if (batch) schoolScheduleOrder.push({ batch, slotIndex });
+      }
+    }
+
+    for (const { batch, slotIndex } of schoolScheduleOrder) {
+      const slot = windowSlots[slotIndex]!;
       const internals = dataset.teachers
         .filter(
           (t) =>
