@@ -2,8 +2,9 @@
  * Poll the Pages API until a Pages-capable token exists, then run staging:raise.
  *
  * Unclaimed accounts 403 Pages. Claiming keeps Workers + D1; the preview
- * cfat_ token still cannot call Pages. After claim, a dashboard API token
- * with Pages edit is required.
+ * cfat_ token still cannot call Pages. After claim, drop a dashboard token
+ * with Pages edit as gitignored .data/cloudflare-client.env — this loop
+ * re-resolves every poll.
  *
  * Do not remint while D1 still lists — that would drop a claimed (or still
  * live) restored database. Remint only when D1 is gone (unclaimed expiry).
@@ -16,6 +17,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  injectCloudflareCredentials,
   resolveCloudflareCredentials,
   waitClaimedShouldRenew,
 } from "./cloudflare-credentials.ts";
@@ -122,12 +124,15 @@ async function main() {
         d1Listable: d1ok,
         consecutiveD1Failures,
         claimWindowElapsed,
+        source: creds.source,
+        accountId: creds.accountId,
         claimUrl: creds.claimUrl ?? null,
         claimExpiresAt: creds.claimExpiresAt ?? null,
         renews,
       });
       if (probe.ok) {
         console.log("Pages API reachable — running npm run staging:raise");
+        injectCloudflareCredentials(creds);
         const r = spawnSync("npm", ["run", "staging:raise"], {
           cwd: ROOT,
           stdio: "inherit",
@@ -171,9 +176,18 @@ async function main() {
       const wait = Math.min(INTERVAL_MS, 15_000);
       await new Promise((r) => setTimeout(r, wait));
 
-      // Pick up a dashboard token if the operator exported it into this process.
       const again = resolveCloudflareCredentials();
-      if (again) creds = again;
+      if (again) {
+        if (again.source !== creds.source) {
+          console.log(
+            `Credentials source is now ${again.source} (account ${again.accountId})`,
+          );
+        }
+        if (again.source === "client-env") {
+          injectCloudflareCredentials(again);
+        }
+        creds = again;
+      }
     }
 
     if (!renewTemporary()) {
