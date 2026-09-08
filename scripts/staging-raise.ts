@@ -14,8 +14,8 @@
  *   CF_PAGES_PROJECT     default erode-exam-duty
  *   CF_R2_PREVIEW_BUCKET  bind FILES to this bucket (create if missing).
  *     When unset, raise tries erode-exam-duty-files-preview after Pages API
- *     succeeds and leaves FILES unbound on R2 403 (honest stored:false).
- *   CF_R2_BIND=0           skip R2 entirely
+ *     succeeds. R2 403 fails closed unless UAT_ALLOW_UNBOUND_R2=1.
+ *   CF_R2_BIND=0           skip R2 (also fails closed unless UAT_ALLOW_UNBOUND_R2=1)
  *   ACCESS_EMAIL_ROLE_MAP  OQ-010 JSON; never invented — set as Pages secret when present
  *
  * Does not promote production.
@@ -29,7 +29,7 @@ import {
   resolveCloudflareCredentials,
 } from "./cloudflare-credentials.ts";
 import { ensurePreviewD1 } from "./ensure-preview-d1.ts";
-import { ensurePreviewR2 } from "./ensure-preview-r2.ts";
+import { ensurePreviewR2, raiseBlockedWithoutLiveR2 } from "./ensure-preview-r2.ts";
 import { applyD1Binding, applyR2Binding } from "./wrangler-env.ts";
 import {
   pagesPreviewUrlFromText,
@@ -190,17 +190,18 @@ async function main() {
     fail(`§107 staging:raise blocked — no Cloudflare credentials in this environment.
 
 Need both:
-  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers scripts
+  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers R2 Storage edit
   CLOUDFLARE_ACCOUNT_ID    32-char account id from the Cloudflare dashboard
 
 Or claim a temporary preview account from npm run staging:temporary, then create a
-dashboard API token with D1 edit + Pages edit (the preview cfat_ token cannot
-call Pages) and re-run this command.
+dashboard API token with D1 edit + Pages edit + Workers R2 Storage edit (the
+preview cfat_ token cannot call Pages or R2) and re-run this command.
 
 Optional:
   CF_D1_PREVIEW_ID / CF_D1_PREVIEW_NAME
-  CF_R2_PREVIEW_BUCKET     bind FILES (default name tried when unset; 403 → stored:false)
-  CF_R2_BIND=0             skip R2
+  CF_R2_PREVIEW_BUCKET     bind FILES (default name tried when unset; 403 fails closed)
+  CF_R2_BIND=0             skip R2 (also fails closed unless UAT_ALLOW_UNBOUND_R2=1)
+  UAT_ALLOW_UNBOUND_R2=1   explicit exception to deploy without FILES
   ACCESS_EMAIL_ROLE_MAP    OQ-010 email→role JSON; never invent officer emails
 
 Then:
@@ -267,6 +268,11 @@ Production promote still needs explicit human approval.`);
         : "R2 API not granted — FILES stays unbound (honest stored:false). Add Workers R2 Storage Edit to bind FILES.",
     );
   }
+  const r2Block = raiseBlockedWithoutLiveR2(
+    r2,
+    process.env.UAT_ALLOW_UNBOUND_R2 === "1",
+  );
+  if (r2Block) fail(r2Block);
 
   const rootTomlPath = join(ROOT, "wrangler.toml");
   const workerTomlPath = join(ROOT, "worker/wrangler.toml");
