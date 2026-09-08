@@ -25,7 +25,10 @@ import {
   resolveCloudflareCredentials,
 } from "./cloudflare-credentials.ts";
 import { applyD1Binding } from "./wrangler-env.ts";
-import { placeholderRoleMapError } from "./section-107-guards.ts";
+import {
+  pagesPreviewUrlFromText,
+  placeholderRoleMapError,
+} from "./section-107-guards.ts";
 
 const ROOT = process.cwd();
 const DATA = join(ROOT, ".data");
@@ -39,6 +42,24 @@ type CfResult<T> = {
 function fail(message: string, code = 2): never {
   console.error(message);
   process.exit(code);
+}
+
+function runCapture(label: string, cmd: string, args: string[]): string {
+  console.log(`\n=== ${label} ===`);
+  console.log(cmd, args.join(" "));
+  const r = spawnSync(cmd, args, {
+    cwd: ROOT,
+    encoding: "utf8",
+    maxBuffer: 20_000_000,
+    shell: false,
+    env: process.env,
+  });
+  const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+  process.stdout.write(out);
+  if (r.status !== 0) {
+    throw new Error(`${label} failed (exit ${r.status ?? 1})`);
+  }
+  return out;
 }
 
 function run(label: string, cmd: string, args: string[]) {
@@ -242,6 +263,7 @@ Production promote still needs explicit human approval.`);
     if (mapError) fail(`§107 ACCESS_EMAIL_ROLE_MAP rejected — ${mapError}`);
   }
 
+  let previewUrl: string | null = null;
   try {
     const pages = await ensurePagesProject(token, accountId, projectName);
     console.log(
@@ -287,7 +309,7 @@ Production promote still needs explicit human approval.`);
     run("pages:build", "npm", ["run", "pages:build"]);
     // Never pass a positional assets dir — Wrangler would ignore wrangler.toml
     // and ship the SPA without functions/ or the D1 binding.
-    run("pages:deploy:preview", "npx", [
+    const deployOut = runCapture("pages:deploy:preview", "npx", [
       "wrangler",
       "pages",
       "deploy",
@@ -296,6 +318,10 @@ Production promote still needs explicit human approval.`);
       "--branch",
       "preview",
     ]);
+    previewUrl = pagesPreviewUrlFromText(deployOut);
+    if (previewUrl) {
+      console.log(`Pages preview URL: ${previewUrl}`);
+    }
   } catch (e) {
     writeFileSync(
       join(DATA, "staging-raise-latest.json"),
@@ -325,6 +351,7 @@ Production promote still needs explicit human approval.`);
     credentialSource: creds.source,
     d1,
     pagesProject: projectName,
+    previewUrl,
     r2: process.env.CF_R2_PREVIEW_BUCKET ?? null,
     accessRoleMapConfigured: Boolean(map),
     note:
@@ -347,8 +374,14 @@ Production promote still needs explicit human approval.`);
     );
   }
   console.log(
-    "Probe the preview URL /api/health: dbOk must be true. r2Ok may be false until a bucket is bound.",
+    previewUrl
+      ? `Probe ${previewUrl}/api/health: dbOk must be true. r2Ok may be false until a bucket is bound.`
+      : "Probe the preview URL /api/health: dbOk must be true. r2Ok may be false until a bucket is bound.",
   );
+  if (previewUrl) {
+    process.env.STAGING_URL = previewUrl;
+    run("uat:staging", "npm", ["run", "uat:staging"]);
+  }
 }
 
 main().catch((e) => {

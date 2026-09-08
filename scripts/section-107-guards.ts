@@ -17,6 +17,23 @@ export function pagesPreviewUatError(url: string): string | null {
   return "STAGING_URL must be a Cloudflare Pages preview (*.pages.dev) for §107 staging UAT.";
 }
 
+/** First *.pages.dev URL in wrangler pages deploy output. Prefers a deployment host. */
+export function pagesPreviewUrlFromText(text: string): string | null {
+  const found = [
+    ...text.matchAll(/https:\/\/[a-z0-9][a-z0-9.-]*\.pages\.dev/gi),
+  ].map((m) => m[0].replace(/\/+$/, "").toLowerCase());
+  const unique = [...new Set(found)];
+  if (unique.length === 0) return null;
+  const deployment = unique.find((u) => {
+    try {
+      return new URL(u).hostname.split(".").length > 3;
+    } catch {
+      return false;
+    }
+  });
+  return deployment ?? unique[0] ?? null;
+}
+
 const PLACEHOLDER_DOMAINS = new Set([
   "example.com",
   "example.org",

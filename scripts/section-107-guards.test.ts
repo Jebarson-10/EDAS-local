@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   pagesPreviewUatError,
+  pagesPreviewUrlFromText,
   placeholderRoleMapError,
 } from "./section-107-guards.ts";
 
@@ -23,6 +24,24 @@ describe("pagesPreviewUatError", () => {
     expect(pagesPreviewUatError("http://127.0.0.1:43123")).toMatch(
       /\*\.pages\.dev/,
     );
+  });
+});
+
+describe("pagesPreviewUrlFromText", () => {
+  it("prefers a deployment host over the production project URL", () => {
+    expect(
+      pagesPreviewUrlFromText(`
+Compiled Worker successfully
+https://erode-exam-duty.pages.dev
+https://abc123.erode-exam-duty.pages.dev
+`),
+    ).toBe("https://abc123.erode-exam-duty.pages.dev");
+  });
+
+  it("returns null when wrangler did not print a Pages URL", () => {
+    expect(
+      pagesPreviewUrlFromText("https://erode-exam-duty.season-driver.workers.dev"),
+    ).toBeNull();
   });
 });
 
