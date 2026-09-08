@@ -34,6 +34,7 @@ import { applyD1Binding, applyR2Binding } from "./wrangler-env.ts";
 import {
   pagesPreviewUrlFromText,
   placeholderRoleMapError,
+  r2BucketsFromListJson,
 } from "./section-107-guards.ts";
 
 const ROOT = process.cwd();
@@ -241,12 +242,8 @@ Production promote still needs explicit human approval.`);
     requestedBucket: requestedR2 || undefined,
     skip: process.env.CF_R2_BIND === "0",
     listBuckets: async () => {
-      const result = await cf<{ buckets?: Array<{ name: string }> }>(
-        token,
-        accountId,
-        "/r2/buckets",
-      );
-      return result.buckets ?? [];
+      const result = await cf<unknown>(token, accountId, "/r2/buckets");
+      return r2BucketsFromListJson({ result });
     },
     createBucket: async (name) => {
       await cf(token, accountId, "/r2/buckets", {
@@ -415,14 +412,13 @@ Production promote still needs explicit human approval.`);
       "Filled D1 ids are in wrangler.toml working tree — review before committing (ids are not secrets; never commit the API token).",
     );
   }
+  const r2HealthHint = r2.bound
+    ? " r2Ok should be true (FILES bound)."
+    : " r2Ok is unbound because UAT_ALLOW_UNBOUND_R2=1; §107 still needs a live bucket.";
   console.log(
     previewUrl
-      ? `Probe ${previewUrl}/api/health: dbOk must be true.${
-          r2.bound
-            ? " r2Ok should be true (FILES bound)."
-            : " r2Ok may be false until a bucket is bound."
-        }`
-      : "Probe the preview URL /api/health: dbOk must be true. r2Ok may be false until a bucket is bound.",
+      ? `Probe ${previewUrl}/api/health: dbOk must be true.${r2HealthHint}`
+      : `Probe the preview URL /api/health: dbOk must be true.${r2HealthHint}`,
   );
   if (previewUrl) {
     process.env.STAGING_URL = previewUrl;
