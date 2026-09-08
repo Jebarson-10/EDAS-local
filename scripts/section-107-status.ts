@@ -5,8 +5,9 @@
  *
  *   npm run section:107
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { resolveCloudflareCredentials } from "./cloudflare-credentials.ts";
 import { pagesPreviewUatError, placeholderRoleMapError } from "./section-107-guards.ts";
 
 const ROOT = process.cwd();
@@ -53,8 +54,9 @@ async function cfProbe(
 
 async function main() {
   const gates: Gate[] = [];
-  const token = process.env.CLOUDFLARE_API_TOKEN?.trim();
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const creds = resolveCloudflareCredentials();
+  const token = creds?.token;
+  const accountId = creds?.accountId;
   const map = process.env.ACCESS_EMAIL_ROLE_MAP?.trim();
 
   const tmp = readJson(join(ROOT, ".data/uat-temporary-latest.json"));
@@ -74,26 +76,34 @@ async function main() {
 
   let r2Status: Gate["status"] = "missing";
   let r2Evidence =
-    "No CLOUDFLARE_API_TOKEN — cannot list R2. Temporary accounts 403 R2.";
+    "No Cloudflare credentials — cannot list R2. Unclaimed temporary accounts 403 R2.";
   let pagesStatus: Gate["status"] = "missing";
   let pagesEvidence =
-    "No CLOUDFLARE_API_TOKEN — cannot create Pages. Temporary accounts 403 Pages.";
+    "No Cloudflare credentials — cannot create Pages. Unclaimed temporary accounts 403 Pages until claimed.";
   if (token && accountId) {
+    const src =
+      creds?.source === "temporary" ? "temporary account token" : "client token";
     const r2 = await cfProbe(token, accountId, "/r2/buckets");
     if (r2.ok) {
       r2Status = "proven";
-      r2Evidence = "R2 API reachable with the client token.";
+      r2Evidence = `R2 API reachable with the ${src}.`;
     } else if (r2.status === 403) {
-      r2Status = "optional-unbound";
+      r2Status =
+        creds?.source === "temporary" ? "missing" : "optional-unbound";
       r2Evidence =
-        "R2 API 403. Backups may stay stored:false. Bind FILES when the client creates a bucket.";
+        creds?.source === "temporary"
+          ? "R2 API 403 on the unclaimed temporary account. Claim it, or bind FILES on a client account."
+          : "R2 API 403. Backups may stay stored:false. Bind FILES when the client creates a bucket.";
     } else {
       r2Evidence = `R2 API HTTP ${r2.status}`;
     }
     const pages = await cfProbe(token, accountId, "/pages/projects");
     if (pages.ok) {
       pagesStatus = "proven";
-      pagesEvidence = "Pages API reachable.";
+      pagesEvidence = `Pages API reachable with the ${src}.`;
+    } else if (pages.status === 403 && creds?.source === "temporary") {
+      pagesEvidence =
+        "Pages API HTTP 403 on the unclaimed temporary account. Claim the URL in .data/uat-temporary-latest.json, then re-run npm run staging:raise.";
     } else {
       pagesEvidence = `Pages API HTTP ${pages.status}`;
     }
