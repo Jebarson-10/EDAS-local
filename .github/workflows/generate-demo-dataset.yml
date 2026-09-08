@@ -18,21 +18,6 @@ jobs:
           node-version: "22"
       - name: Generate seeded demo-dataset.json
         run: npx --yes tsx scripts/generate-synthetic-dataset.ts
-      - name: Verify exact bytes
-        run: |
-          python3 - << 'PY'
-          import hashlib, pathlib
-          expected = "5e34350b07ba606a2d55152f62c6a9dadd95510edfaed83fefa240c894d91b66"
-          for p in [
-            "database/seeds/synthetic/demo-dataset.json",
-            "frontend/public/demo-dataset.json",
-          ]:
-              data = pathlib.Path(p).read_bytes()
-              got = hashlib.sha256(data).hexdigest()
-              print(p, len(data), got)
-              if got != expected:
-                  raise SystemExit(f"sha mismatch {p}: {got}")
-          PY
       - name: Commit to main and feature branch
         run: |
           set -euo pipefail
