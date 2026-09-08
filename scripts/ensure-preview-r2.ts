@@ -3,8 +3,9 @@
  * Cloudflare API calls stay in the caller so this module is unit-testable.
  *
  * After Pages API succeeds we have a dashboard token. If that token can list
- * R2, reuse or create the preview bucket. If R2 is 403, leave FILES unbound
- * (honest stored:false). An explicit CF_R2_PREVIEW_BUCKET with 403 is an error.
+ * R2, reuse or create the preview bucket. R2 403 is forbidden; staging:raise
+ * fails closed unless UAT_ALLOW_UNBOUND_R2=1. An explicit CF_R2_PREVIEW_BUCKET
+ * with 403 is always an error.
  */
 export type EnsurePreviewR2Result =
   | { bound: false; bucket: null; created: false; reason: "skipped" | "forbidden" }
@@ -63,4 +64,14 @@ export async function ensurePreviewR2(input: {
     throw err;
   }
   return { bound: true, bucket, created: true, reason: "created" };
+}
+
+/** staging:raise must bind FILES unless the operator explicitly allows unbound UAT. */
+export function raiseBlockedWithoutLiveR2(
+  r2: EnsurePreviewR2Result,
+  allowUnboundR2: boolean,
+): string | null {
+  if (r2.bound) return null;
+  if (allowUnboundR2) return null;
+  return `§107 live R2 required — FILES not bound (${r2.reason}). Add Account / Workers R2 Storage / Edit to the dashboard token, then re-run npm run staging:raise. Preview cfat_ tokens cannot list R2. Set UAT_ALLOW_UNBOUND_R2=1 only for an explicit unbound exception.`;
 }

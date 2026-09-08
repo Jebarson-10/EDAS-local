@@ -1,7 +1,7 @@
 name: Staging raise
 
-# Deploys Pages preview + preview D1. Never production.
-# Requires repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# Requires repo secrets CLOUDFLARE_API_TOKEN (D1 + Pages + R2 Storage edit)
+# and CLOUDFLARE_ACCOUNT_ID. Never production.
 # Optional: ACCESS_EMAIL_ROLE_MAP (OQ-010 real officer emails only).
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error::Add GitHub Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (D1 edit + Pages edit), then re-run this workflow."
+            echo "::error::Add GitHub Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (D1 edit + Cloudflare Pages edit + Workers R2 Storage edit), then re-run this workflow."
             echo "Do not invent ACCESS_EMAIL_ROLE_MAP. Omit it until OQ-010 officer emails are supplied."
             exit 1
           fi
