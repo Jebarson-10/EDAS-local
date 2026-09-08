@@ -1,9 +1,10 @@
 /**
  * Raise Cloudflare Pages preview (product staging) from API credentials.
  *
- * Requires:
- *   CLOUDFLARE_API_TOKEN
- *   CLOUDFLARE_ACCOUNT_ID
+ * Credentials (first match):
+ *   CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+ *   wrangler-temporary-account.toml from `npm run staging:temporary`
+ *     (Pages stays 403 until that preview account is claimed)
  *
  * Optional:
  *   CF_D1_PREVIEW_NAME   default erode-exam-duty-preview
@@ -15,8 +16,14 @@
  * Does not promote production.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  injectCloudflareCredentials,
+  pagesForbiddenOnTemporaryAccount,
+  previewD1FromTemporaryToml,
+  resolveCloudflareCredentials,
+} from "./cloudflare-credentials.ts";
 import { applyD1Binding } from "./wrangler-env.ts";
 import { placeholderRoleMapError } from "./section-107-guards.ts";
 
@@ -121,19 +128,90 @@ async function ensurePagesProject(
   }
 }
 
+async function assertPagesApi(
+  token: string,
+  accountId: string,
+  source: "client-env" | "temporary",
+  claim?: { claimUrl?: string; claimExpiresAt?: string },
+) {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (res.ok) return;
+  if (res.status === 403 && source === "temporary") {
+    fail(
+      pagesForbiddenOnTemporaryAccount({
+        token,
+        accountId,
+        source,
+        claimUrl: claim?.claimUrl,
+        claimExpiresAt: claim?.claimExpiresAt,
+      }),
+    );
+  }
+  const detail = await res.text();
+  fail(`Cloudflare Pages API HTTP ${res.status}: ${detail.slice(0, 400)}`);
+}
+
 async function main() {
-  const token = process.env.CLOUDFLARE_API_TOKEN;
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  if (!token || !accountId) {
-    fail(`§107 staging:raise blocked — no Cloudflare credentials in this environment.\n\nNeed both:\n  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers scripts\n  CLOUDFLARE_ACCOUNT_ID    32-char account id from the Cloudflare dashboard\n\nOptional:\n  CF_D1_PREVIEW_ID / CF_D1_PREVIEW_NAME\n  CF_R2_PREVIEW_BUCKET     omit to leave R2 unbound (stored:false backups)\n  ACCESS_EMAIL_ROLE_MAP    OQ-010 email→role JSON; never invent officer emails\n\nThen:\n  npm run staging:raise\n\nDo not paste REPLACE_ME ids. This command creates the preview D1 and deploys Pages preview.\nProduction promote still needs explicit human approval.`);
+  const creds = resolveCloudflareCredentials();
+  if (!creds) {
+    fail(`§107 staging:raise blocked — no Cloudflare credentials in this environment.
+
+Need both:
+  CLOUDFLARE_API_TOKEN     Account permissions: D1 edit, Cloudflare Pages edit, Workers scripts
+  CLOUDFLARE_ACCOUNT_ID    32-char account id from the Cloudflare dashboard
+
+Or claim a temporary preview account from npm run staging:temporary, then re-run this command
+(the same token gains Pages after claim).
+
+Optional:
+  CF_D1_PREVIEW_ID / CF_D1_PREVIEW_NAME
+  CF_R2_PREVIEW_BUCKET     omit to leave R2 unbound (stored:false backups)
+  ACCESS_EMAIL_ROLE_MAP    OQ-010 email→role JSON; never invent officer emails
+
+Then:
+  npm run staging:raise
+
+Do not paste REPLACE_ME ids. This command creates the preview D1 and deploys Pages preview.
+Production promote still needs explicit human approval.`);
+  }
+
+  const { token, accountId } = creds;
+  injectCloudflareCredentials(creds);
+
+  if (
+    creds.source === "temporary" &&
+    !process.env.CF_D1_PREVIEW_ID &&
+    existsSync(join(DATA, "wrangler.temporary.toml"))
+  ) {
+    const existing = previewD1FromTemporaryToml(
+      readFileSync(join(DATA, "wrangler.temporary.toml"), "utf8"),
+    );
+    if (existing) {
+      process.env.CF_D1_PREVIEW_ID = existing.id;
+      process.env.CF_D1_PREVIEW_NAME = existing.name;
+      console.log(
+        `Reusing temporary D1 ${existing.name} ${existing.id} (already restored).`,
+      );
+    }
   }
 
   mkdirSync(DATA, { recursive: true });
 
-  run("check:pages", "npm", ["run", "check:pages"]);
-
-  console.log("Verifying Cloudflare account…");
+  console.log(
+    creds.source === "temporary"
+      ? "Verifying temporary Cloudflare preview account…"
+      : "Verifying Cloudflare account…",
+  );
   await cf<{ id: string; name?: string }>(token, accountId, "");
+  await assertPagesApi(token, accountId, creds.source, {
+    claimUrl: creds.claimUrl,
+    claimExpiresAt: creds.claimExpiresAt,
+  });
+
+  run("check:pages", "npm", ["run", "check:pages"]);
 
   const d1 = await ensureD1(token, accountId);
   console.log(
@@ -144,57 +222,59 @@ async function main() {
 
   const rootTomlPath = join(ROOT, "wrangler.toml");
   const workerTomlPath = join(ROOT, "worker/wrangler.toml");
-  const rootFilled = applyD1Binding(
-    readFileSync(rootTomlPath, "utf8"),
-    "preview",
-    d1,
-  );
-  const workerFilled = applyD1Binding(
-    readFileSync(workerTomlPath, "utf8"),
-    "preview",
-    d1,
-  );
+  const originalRoot = readFileSync(rootTomlPath, "utf8");
+  const originalWorker = readFileSync(workerTomlPath, "utf8");
+  const rootFilled = applyD1Binding(originalRoot, "preview", d1);
+  const workerFilled = applyD1Binding(originalWorker, "preview", d1);
   writeFileSync(rootTomlPath, rootFilled);
   writeFileSync(workerTomlPath, workerFilled);
   writeFileSync(join(DATA, "wrangler.preview.toml"), rootFilled);
+  const restoreCommittedToml = () => {
+    if (creds.source !== "temporary") return;
+    writeFileSync(rootTomlPath, originalRoot);
+    writeFileSync(workerTomlPath, originalWorker);
+  };
 
   const projectName = process.env.CF_PAGES_PROJECT ?? "erode-exam-duty";
-  const pages = await ensurePagesProject(token, accountId, projectName);
-  console.log(
-    pages.created
-      ? `Created Pages project ${projectName}`
-      : `Using Pages project ${projectName}`,
-  );
-
-  const previewBindings: Record<string, unknown> = {
-    d1_databases: { DB: { id: d1.id } },
-    env_vars: {
-      ENVIRONMENT: { type: "plain_text", value: "staging" },
-    },
-  };
   const map = process.env.ACCESS_EMAIL_ROLE_MAP;
   if (map) {
     const mapError = placeholderRoleMapError(map);
     if (mapError) fail(`§107 ACCESS_EMAIL_ROLE_MAP rejected — ${mapError}`);
-    (previewBindings.env_vars as Record<string, unknown>).ACCESS_EMAIL_ROLE_MAP =
-      {
-        type: "secret_text",
-        value: map,
-      };
-  }
-  await cf(token, accountId, `/pages/projects/${projectName}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      deployment_configs: { preview: previewBindings },
-    }),
-  });
-  if (!map) {
-    console.log(
-      "ACCESS_EMAIL_ROLE_MAP unset — OQ-010 still open; Access users default to VIEWER. Not inventing officers.",
-    );
   }
 
   try {
+    const pages = await ensurePagesProject(token, accountId, projectName);
+    console.log(
+      pages.created
+        ? `Created Pages project ${projectName}`
+        : `Using Pages project ${projectName}`,
+    );
+
+    const previewBindings: Record<string, unknown> = {
+      d1_databases: { DB: { id: d1.id } },
+      env_vars: {
+        ENVIRONMENT: { type: "plain_text", value: "staging" },
+      },
+    };
+    if (map) {
+      (previewBindings.env_vars as Record<string, unknown>).ACCESS_EMAIL_ROLE_MAP =
+        {
+          type: "secret_text",
+          value: map,
+        };
+    }
+    await cf(token, accountId, `/pages/projects/${projectName}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        deployment_configs: { preview: previewBindings },
+      }),
+    });
+    if (!map) {
+      console.log(
+        "ACCESS_EMAIL_ROLE_MAP unset — OQ-010 still open; Access users default to VIEWER. Not inventing officers.",
+      );
+    }
+
     run("db:migrate:remote", "npm", [
       "run",
       "db:migrate:remote",
@@ -224,6 +304,7 @@ async function main() {
           ok: false,
           at: new Date().toISOString(),
           accountId,
+          credentialSource: creds.source,
           d1,
           pagesProject: projectName,
           error: e instanceof Error ? e.message : String(e),
@@ -233,26 +314,38 @@ async function main() {
       ),
     );
     throw e;
+  } finally {
+    restoreCommittedToml();
   }
 
   const evidence = {
     ok: true,
     at: new Date().toISOString(),
     accountId,
+    credentialSource: creds.source,
     d1,
     pagesProject: projectName,
     r2: process.env.CF_R2_PREVIEW_BUCKET ?? null,
     accessRoleMapConfigured: Boolean(map),
-    note: "Production was not deployed. Human promote still required. OQ answers still client-supplied.",
+    note:
+      creds.source === "temporary"
+        ? "Raised Pages on a claimed temporary account. Temporary D1 ids were not left in committed wrangler.toml. Production was not deployed."
+        : "Production was not deployed. Human promote still required. OQ answers still client-supplied.",
   };
   writeFileSync(
     join(DATA, "staging-raise-latest.json"),
     JSON.stringify(evidence, null, 2),
   );
   console.log("\nWrote .data/staging-raise-latest.json");
-  console.log(
-    "Filled D1 ids are in wrangler.toml working tree — review before committing (ids are not secrets; never commit the API token).",
-  );
+  if (creds.source === "temporary") {
+    console.log(
+      "Temporary D1 ids were written only to .data/wrangler.preview.toml — committed wrangler.toml was restored.",
+    );
+  } else {
+    console.log(
+      "Filled D1 ids are in wrangler.toml working tree — review before committing (ids are not secrets; never commit the API token).",
+    );
+  }
   console.log(
     "Probe the preview URL /api/health: dbOk must be true. r2Ok may be false until a bucket is bound.",
   );
