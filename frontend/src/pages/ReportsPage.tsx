@@ -579,8 +579,8 @@ export function ReportsPage() {
       </Tile>
 
       <Tile span={4}>
-        <TileHeader
-          title="Theory reports"
+          <TileHeader
+            title="Theory duty lists"
           hint="Workbooks carry cycle, timestamp, rule version, run id and officer. Home coordinates are never exported (letterhead is OQ-016)."
         />
         {!latest?.result && (
@@ -604,7 +604,7 @@ export function ReportsPage() {
             onClick={() => void exportTeacherWise()}
             className="rounded bg-[var(--color-brand)] text-white px-3 py-2 text-sm disabled:opacity-40"
           >
-            {busyKind === "teacher" ? "Exporting…" : "teacher-wise.xlsx"}
+            {busyKind === "teacher" ? "Preparing…" : "Teacher-wise list (Excel)"}
           </button>
           <button
             type="button"
@@ -612,7 +612,7 @@ export function ReportsPage() {
             onClick={() => void exportException()}
             className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
           >
-            {busyKind === "exception" ? "Exporting…" : "exception-report.xlsx"}
+            {busyKind === "exception" ? "Preparing…" : "Shortages and exceptions (Excel)"}
           </button>
           <button
             type="button"
@@ -620,7 +620,7 @@ export function ReportsPage() {
             onClick={() => void exportComplete()}
             className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
           >
-            {busyKind === "complete" ? "Exporting…" : "complete-allotment.xlsx"}
+            {busyKind === "complete" ? "Preparing…" : "Centre and school list (Excel)"}
           </button>
           <button
             type="button"
@@ -628,7 +628,7 @@ export function ReportsPage() {
             onClick={() => void exportPdf()}
             className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
           >
-            {busyKind === "pdf" ? "Exporting…" : "teacher-duty.pdf"}
+            {busyKind === "pdf" ? "Preparing…" : "Teacher duty list (PDF)"}
           </button>
         </div>
       </Tile>

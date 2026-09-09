@@ -13,6 +13,7 @@ import { OpenQuestionsPage } from "./pages/OpenQuestionsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { ExamCyclePage } from "./pages/ExamCyclePage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { HelpPage } from "./pages/HelpPage";
 import { AppProvider } from "./state/AppContext";
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/audit" element={<AuditPage />} />
           <Route path="/backups" element={<BackupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/help" element={<HelpPage />} />
           <Route path="/open-questions" element={<OpenQuestionsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

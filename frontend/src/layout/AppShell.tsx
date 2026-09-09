@@ -40,6 +40,7 @@ const groups: Array<{
       { to: "/backups", label: "Backups" },
       { to: "/settings", label: "Settings" },
       { to: "/open-questions", label: "Open questions" },
+      { to: "/help", label: "Help & guide" },
     ],
   },
 ];
@@ -154,8 +155,8 @@ export function AppShell() {
           <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs md:px-6">
             <p>
               {apiUp === false
-                ? "API unreachable — working on in-memory synthetic data. Runs, publishes and backups will not persist until you start npm run api:local."
-                : "API is up but the database probe failed — persistence and publishing are unsafe until the D1/SQLite binding recovers."}
+                ? "The local data service is unavailable. Changes will not be saved until the app reconnects."
+                : "The app cannot confirm that saved data is available. Do not approve or print a duty list yet."}
             </p>
             <button
               type="button"
@@ -175,10 +176,7 @@ export function AppShell() {
         >
           <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs md:px-6">
             <p>
-              Boot hydrate missed D1 for{" "}
-              {hydrateReport.failed.join(", ")} — those lists still show the
-              in-memory synthetic seed. Refresh after the API recovers; do not
-              publish from a mixed demo/D1 view.
+              Some saved lists could not be loaded ({hydrateReport.failed.join(", ")}). Refresh after the app reconnects; do not approve or print a duty list until they appear.
             </p>
             <button
               type="button"
@@ -256,9 +254,9 @@ export function AppShell() {
             <h1 className="font-display text-xl md:text-2xl">{currentLabel}</h1>
             <Badge tone={apiUp ? "ok" : apiUp === false ? "warn" : "neutral"}>
               {apiUp === null
-                ? "checking API"
+                ? "checking saved data"
                 : apiUp
-                  ? "API connected"
+                  ? "saved data connected"
                   : "offline mode"}
             </Badge>
             <Badge
@@ -272,10 +270,10 @@ export function AppShell() {
               }
             >
               {!hydrateReady
-                ? "hydrating"
+                ? "loading saved data"
                 : hydrateReport.failed.length
-                  ? `hydrate missed ${hydrateReport.failed.length}`
-                  : "hydrate ok"}
+                  ? `${hydrateReport.failed.length} list(s) unavailable`
+                  : "saved data ready"}
             </Badge>
           </div>
           <Outlet />
