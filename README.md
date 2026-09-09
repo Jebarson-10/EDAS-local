@@ -43,8 +43,9 @@ See [`AGENTS.md`](./AGENTS.md). Never invent business rules; unresolved items li
 ## Standalone desktop app
 
 The product also ships as a single offline executable: an Electron window around the
-same API server and SQLite database, with no Cloudflare, no browser setup, and no
-network access at all.
+same API server and SQLite database, with no Cloudflare or browser setup. It works
+without internet; the only optional network action is checking GitHub Releases for
+an application update after it has been installed.
 
 ```bash
 npm install
@@ -55,8 +56,9 @@ npm run desktop:dist:win          # Windows installer
 npm run desktop:dist:mac          # macOS dmg — needs macOS
 ```
 
-For the portable Windows build, unzip `Erode Exam Duty-<version>-win.zip` and run
-`Erode Exam Duty.exe`. It does not need installation or administrator rights.
+For automatic updates, install the Windows `Erode-Exam-Duty-Setup-<version>.exe`
+from GitHub Releases. The portable ZIP can still be used without installation, but
+portable copies cannot update themselves.
 
 On first launch the application creates its database, applies the SQL
 migrations and seeds the synthetic dataset under the OS app-data directory — on Linux
@@ -64,17 +66,20 @@ migrations and seeds the synthetic dataset under the OS app-data directory — o
 File → Open data folder reveals it, and copying that folder is a full backup. The window
 binds a free loopback port; nothing is exposed to the network.
 
-When internet is available, the desktop shell compares its bundled Git commit
-with GitHub `main` and offers the Releases download page if a newer build exists.
-It never downloads or replaces the application silently.
+When internet is available, an installed app checks GitHub Releases shortly after
+opening. If a newer version exists, it asks before downloading it and asks again
+before installing and restarting. It never downloads or replaces the application
+silently, and the SQLite data folder is kept during the update.
 
 ### Publishing an update
 
-Push a version tag such as `v0.1.1`, or run **Release Windows desktop app** from
-the GitHub Actions tab with that tag. The workflow verifies the source, builds
-the Windows portable ZIP, generates a SHA-256 checksum, and publishes both to
-GitHub Releases. Builds are unsigned until a Windows code-signing certificate
-is configured as a GitHub secret.
+Every push to `main` runs **Release Windows desktop app**. The workflow verifies
+the source, assigns the next automatic version, builds an NSIS installer plus its
+update manifest and block map, and publishes them as a GitHub Release. A manual
+run may provide a version such as `0.1.25`. The installer, `latest.yml`, and
+block map must remain together in the release; they are what enables in-app
+updates. Builds are unsigned until a Windows code-signing certificate is
+configured as a GitHub secret.
 
 ### Operator workflow
 
@@ -92,9 +97,9 @@ is configured as a GitHub secret.
 5. Export the school-wise and teacher-wise reports, and keep the automatic local
    backup snapshots.
 
-Since there is no identity provider on a desktop install, the header role switcher is
-the identity for that machine. Hosted deployments still refuse those headers and require
-Cloudflare Access claims (OQ-010).
+The desktop edition is a single-user local application and always opens with full
+operator access. Hosted deployments still require Cloudflare Access claims
+(OQ-010).
 
 If you would rather use a browser than a desktop window:
 

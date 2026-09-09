@@ -7,11 +7,11 @@
  * loopback: no Cloudflare, no network calls, SQLite under the OS app-data dir.
  */
 const { app, BrowserWindow, dialog, shell, Menu } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const { spawn } = require("node:child_process");
-const { existsSync, mkdirSync, readFileSync } = require("node:fs");
+const { existsSync, mkdirSync } = require("node:fs");
 const { join } = require("node:path");
 const net = require("node:net");
-const https = require("node:https");
 
 const isPackaged = app.isPackaged;
 const resourceDir = isPackaged
@@ -28,27 +28,65 @@ const staticDir = isPackaged
 let serverProcess = null;
 let appUrl = null;
 
-function bundledCommit() {
-  try { return JSON.parse(readFileSync(join(app.getAppPath(), "desktop", "build-info.json"), "utf8")).commit; }
-  catch { return "unknown"; }
-}
+/**
+ * GitHub Releases updates are deliberately confirmation-first: the app never
+ * downloads or restarts itself without the operator choosing each action.
+ * This runs only from an installed, packaged build; development work stays
+ * fully offline and does not attempt to contact GitHub.
+ */
+function enableAutomaticUpdates(win) {
+  if (!isPackaged) return;
 
-function checkForCommitUpdate(win) {
-  const current = bundledCommit();
-  if (!current || current === "unknown") return;
-  const request = https.get("https://api.github.com/repos/Jebarson-10/EDAS-local/commits/main", { headers: { "User-Agent": "Erode-Exam-Duty-Update-Check", Accept: "application/vnd.github+json" }, timeout: 8_000 }, (response) => {
-    let body = "";
-    response.on("data", (chunk) => { body += chunk; });
-    response.on("end", () => {
-      try {
-        const latest = JSON.parse(body).sha;
-        if (!latest || latest === current) return;
-        void dialog.showMessageBox(win, { type: "info", title: "Update available", message: "A newer Erode Exam Duty build is available.", detail: `Installed: ${current.slice(0, 7)}\nLatest: ${latest.slice(0, 7)}`, buttons: ["Open download page", "Later"], defaultId: 0, cancelId: 1 }).then((choice) => { if (choice.response === 0) void shell.openExternal("https://github.com/Jebarson-10/EDAS-local/releases"); });
-      } catch { /* Offline, rate-limited, or unexpected response: stay quiet. */ }
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on("update-available", (info) => {
+    void dialog.showMessageBox(win, {
+      type: "info",
+      title: "Update available",
+      message: `Version ${info.version} is ready to download.`,
+      detail: "The download will come from the official Erode Exam Duty GitHub release. Your local data will remain on this computer.",
+      buttons: ["Download update", "Later"],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => {
+      if (response === 0) {
+        void autoUpdater.downloadUpdate().catch((error) => {
+          console.error("Could not download update", error);
+        });
+      }
     });
   });
-  request.on("error", () => {});
-  request.on("timeout", () => request.destroy());
+
+  autoUpdater.on("download-progress", ({ percent }) => {
+    win.setProgressBar(Math.max(0, Math.min(percent / 100, 1)));
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    win.setProgressBar(-1);
+    void dialog.showMessageBox(win, {
+      type: "info",
+      title: "Update downloaded",
+      message: `Version ${info.version} is ready to install.`,
+      detail: "Choose Install and restart to close the app and finish the update. Your saved data will not be removed.",
+      buttons: ["Install and restart", "Later"],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall(false, true);
+    });
+  });
+
+  // An unavailable network or an unpublished release must not prevent normal
+  // offline duty-allotment work. Diagnostics remain available in the app log.
+  autoUpdater.on("error", (error) => {
+    win.setProgressBar(-1);
+    console.error("Update check failed", error);
+  });
+
+  void autoUpdater.checkForUpdates().catch((error) => {
+    console.error("Could not check for updates", error);
+  });
 }
 
 function dataDir() {
@@ -200,7 +238,7 @@ if (!app.requestSingleInstanceLock()) {
       const port = Number(process.env.API_PORT ?? 0) || (await freePort());
       appUrl = await startServer(port);
       const win = createWindow(appUrl);
-      setTimeout(() => checkForCommitUpdate(win), 5_000);
+      setTimeout(() => enableAutomaticUpdates(win), 5_000);
     } catch (e) {
       dialog.showErrorBox(
         "Erode Exam Duty could not start",

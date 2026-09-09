@@ -53,7 +53,8 @@
     "typecheck": "npm run typecheck -w shared --if-present && npm run typecheck -w allocation-engine --if-present && npm run typecheck -w validator --if-present && npm run typecheck -w frontend --if-present && npm run typecheck -w worker --if-present"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "better-sqlite3": "^13.0.3",
+    "electron-updater": "^6.8.9"
   },
   "build": {
     "appId": "in.gov.tn.erode.examduty",
@@ -70,7 +71,16 @@
       "node_modules/better-sqlite3/**/*",
       "node_modules/bindings/**/*",
       "node_modules/file-uri-to-path/**/*",
-      "node_modules/node-gyp-build/**/*"
+      "node_modules/node-gyp-build/**/*",
+      "node_modules/electron-updater/**/*",
+      "node_modules/builder-util-runtime/**/*",
+      "node_modules/debug/**/*",
+      "node_modules/sax/**/*",
+      "node_modules/js-yaml/**/*",
+      "node_modules/lazy-val/**/*",
+      "node_modules/lodash.escaperegexp/**/*",
+      "node_modules/lodash.isequal/**/*",
+      "node_modules/tiny-typed-emitter/**/*"
     ],
     "extraResources": [
       {
@@ -104,12 +114,21 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "artifactName": "Erode-Exam-Duty-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Jebarson-10",
+        "repo": "EDAS-local",
+        "releaseType": "release"
+      }
+    ],
     "mac": {
       "target": [
         "dmg"

@@ -2,12 +2,12 @@ name: Release Windows desktop app
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
     inputs:
-      tag:
-        description: Release tag to create (for example v0.1.1)
-        required: true
+      version:
+        description: Optional version to release (for example 0.1.25). Leave blank for an automatic version.
+        required: false
         type: string
 
 permissions:
@@ -16,8 +16,6 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-    env:
-      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,17 +26,28 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install
+      - name: Set automatic release version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          $version = if ($env:INPUT_VERSION) { $env:INPUT_VERSION } else { "0.1.$($env:RUN_NUMBER)" }
+          if ($version -notmatch '^\d+\.\d+\.\d+([-.+][0-9A-Za-z.-]+)?$') { throw "Version must be valid semantic versioning: $version" }
+          npm version $version --no-git-tag-version
+          "APP_VERSION=$version" | Add-Content $env:GITHUB_ENV
+          "RELEASE_TAG=v$version" | Add-Content $env:GITHUB_ENV
       - name: Verify source
         run: npm run typecheck
       - name: Run tests
         run: npm test
-      - name: Build portable Windows app
-        run: npm run desktop:dist:win:portable
+      - name: Build update-ready Windows installer
+        run: npm run desktop:dist:win
       - name: Create checksum
         shell: pwsh
         run: |
-          $asset = Get-ChildItem release -Filter "*-win.zip" | Select-Object -First 1
-          if (-not $asset) { throw "Portable ZIP was not produced" }
+          $asset = Get-Item "release/Erode-Exam-Duty-Setup-$env:APP_VERSION.exe" -ErrorAction SilentlyContinue
+          if (-not $asset) { throw "Windows installer was not produced" }
           $hash = (Get-FileHash -Algorithm SHA256 $asset.FullName).Hash.ToLower()
           "$hash  $($asset.Name)" | Set-Content "$($asset.FullName).sha256" -NoNewline
       - name: Publish GitHub release
@@ -46,6 +55,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $assets = Get-ChildItem release -Filter "*-win.zip" | ForEach-Object FullName
-          $checksums = Get-ChildItem release -Filter "*-win.zip.sha256" | ForEach-Object FullName
+          $installer = Get-Item "release/Erode-Exam-Duty-Setup-$env:APP_VERSION.exe" -ErrorAction SilentlyContinue
+          $blockMap = Get-Item "release/Erode-Exam-Duty-Setup-$env:APP_VERSION.exe.blockmap" -ErrorAction SilentlyContinue
+          $manifest = Get-Item "release/latest.yml" -ErrorAction SilentlyContinue
+          if (-not $installer -or -not $blockMap -or -not $manifest) { throw "Installer, block map, or latest.yml was not produced; this release cannot update installed apps" }
+          $assets = @($installer.FullName, $blockMap.FullName, $manifest.FullName)
+          $checksums = Get-ChildItem release -Filter "*.exe.sha256" | ForEach-Object FullName
           gh release create $env:RELEASE_TAG $assets $checksums --target $env:GITHUB_SHA --title "Erode Exam Duty $env:RELEASE_TAG" --generate-notes
