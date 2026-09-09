@@ -88,6 +88,7 @@ function startServer(port) {
         APP_RESOURCE_DIR: resourceDir,
         APP_STATIC_DIR: staticDir,
         ENVIRONMENT: "development",
+        DESKTOP_SINGLE_USER: "1",
       },
       stdio: ["ignore", "pipe", "pipe"],
     });

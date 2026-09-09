@@ -3,7 +3,6 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "../state/AppContext";
 import { apiHealth } from "../lib/api";
 import { Badge, Dot } from "../components/ui";
-import type { Role } from "@exam-duty/shared";
 
 const groups: Array<{
   label: string;
@@ -47,10 +46,8 @@ const groups: Array<{
 
 const flatLinks = groups.flatMap((g) => g.links);
 
-const roles: Role[] = ["ADMIN", "OFFICER", "DATA_OPERATOR", "VIEWER"];
-
 export function AppShell() {
-  const { role, setRole, examCycleName, examCycle, hydrateReport, hydrateReady } =
+  const { examCycleName, examCycle, hydrateReport, hydrateReady } =
     useApp();
   const location = useLocation();
   const [apiUp, setApiUp] = useState<boolean | null>(null);
@@ -120,28 +117,6 @@ export function AppShell() {
                 />
                 {examCycle.status} · rules {examCycle.ruleVersionLabel}
               </p>
-            </div>
-            <div
-              className="flex flex-wrap items-center gap-1 rounded-full bg-white/10 p-1"
-              role="group"
-              aria-label="Role"
-            >
-              {roles.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  data-testid={`role-${r}`}
-                  aria-pressed={role === r}
-                  onClick={() => setRole(r)}
-                  className={`rounded-full px-2.5 py-1 text-[0.7rem] transition-colors ${
-                    role === r
-                      ? "bg-white text-[var(--color-brand)]"
-                      : "text-white/80 hover:bg-white/10"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
             </div>
           </div>
         </div>

@@ -209,7 +209,7 @@ const INITIAL_CYCLE: ExamCycleState = {
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<Role>("OFFICER");
+  const [role, setRole] = useState<Role>("ADMIN");
   const [dataset, setDataset] = useState<DemoDataset | null>(null);
   const [loading, setLoading] = useState(true);
   const [runs, setRuns] = useState<AllocationRunRecord[]>([]);

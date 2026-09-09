@@ -187,6 +187,13 @@ async function writeAutosave(db: ReturnType<typeof createSqliteClient>) {
 }
 
 function auth(req: import("node:http").IncomingMessage) {
+  // The packaged desktop application is one local operator on one computer.
+  // It has no sign-in screen or shared network listener, so all local actions
+  // use Administrator access. Browser/hosted deployments retain their normal
+  // role resolution below.
+  if (process.env.DESKTOP_SINGLE_USER === "1") {
+    return { userId: "desktop:local-operator", email: "local@desktop", role: "ADMIN" as Role };
+  }
   const headers = new Headers();
   for (const [k, v] of Object.entries(req.headers)) {
     if (typeof v === "string") headers.set(k, v);

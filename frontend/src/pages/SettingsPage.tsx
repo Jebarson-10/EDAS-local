@@ -212,12 +212,10 @@ export function SettingsPage() {
             </dd>
           </div>
           <div>
-            <dt className="text-[var(--color-ink-muted)]">Auth mode</dt>
+            <dt className="text-[var(--color-ink-muted)]">Access</dt>
             <dd>
-              AuthAdapter: Access in staging/production; role from{" "}
-              <code>ACCESS_EMAIL_ROLE_MAP</code> (OQ-010) or{" "}
-              <code>X-Access-Role</code>; X-Dev-* only in development. Current
-              UI role: {role}
+              This is a single-user desktop app. Full access is enabled for the
+              person using this computer.
             </dd>
           </div>
         </dl>
