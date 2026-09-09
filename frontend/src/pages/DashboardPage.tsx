@@ -130,22 +130,20 @@ export function DashboardPage() {
               {examCycleName}
             </h1>
             <p className="mt-2 max-w-xl text-sm text-white/75">
-              Allotment is decided from master data, published history,
-              exemptions and the cycle&apos;s stored rule version — not from the
-              latest spreadsheet. Allocation runs in your browser and is
-              re-checked by an independent validator.
+              Duty lists use the saved school, teacher, centre and previous-duty
+              information. The app checks every list again before approval.
             </p>
             <p
               className="mt-2 text-xs text-white/70"
               data-testid="dashboard-hydrate"
             >
               {!hydrateReady
-                ? "Hydrating master lists from the API…"
+                ? "Loading saved school and teacher lists…"
                 : hydrateReport.failed.length
-                  ? `Hydrate missed: ${hydrateReport.failed.join(", ")}`
+                  ? `These saved lists are unavailable: ${hydrateReport.failed.join(", ")}`
                   : hydrateReport.empty.length
-                    ? `D1 hydrate applied for ${hydrateReport.ok.length} source(s); empty: ${hydrateReport.empty.join(", ")}`
-                    : `D1 hydrate applied for ${hydrateReport.ok.length} source(s)`}
+                    ? `Saved lists ready. No entries yet for: ${hydrateReport.empty.join(", ")}`
+                    : "Saved lists are ready"}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -210,44 +208,44 @@ export function DashboardPage() {
           }
         />
         {!probed ? (
-          <p className="text-sm text-[var(--color-ink-muted)]">Probing API…</p>
+          <p className="text-sm text-[var(--color-ink-muted)]">Checking saved data…</p>
         ) : !health ? (
           <EmptyState
             testId="health-offline"
-            title="API unreachable"
-            body="The admin UI is running on synthetic in-memory data. Start the API with npm run api:local to persist runs, publish history and take backups."
+            title="Saved data is unavailable"
+            body="The app cannot save changes or approve lists until the local data service reconnects."
           />
         ) : (
           <div className="space-y-3 text-sm">
             <ul className="space-y-2">
               <li className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2">
-                  <Dot tone={dbTone} /> Database (D1/SQLite)
+                  <Dot tone={dbTone} /> Saved data
                 </span>
                 <span className="text-[var(--color-ink-muted)]">
-                  {health.dbOk ? "bound" : "failing"}
+                  {health.dbOk ? "ready" : "unavailable"}
                 </span>
               </li>
               <li className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2">
-                  <Dot tone={r2Tone} /> Object storage (R2)
+                  <Dot tone={r2Tone} /> Backup storage
                 </span>
                 <span className="text-[var(--color-ink-muted)]">
                   {health.r2Ok === true
-                    ? "bound"
+                    ? "ready"
                     : health.r2Ok === false
-                      ? "failing"
+                      ? "unavailable"
                       : "local files"}
                 </span>
               </li>
               <li className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2">
-                  <Dot tone={accessTone} /> Access role map
+                  <Dot tone={accessTone} /> User access
                 </span>
                 <span className="text-[var(--color-ink-muted)]">
                   {health.accessRoleMapConfigured
                     ? `${health.accessRoleMapEntries} entries`
-                    : "awaiting OQ-010"}
+                    : "not set up"}
                 </span>
               </li>
             </ul>
@@ -256,7 +254,7 @@ export function DashboardPage() {
                 className="text-xs text-[var(--color-ink-muted)]"
                 data-testid="api-counts"
               >
-                API/D1 mirror: teachers={health.counts?.teachers ?? "?"}{" "}
+                Saved records: teachers={health.counts?.teachers ?? "?"}{" "}
                 schools=
                 {health.counts?.schools ?? "?"} centres=
                 {health.counts?.centres ?? "?"} blocks=
