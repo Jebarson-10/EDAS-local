@@ -119,7 +119,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "uninstallerName": "Uninstall Erode Exam Duty.exe"
     },
     "publish": [
       {

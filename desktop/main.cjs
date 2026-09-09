@@ -35,7 +35,11 @@ let appUrl = null;
  * fully offline and does not attempt to contact GitHub.
  */
 function enableAutomaticUpdates(win) {
-  if (!isPackaged) return;
+  // Only an NSIS-installed Windows app can replace itself safely. A portable
+  // ZIP copy remains offline/unchanged rather than unexpectedly launching an
+  // installer over the extracted folder.
+  const uninstaller = join(process.execPath, "..", "Uninstall Erode Exam Duty.exe");
+  if (!isPackaged || process.platform !== "win32" || !existsSync(uninstaller)) return;
 
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
