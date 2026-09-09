@@ -41,8 +41,8 @@ export interface DemoDataset {
   }>;
 }
 
-/** Inline minimal demo if JSON seed not yet generated. */
-function inlineDemo(): DemoDataset {
+/** Development/UAT fixture only. The desktop app never calls this. */
+export function developmentDemoDataset(): DemoDataset {
   const blocks = [
     { blockId: "blk_01", blockCode: "B1", blockName: "Synthetic Block 1" },
     { blockId: "blk_02", blockCode: "B2", blockName: "Synthetic Block 2" },
@@ -194,13 +194,10 @@ function inlineDemo(): DemoDataset {
 }
 
 export async function loadDemoDataset(): Promise<DemoDataset> {
-  try {
-    const res = await fetch("/demo-dataset.json");
-    if (res.ok) {
-      return (await res.json()) as DemoDataset;
-    }
-  } catch {
-    // fall through
-  }
-  return inlineDemo();
+  // A production desktop install begins empty. Demo records remain available
+  // only to development/UAT scripts and are never shown to an operator.
+  return {
+    meta: { note: "No master records yet. Add or import your official data.", counts: {} },
+    blocks: [], schools: [], centres: [], relationships: [], teachers: [], history: [], subjects: [],
+  };
 }

@@ -20,15 +20,11 @@ import AllocationWorker from "../workers/allocation.worker.ts?worker";
 import {
   assertMutable,
   catalogUsableForGenerate,
-  examWindowStart,
   firstUnusableGenerateCatalogLabel,
   latestRunForModuleInCycle,
   mergeOverrideIntoDecisionTrace,
   shouldApplySessionAfterApi,
 } from "@exam-duty/shared";
-
-/** Synthetic stand-in used only until an officer configures the cycle window. */
-const FALLBACK_EXAM_DATE = "2027-03-15";
 
 export function TheoryPage() {
   const {
@@ -43,6 +39,8 @@ export function TheoryPage() {
     exemptions,
     hydrateReady,
     hydrateReport,
+    timetable,
+    timetableState,
   } = useApp();
   const [progress, setProgress] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -129,12 +127,14 @@ export function TheoryPage() {
     canGenerate &&
     cycleMutable &&
     latest?.publishedIntoHistory !== true;
-  // One chief per centre on one date, as before — only the date now comes from
-  // the cycle the officer opened instead of a hardcoded literal.
-  const examDate = examWindowStart(examCycle, FALLBACK_EXAM_DATE);
+  const chiefSessions = useMemo(
+    () => timetable.filter((entry) => entry.requiresChief),
+    [timetable],
+  );
+  const examDate = chiefSessions.map((entry) => entry.examDate).sort()[0] ?? "";
 
   const theoryDataset: TheoryDataset | null = useMemo(() => {
-    if (!dataset) return null;
+    if (!dataset || !examDate) return null;
     return {
       teachers: dataset.teachers,
       schools: dataset.schools,
@@ -157,21 +157,25 @@ export function TheoryPage() {
 
   const requirements: TheoryRequirement[] = useMemo(() => {
     if (!dataset) return [];
-    return dataset.centres.map((c) => ({
-      requirementKey: `${c.centreId}-CHIEF`,
+    return chiefSessions.flatMap((slot) => dataset.centres.filter((c) => c.active).map((c) => ({
+      requirementKey: `${c.centreId}-CHIEF-${slot.examDate}-${slot.sessionCode}`,
       centreId: c.centreId,
       roleCode: "CHIEF_EXAMINATION",
-      examDate,
-      sessionCode: "MORNING" as const,
+      examDate: slot.examDate,
+      sessionCode: slot.sessionCode,
       preferredDesignations: rules.chief_preferred_designations.includes("HM")
         ? ["HM", "PRINCIPAL"]
         : rules.chief_preferred_designations,
       fallbackDesignations: rules.chief_fallback_designations,
-    }));
-  }, [dataset, rules, examDate]);
+    })));
+  }, [dataset, rules, chiefSessions]);
 
   async function generate() {
     if (!dataset || !canGenerate || !theoryDataset) return;
+    if (timetableState !== "ready" || chiefSessions.length === 0) {
+      setProgress("Add at least one timetable session marked Chief duty before allocating theory duties.");
+      return;
+    }
     const gate = assertMutable(examCycle.status, "generate allocation");
     if (!gate.ok) {
       setProgress(gate.error);

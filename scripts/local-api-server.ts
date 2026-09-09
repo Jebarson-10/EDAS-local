@@ -40,6 +40,7 @@ import {
   listCentres,
   listDutyHistory,
   listExamCycles,
+  listExamTimetable,
   listExemptions,
   listRelationships,
   listRuleVersions,
@@ -67,9 +68,9 @@ import {
   updateCentreCapacities,
   updateExamCycleStatus,
   setExamCycleWindow,
+  replaceExamTimetable,
   updateSourceImportStatus,
   ensureExamCycleIfMissing,
-  seedDemoDatasetIfEmpty,
   upsertExemption,
   upsertTeachers,
   upsertMasterRecord,
@@ -85,6 +86,7 @@ import {
   createRuleVersionBodySchema,
   examCycleStatusBodySchema,
   examCycleWindowBodySchema,
+  examTimetableBodySchema,
   exemptionBodySchema,
   exportRecordBodySchema,
   importApplyBodySchema,
@@ -263,38 +265,17 @@ async function main() {
   const db = createSqliteClient(sqlite);
   await applyMigrations(db, ROOT);
 
+  // Create only the empty configuration shell. Master records are never
+  // fabricated: the operator enters/imports every block, school, centre and
+  // teacher used for an allocation.
   await ensureExamCycleIfMissing(db, {
     examCycleId: "ec_2027_hsc",
-    name: "2027 HSC Public Examination (Synthetic)",
+    name: "New 12th Standard Examination",
     academicYear: "2027",
     status: "OPEN",
     ruleVersionId: "rv-2027-1",
     createdBy: "system",
   });
-
-  async function seedFromDemoIfEmpty() {
-    const demoPath = join(ROOT, "frontend/public/demo-dataset.json");
-    if (!existsSync(demoPath)) return;
-    const demo = JSON.parse(readFileSync(demoPath, "utf8")) as BackupPayload;
-    const r = await seedDemoDatasetIfEmpty(db, demo);
-    if (r.seeded) {
-      const counts = await countMaster(db);
-      await insertAudit(db, {
-        auditId: randomUUID(),
-        userId: "system",
-        action: "RESTORE",
-        entity: "database",
-        entityId: "seed-demo",
-        newValue: JSON.stringify(counts),
-        reason: "Auto-seed empty local DB from synthetic demo",
-      });
-      console.log("Seeded local DB from demo dataset", counts);
-    } else if (!r.reason.includes("already present")) {
-      console.warn("Seed skipped", r.reason);
-    }
-  }
-
-  await seedFromDemoIfEmpty();
 
   const server = createServer(async (req, res) => {
     try {
@@ -757,6 +738,38 @@ async function main() {
           reason: "Set examination window",
         });
         return json(res, { ok: true, examCycleId: cycleId, ...parsed.data });
+      }
+
+      if (
+        url.pathname.match(/^\/api\/exam-cycles\/[^/]+\/timetable$/) &&
+        req.method === "GET"
+      ) {
+        if (!requirePerm(a, "master.read", res)) return;
+        const cycleId = url.pathname.split("/")[3]!;
+        return json(res, { entries: await listExamTimetable(db, cycleId) });
+      }
+
+      if (
+        url.pathname.match(/^\/api\/exam-cycles\/[^/]+\/timetable$/) &&
+        req.method === "POST"
+      ) {
+        if (!requirePerm(a, "allocation.approve", res)) return;
+        const cycleId = url.pathname.split("/")[3]!;
+        const raw = JSON.parse((await readBody(req)).toString("utf8"));
+        const parsed = parseBody(examTimetableBodySchema, raw);
+        if (!parsed.ok) return json(res, { error: parsed.error }, 400);
+        const entries = parsed.data.entries.map((entry) => ({
+          ...entry,
+          timetableEntryId: entry.timetableEntryId ?? randomUUID(),
+        }));
+        const updated = await replaceExamTimetable(db, cycleId, entries);
+        if (!updated.ok) return json(res, updated, mutationConflictStatus(updated));
+        await insertAudit(db, {
+          auditId: randomUUID(), userId: a!.userId, action: "UPDATE",
+          entity: "exam_timetable", entityId: cycleId,
+          newValue: JSON.stringify(entries), reason: "Set examination timetable",
+        });
+        return json(res, { ok: true, examCycleId: cycleId, entries: await listExamTimetable(db, cycleId) });
       }
 
       if (

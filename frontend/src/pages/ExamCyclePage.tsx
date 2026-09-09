@@ -3,6 +3,7 @@ import {
   examWindowDraftInputs,
   latestRunForModuleInCycle,
   publishBackupSuffix,
+  type ExamTimetableEntry,
   type ExamCycleStatus,
 } from "@exam-duty/shared";
 import { useApp, isTheoryRun } from "../state/AppContext";
@@ -25,6 +26,9 @@ export function ExamCyclePage() {
     setExamWindow,
     publishLatestTheoryRun,
     createAmendment,
+    timetable,
+    timetableState,
+    saveTimetable,
     role,
     runs,
   } = useApp();
@@ -36,8 +40,9 @@ export function ExamCyclePage() {
   );
   const [end, setEnd] = useState(() => examWindowDraftInputs(examCycle).end);
   const [busyKind, setBusyKind] = useState<
-    null | "status" | "publish" | "amend" | "window"
+    null | "status" | "publish" | "amend" | "window" | "timetable"
   >(null);
+  const [timetableDraft, setTimetableDraft] = useState<ExamTimetableEntry[]>([]);
   const busyRef = useRef(false);
   const busy = busyKind !== null;
   useEffect(() => {
@@ -45,6 +50,7 @@ export function ExamCyclePage() {
     setStart(draft.start);
     setEnd(draft.end);
   }, [examCycle.examCycleId, examCycle.startDate, examCycle.endDate]);
+  useEffect(() => setTimetableDraft(timetable), [timetable]);
   const canManage = role === "ADMIN" || role === "OFFICER";
   const latestPicked = latestRunForModuleInCycle(
     runs,
@@ -259,7 +265,7 @@ export function ExamCyclePage() {
       <Tile span={3}>
         <TileHeader
           title="Examination window"
-          hint="Bounds the duty dates this cycle can allocate — the day-by-day subject timetable is not modelled (OQ-020)"
+          hint="Set the overall date range; then add the exact dated sessions below."
           action={
             <Badge tone={examCycle.startDate ? "ok" : "warn"}>
               {examCycle.startDate
@@ -318,9 +324,43 @@ export function ExamCyclePage() {
           {busyKind === "window" ? "Saving…" : "Save window"}
         </button>
         <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-          Until this is set, theory and hall allocate on a synthetic placeholder
-          date and practical uses a placeholder start.
+          The timetable controls theory and hall duty dates and sessions. Practical
+          scheduling uses this window as its permitted date range.
         </p>
+      </Tile>
+
+      <Tile span={6}>
+        <TileHeader
+          title="Exam timetable"
+          hint="Add one row for every examination date and session. The two duty tick boxes make the required allotment explicit."
+          action={<Badge tone={timetableDraft.length ? "ok" : "warn"}>{timetableDraft.length ? `${timetableDraft.length} session(s)` : "Add sessions"}</Badge>}
+        />
+        {timetableState === "failed" ? <p className="mb-3 text-sm text-[var(--color-err)]">Timetable could not be read from saved data. Reopen the app before generating duties.</p> : null}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-[var(--color-sky-wash)]">
+              <tr><th className="px-2 py-2 text-left">Date</th><th className="px-2 py-2 text-left">Session</th><th className="px-2 py-2 text-left">Subject / paper</th><th className="px-2 py-2 text-left">Chief duty</th><th className="px-2 py-2 text-left">Hall duty</th><th className="px-2 py-2 text-left">Notes</th><th className="px-2 py-2" /></tr>
+            </thead>
+            <tbody>
+              {timetableDraft.map((row, index) => (
+                <tr key={row.timetableEntryId || `${row.examDate}-${row.sessionCode}-${index}`} className="border-t border-[var(--color-line)]">
+                  <td className="p-2"><input type="date" className="rounded border border-[var(--color-line)] px-2 py-1" value={row.examDate} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, examDate: e.target.value } : r))} /></td>
+                  <td className="p-2"><select className="rounded border border-[var(--color-line)] px-2 py-1" value={row.sessionCode} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, sessionCode: e.target.value as ExamTimetableEntry["sessionCode"] } : r))}><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option></select></td>
+                  <td className="p-2"><input className="min-w-44 rounded border border-[var(--color-line)] px-2 py-1" placeholder="e.g. Tamil" value={row.subjectLabel} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, subjectLabel: e.target.value } : r))} /></td>
+                  <td className="p-2 text-center"><input aria-label="Chief duty required" type="checkbox" checked={row.requiresChief} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, requiresChief: e.target.checked } : r))} /></td>
+                  <td className="p-2 text-center"><input aria-label="Hall duty required" type="checkbox" checked={row.requiresHall} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, requiresHall: e.target.checked } : r))} /></td>
+                  <td className="p-2"><input className="min-w-40 rounded border border-[var(--color-line)] px-2 py-1" value={row.notes ?? ""} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, notes: e.target.value || null } : r))} /></td>
+                  <td className="p-2"><button type="button" className="text-[var(--color-err)] underline" onClick={() => setTimetableDraft((rows) => rows.filter((_, i) => i !== index))}>Remove</button></td>
+                </tr>
+              ))}
+              {!timetableDraft.length ? <tr><td colSpan={7} className="p-3 text-[var(--color-ink-muted)]">No sessions entered. Add the official timetable before generating theory or hall duties.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" className="rounded border border-[var(--color-line)] px-3 py-2 text-sm" disabled={!canManage || busy} onClick={() => setTimetableDraft((rows) => [...rows, { timetableEntryId: `tmp_${crypto.randomUUID()}`, examDate: start, sessionCode: "MORNING", subjectLabel: "", requiresChief: true, requiresHall: true, notes: null }])}>Add timetable row</button>
+          <button type="button" className="rounded bg-[var(--color-brand)] px-3 py-2 text-sm text-white disabled:opacity-40" disabled={!canManage || busy || timetableState === "loading" || timetableDraft.some((row) => !row.examDate || !row.subjectLabel.trim())} onClick={() => { if (!startBusy("timetable")) return; void (async () => { try { const r = await saveTimetable(timetableDraft.map((row) => ({ ...row, subjectLabel: row.subjectLabel.trim() }))); if (!r.ok) setErr(r.error); else { setMsg(`Saved ${timetableDraft.length} timetable session(s)`); setErr(null); } } finally { stopBusy(); } })(); }}>{busyKind === "timetable" ? "Saving…" : "Save timetable"}</button>
+        </div>
       </Tile>
     </Bento>
   );

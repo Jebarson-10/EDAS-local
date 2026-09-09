@@ -842,6 +842,61 @@ export async function setExamCycleWindowApi(
   }
 }
 
+export type ApiTimetableEntry = {
+  timetable_entry_id?: string;
+  exam_date?: string;
+  session_code?: "MORNING" | "AFTERNOON";
+  subject_label?: string;
+  requires_chief?: number;
+  requires_hall?: number;
+  notes?: string | null;
+};
+
+export async function fetchExamTimetable(role: ApiRole, examCycleId: string) {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/exam-cycles/${encodeURIComponent(examCycleId)}/timetable`,
+      { headers: headers(role) },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as { entries: ApiTimetableEntry[] };
+  } catch {
+    return null;
+  }
+}
+
+export async function replaceExamTimetableApi(
+  role: ApiRole,
+  examCycleId: string,
+  entries: Array<{
+    timetableEntryId?: string;
+    examDate: string;
+    sessionCode: "MORNING" | "AFTERNOON";
+    subjectLabel: string;
+    requiresChief: boolean;
+    requiresHall: boolean;
+    notes?: string | null;
+  }>,
+) {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/exam-cycles/${encodeURIComponent(examCycleId)}/timetable`,
+      {
+        method: "POST",
+        headers: headers(role),
+        body: JSON.stringify({ entries }),
+      },
+    );
+    return (await res.json()) as {
+      ok?: boolean;
+      entries?: ApiTimetableEntry[];
+      error?: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function applyClubbingApi(
   role: ApiRole,
   body: {

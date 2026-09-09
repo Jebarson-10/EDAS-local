@@ -200,7 +200,7 @@ export function evaluateTheoryCandidate(
   occupied: Set<string>,
   requirement: TheoryRequirement,
   designationBand: "preferred" | "fallback",
-  fairnessByTeacher: Map<string, { recentPenalty: number; repeatedPenalty: number }> = new Map(),
+  fairnessByTeacher: Map<string, { recentPenalty: number; repeatedPenalty: number; lastDutyDate?: string }> = new Map(),
   historyByTeacher: Map<string, HistoricalDuty[]> = new Map(),
   clubbedByCentre: Map<string, Set<string>> = new Map(),
 ): CandidateEvaluation {
@@ -400,7 +400,7 @@ export function evaluateTheoryCandidate(
   softNotes.push({
     ruleCode: "INFO-FAIRNESS",
     severity: "INFO",
-    message: `Fairness components recent=${recentPenalty} historyCount=${repeatedPenalty} (window=${rules.fairness_window_days}d provisional OQ-002)`,
+    message: `Fairness uses last duty ${fairness.lastDutyDate ?? "none recorded"}; recency=${recentPenalty}, historyCount=${repeatedPenalty} (window=${rules.fairness_window_days}d)`,
   });
 
   return {
@@ -433,7 +433,7 @@ export function allocateTheory(
 
   const fairnessByTeacher = new Map<
     string,
-    { recentPenalty: number; repeatedPenalty: number }
+    { recentPenalty: number; repeatedPenalty: number; lastDutyDate?: string }
   >();
   const windowMs = rules.fairness_window_days * 86400000;
   const asOfMs = Date.parse(dataset.asOfDate);
@@ -444,10 +444,19 @@ export function allocateTheory(
     };
     cur.repeatedPenalty += 1;
     const ht = Date.parse(h.examDate);
-    if (!Number.isNaN(ht) && !Number.isNaN(asOfMs) && asOfMs - ht <= windowMs) {
-      cur.recentPenalty += 1;
+    if (!Number.isNaN(ht) && !Number.isNaN(asOfMs) && ht <= asOfMs) {
+      if (!cur.lastDutyDate || h.examDate > cur.lastDutyDate) cur.lastDutyDate = h.examDate;
     }
     fairnessByTeacher.set(h.teacherId, cur);
+  }
+  for (const fairness of fairnessByTeacher.values()) {
+    if (!fairness.lastDutyDate || Number.isNaN(asOfMs)) continue;
+    const elapsed = Math.max(0, asOfMs - Date.parse(fairness.lastDutyDate));
+    if (elapsed <= windowMs) {
+      // A newer last duty receives the larger soft penalty. Teachers with no
+      // duty, or a duty outside the configured window, get first consideration.
+      fairness.recentPenalty = Math.max(1, Math.ceil((windowMs - elapsed) / 86_400_000));
+    }
   }
 
   const historyByTeacher = indexHistory(dataset.history);

@@ -196,21 +196,21 @@ export function allocateHall(
 
     eligible.sort((a, b) => {
       const score = (t: Teacher) => {
-        let recent = 0;
+        let lastDuty: number | null = null;
         const asOf = Date.parse(dataset.asOfDate);
         const fairnessWindowMs = rules.fairness_window_days * 86_400_000;
         for (const h of dataset.history) {
           if (h.teacherId !== t.teacherId) continue;
           const dutyDate = Date.parse(h.examDate);
           const elapsedMs = asOf - dutyDate;
-          if (
-            Number.isNaN(asOf) ||
-            Number.isNaN(dutyDate) ||
-            (elapsedMs >= 0 && elapsedMs <= fairnessWindowMs)
-          ) {
-            recent += 1;
+          if (!Number.isNaN(asOf) && !Number.isNaN(dutyDate) && elapsedMs >= 0) {
+            lastDuty = lastDuty == null ? dutyDate : Math.max(lastDuty, dutyDate);
           }
         }
+        const elapsed = lastDuty == null || Number.isNaN(asOf) ? null : Math.max(0, asOf - lastDuty);
+        const recent = elapsed != null && elapsed <= fairnessWindowMs
+          ? Math.max(1, Math.ceil((fairnessWindowMs - elapsed) / 86_400_000))
+          : 0;
         return (
           rules.scoring_weights.recent_duty * recent +
           rules.scoring_weights.workload * (assignmentCountByTeacher.get(t.teacherId) ?? 0) +

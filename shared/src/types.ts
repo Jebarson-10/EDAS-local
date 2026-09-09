@@ -19,6 +19,17 @@ export type DataQuality =
 
 export type SessionCode = "MORNING" | "AFTERNOON";
 
+/** One officer-entered examination session used to create duty slots. */
+export interface ExamTimetableEntry {
+  timetableEntryId: string;
+  examDate: string;
+  sessionCode: SessionCode;
+  subjectLabel: string;
+  requiresChief: boolean;
+  requiresHall: boolean;
+  notes?: string | null;
+}
+
 export type DutyModule = "THEORY" | "PRACTICAL" | "HALL" | "COMBINED";
 
 export type ValidationStatus = "VALID" | "VALID_WITH_WARNINGS" | "INVALID" | "PENDING";

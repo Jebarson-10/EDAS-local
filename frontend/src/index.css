@@ -3,6 +3,7 @@
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "IBM Plex Serif", Georgia, serif;
+  --font-tamil: "Nirmala UI", "Noto Sans Tamil", "Latha", sans-serif;
 
   --color-ink: #101a24;
   --color-ink-muted: #5a6b7a;
@@ -47,6 +48,14 @@ body {
     var(--color-paper);
   background-attachment: fixed;
 }
+
+/* Unicode Tamil is the safe default for records, reports and web text. Legacy
+   font choices are optional and use fonts installed by the operator's PC. */
+:root[data-tamil-font="bamini"] { --font-tamil: "Bamini", "Bamini Tamil", "Nirmala UI", sans-serif; }
+:root[data-tamil-font="vanavil"] { --font-tamil: "Vanavil Avvaiyar", "Vanavil", "Nirmala UI", sans-serif; }
+:root[data-tamil-font="tace16"] { --font-tamil: "TACE16", "Tamil TACE16", "Nirmala UI", sans-serif; }
+
+:lang(ta), .tamil-text { font-family: var(--font-tamil); }
 
 .font-display {
   font-family: var(--font-display);

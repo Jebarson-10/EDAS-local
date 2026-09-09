@@ -161,6 +161,63 @@ export async function setExamCycleWindow(
   return { ok: true };
 }
 
+export type StoredTimetableEntry = {
+  timetableEntryId: string;
+  examDate: string;
+  sessionCode: "MORNING" | "AFTERNOON";
+  subjectLabel: string;
+  requiresChief: boolean;
+  requiresHall: boolean;
+  notes?: string | null;
+};
+
+export async function listExamTimetable(db: DbClient, examCycleId: string) {
+  const rs = await db.prepare(
+    `SELECT timetable_entry_id, exam_date, session_code, subject_label,
+            requires_chief, requires_hall, notes
+       FROM exam_timetable_entries
+      WHERE exam_cycle_id = ?
+      ORDER BY exam_date, CASE session_code WHEN 'MORNING' THEN 0 ELSE 1 END`,
+  ).bind(examCycleId).all();
+  return rs.results;
+}
+
+/** Replace the draft-cycle timetable atomically; published cycles are immutable. */
+export async function replaceExamTimetable(
+  db: DbClient,
+  examCycleId: string,
+  entries: StoredTimetableEntry[],
+): Promise<{ ok: true } | { ok: false; error: string; conflict?: true }> {
+  const mutable = await assertExamCycleMutable(db, examCycleId, "change timetable");
+  if (!mutable.ok) return mutable;
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    const key = `${entry.examDate}|${entry.sessionCode}`;
+    if (seen.has(key)) return { ok: false, error: `Duplicate timetable session: ${key}` };
+    seen.add(key);
+  }
+  await runAtomic(db, [
+    db.prepare(`DELETE FROM exam_timetable_entries WHERE exam_cycle_id = ?`).bind(examCycleId),
+    ...entries.map((entry) => db.prepare(
+      `INSERT INTO exam_timetable_entries
+        (timetable_entry_id, exam_cycle_id, exam_date, session_code, subject_label,
+         requires_chief, requires_hall, notes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      entry.timetableEntryId,
+      examCycleId,
+      entry.examDate,
+      entry.sessionCode,
+      entry.subjectLabel,
+      entry.requiresChief ? 1 : 0,
+      entry.requiresHall ? 1 : 0,
+      entry.notes ?? null,
+      new Date().toISOString(),
+    )),
+  ]);
+  return { ok: true };
+}
+
 /**
  * Update exam cycle status.
  * When enforceTransition is true (officer UI), validates against workflow graph.

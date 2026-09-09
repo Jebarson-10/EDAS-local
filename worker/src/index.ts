@@ -27,6 +27,7 @@ import {
   listCentres,
   listDutyHistory,
   listExamCycles,
+  listExamTimetable,
   listExemptions,
   listRelationships,
   listRuleVersions,
@@ -54,6 +55,7 @@ import {
   updateCentreCapacities,
   updateExamCycleStatus,
   setExamCycleWindow,
+  replaceExamTimetable,
   updateSourceImportStatus,
   upsertExemption,
   upsertTeachers,
@@ -69,6 +71,7 @@ import {
   clubbingApplyBodySchema,
   createExamCycleBodySchema,
   examCycleWindowBodySchema,
+  examTimetableBodySchema,
   createRuleVersionBodySchema,
   examCycleStatusBodySchema,
   exemptionBodySchema,
@@ -790,6 +793,39 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
         503,
       );
     }
+  }
+
+  if (
+    url.pathname.match(/^\/api\/exam-cycles\/[^/]+\/timetable$/) &&
+    request.method === "GET"
+  ) {
+    const denied = requirePerm(auth, "master.read");
+    if (denied) return denied;
+    const cycleId = url.pathname.split("/")[3]!;
+    return json({ entries: await listExamTimetable(db, cycleId) });
+  }
+
+  if (
+    url.pathname.match(/^\/api\/exam-cycles\/[^/]+\/timetable$/) &&
+    request.method === "POST"
+  ) {
+    const denied = requirePerm(auth, "allocation.approve");
+    if (denied) return denied;
+    const cycleId = url.pathname.split("/")[3]!;
+    const parsed = parseBody(examTimetableBodySchema, await request.json());
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const entries = parsed.data.entries.map((entry) => ({
+      ...entry,
+      timetableEntryId: entry.timetableEntryId ?? crypto.randomUUID(),
+    }));
+    const updated = await replaceExamTimetable(db, cycleId, entries);
+    if (!updated.ok) return json(updated, mutationConflictStatus(updated));
+    await insertAudit(db, {
+      auditId: crypto.randomUUID(), userId: auth!.userId, action: "UPDATE",
+      entity: "exam_timetable", entityId: cycleId,
+      newValue: JSON.stringify(entries), reason: "Set examination timetable",
+    });
+    return json({ ok: true, examCycleId: cycleId, entries: await listExamTimetable(db, cycleId) });
   }
 
   if (

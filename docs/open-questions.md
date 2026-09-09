@@ -234,3 +234,12 @@ configuration screens have received the remaining formal inputs.
    of Chief count per centre/day/session.
 2. The approved school-wise and teacher-wise report columns, grouping,
    signatures and letterhead layout.
+
+## Timetable decision received (2026-09-09)
+
+The operator enters the official timetable directly: date, morning/afternoon
+session and subject/paper. Each session explicitly states whether Chief duty
+and Hall duty are required. Theory and Hall allocation create duties only for
+the marked sessions, across the entered active centres. This removes the
+placeholder-date behaviour formerly described in OQ-020; it does not decide
+the separate Department Officer staffing table.

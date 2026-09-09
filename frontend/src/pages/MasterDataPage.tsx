@@ -88,6 +88,15 @@ export function MasterDataPage() {
     );
   }, [dataset, q]);
 
+  const lastDutyByTeacher = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const duty of dataset?.history ?? []) {
+      const previous = out.get(duty.teacherId);
+      if (!previous || duty.examDate > previous) out.set(duty.teacherId, duty.examDate);
+    }
+    return out;
+  }, [dataset]);
+
   if (loading || !dataset) return <Panel title="Master data">Loading…</Panel>;
 
   return (
@@ -154,6 +163,7 @@ export function MasterDataPage() {
                 <Th>Name</Th>
                 <Th>Designation</Th>
                 <Th>School</Th>
+                <Th>Last duty</Th>
                 <Th>Quality</Th>
               </tr>
             </thead>
@@ -167,6 +177,7 @@ export function MasterDataPage() {
                   <Td>{t.name}</Td>
                   <Td>{t.designation}</Td>
                   <Td>{t.schoolId}</Td>
+                  <Td>{lastDutyByTeacher.get(t.teacherId) ?? "No recorded duty"}</Td>
                   <Td>{t.dataQuality}</Td>
                 </tr>
               ))}

@@ -10,7 +10,6 @@ import { crossModuleCalendar } from "../lib/crossModuleCalendar";
 import {
   assertMutable,
   catalogUsableForGenerate,
-  examWindowStart,
   firstUnusableGenerateCatalogLabel,
   latestRunForModuleInCycle,
   shouldApplySessionAfterApi,
@@ -24,9 +23,6 @@ import {
   TileHeader,
 } from "../components/ui";
 
-/** Synthetic stand-in used only until an officer configures the cycle window. */
-const FALLBACK_EXAM_DATE = "2027-03-15";
-
 export function HallPage() {
   const {
     dataset,
@@ -39,6 +35,8 @@ export function HallPage() {
     exemptions,
     hydrateReady,
     hydrateReport,
+    timetable,
+    timetableState,
   } = useApp();
   const [text, setText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -120,10 +118,15 @@ export function HallPage() {
     examCycle.examCycleId,
   );
   const hallResult = latest?.result as HallResult | null | undefined;
-  const examDate = examWindowStart(examCycle, FALLBACK_EXAM_DATE);
+  const hallSessions = timetable.filter((entry) => entry.requiresHall);
+  const examDate = hallSessions.map((entry) => entry.examDate).sort()[0] ?? "";
 
   function run() {
     if (!dataset || busy) return;
+    if (timetableState !== "ready" || hallSessions.length === 0) {
+      setText("Add at least one timetable session marked Hall duty before allocating hall duties.");
+      return;
+    }
     const gate = assertMutable(examCycle.status, "generate allocation");
     if (!gate.ok) {
       setText(gate.error);
@@ -209,15 +212,15 @@ export function HallPage() {
       set.add(r.schoolId);
       centreSchoolIds.set(r.centreId, set);
     }
-    const demands = dataset.centres.map((c, i) => ({
+    const demands = hallSessions.flatMap((slot) => dataset.centres.filter((c) => c.active).map((c, i) => ({
       centreId: c.centreId,
       totalStudents:
         typeof c.capacity === "number" && c.capacity > 0
           ? c.capacity
           : Math.min(c.capacity ?? 200, 80 + ((i * 23) % 140)),
-      examDate,
-      sessionCode: "MORNING" as const,
-    }));
+      examDate: slot.examDate,
+      sessionCode: slot.sessionCode,
+    })));
     const result = allocateHall(
       demands,
       {

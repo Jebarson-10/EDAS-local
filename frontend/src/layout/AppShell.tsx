@@ -38,7 +38,6 @@ const groups: Array<{
       { to: "/audit", label: "Audit" },
       { to: "/backups", label: "Backups" },
       { to: "/settings", label: "Settings" },
-      { to: "/open-questions", label: "Open questions" },
       { to: "/help", label: "Help & guide" },
     ],
   },
@@ -46,8 +45,17 @@ const groups: Array<{
 
 const flatLinks = groups.flatMap((g) => g.links);
 
+const tamilLabels: Record<string, string> = {
+  "Dashboard": "முகப்பு", "Exam cycle": "தேர்வு சுற்று", "Master data": "முதன்மைத் தரவு",
+  "Imports": "இறக்குமதி", "Theory": "எழுத்துத் தேர்வு", "Practical": "செய்முறைத் தேர்வு",
+  "Hall": "அறைக் கண்காணிப்பு", "Validation": "சரிபார்ப்பு", "Reports": "அறிக்கைகள்",
+  "Audit": "பதிவேடு", "Backups": "காப்புநகல்கள்", "Settings": "அமைப்புகள்",
+  "Open questions": "முடிவு தேவைப்படும் விதிகள்", "Help & guide": "உதவி வழிகாட்டி",
+  "Overview": "மேலோட்டம்", "Data": "தரவு", "Allotment": "பணி ஒதுக்கீடு", "Governance": "நிர்வாகம்",
+};
+
 export function AppShell() {
-  const { examCycleName, examCycle, hydrateReport, hydrateReady } =
+  const { examCycleName, examCycle, hydrateReport, hydrateReady, locale, setLocale, tamilFont, setTamilFont } =
     useApp();
   const location = useLocation();
   const [apiUp, setApiUp] = useState<boolean | null>(null);
@@ -77,6 +85,7 @@ export function AppShell() {
         ? location.pathname === "/"
         : location.pathname.startsWith(l.to),
     )?.label ?? "Dashboard";
+  const label = (text: string) => locale === "ta" ? (tamilLabels[text] ?? text) : text;
 
   const showBanner =
     !dismissed && (apiUp === false || (apiUp === true && dbUp === false));
@@ -100,15 +109,27 @@ export function AppShell() {
             </span>
             <div>
               <p className="font-display text-lg leading-tight tracking-tight">
-                Erode Exam Duty
+                Erode Exam Duty · ஈரோடு தேர்வுப் பணி
               </p>
               <p className="text-[0.7rem] opacity-75">
-                CEO Office · Duty Allotment System
+                CEO Office · Duty Allotment System · தேர்வுப் பணி ஒதுக்கீடு
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <label className="text-xs">
+              <span className="sr-only">Language</span>
+              <select className="rounded border border-white/25 bg-white/10 px-2 py-1 text-[var(--color-sky-wash)]" value={locale} onChange={(e) => setLocale(e.target.value as "en" | "ta")}>
+                <option className="text-black" value="en">English</option><option className="text-black" value="ta">தமிழ்</option>
+              </select>
+            </label>
+            <label className="text-xs">
+              <span className="sr-only">Tamil font</span>
+              <select className="rounded border border-white/25 bg-white/10 px-2 py-1 text-[var(--color-sky-wash)]" value={tamilFont} onChange={(e) => setTamilFont(e.target.value as typeof tamilFont)}>
+                <option className="text-black" value="unicode">Unicode Tamil</option><option className="text-black" value="bamini">Bamini</option><option className="text-black" value="vanavil">Vanavil</option><option className="text-black" value="tace16">TACE16</option>
+              </select>
+            </label>
             <div className="hidden text-right sm:block">
               <p className="text-xs opacity-90">{examCycleName}</p>
               <p className="mt-0.5 flex items-center justify-end gap-1.5 text-[0.7rem] opacity-80">
@@ -186,7 +207,7 @@ export function AppShell() {
                       }`
                     }
                   >
-                    {l.label}
+                    {label(l.label)}
                   </NavLink>
                 </li>
               ))}
@@ -196,7 +217,7 @@ export function AppShell() {
               {groups.map((g) => (
                 <div key={g.label}>
                   <p className="mb-1.5 px-3 text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-muted)]">
-                    {g.label}
+                  {label(g.label)}
                   </p>
                   <ul className="space-y-0.5">
                     {g.links.map((l) => (
@@ -213,7 +234,7 @@ export function AppShell() {
                             }`
                           }
                         >
-                          {l.label}
+                          {label(l.label)}
                         </NavLink>
                       </li>
                     ))}
@@ -226,7 +247,7 @@ export function AppShell() {
 
         <main className="min-w-0 flex-1">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-xl md:text-2xl">{currentLabel}</h1>
+            <h1 className="font-display text-xl md:text-2xl">{label(currentLabel)}</h1>
             <Badge tone={apiUp ? "ok" : apiUp === false ? "warn" : "neutral"}>
               {apiUp === null
                 ? "checking saved data"

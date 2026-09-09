@@ -451,6 +451,19 @@ export const examCycleWindowBodySchema = z.object({
   endDate: isoDate.nullable(),
 });
 
+/** Full timetable replacement is deliberate and audited by the API route. */
+export const examTimetableBodySchema = z.object({
+  entries: z.array(z.object({
+    timetableEntryId: z.string().min(1).optional(),
+    examDate: isoDate,
+    sessionCode: z.enum(["MORNING", "AFTERNOON"]),
+    subjectLabel: z.string().min(1).max(200),
+    requiresChief: z.boolean(),
+    requiresHall: z.boolean(),
+    notes: z.string().max(1000).nullable().optional(),
+  })).max(500),
+});
+
 export const clubbingApplyBodySchema = z.object({
   asOfDate: z.string().min(1),
   importId: z.string().optional(),

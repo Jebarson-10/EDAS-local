@@ -56,6 +56,7 @@ import {
   type TeacherLocationHistoryRow,
   type TeacherSchoolHistoryRow,
   type SessionCode,
+  type ExamTimetableEntry,
   type DataQuality,
 } from "@exam-duty/shared";
 import type {
@@ -115,6 +116,10 @@ export interface ExamCycleState {
 interface AppState {
   role: Role;
   setRole: (r: Role) => void;
+  locale: "en" | "ta";
+  setLocale: (locale: "en" | "ta") => void;
+  tamilFont: "unicode" | "bamini" | "vanavil" | "tace16";
+  setTamilFont: (font: "unicode" | "bamini" | "vanavil" | "tace16") => void;
   dataset: DemoDataset | null;
   setDataset: (d: DemoDataset) => void;
   loading: boolean;
@@ -170,6 +175,11 @@ interface AppState {
     startDate: string | null,
     endDate: string | null,
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  timetable: ExamTimetableEntry[];
+  timetableState: "loading" | "ready" | "failed";
+  saveTimetable: (
+    entries: ExamTimetableEntry[],
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   setActiveRuleVersion: (
     ruleVersionId: string,
     label: string,
@@ -199,7 +209,7 @@ const Ctx = createContext<AppState | null>(null);
 
 const INITIAL_CYCLE: ExamCycleState = {
   examCycleId: "ec_2027_hsc",
-  name: "2027 HSC Public Examination (Synthetic)",
+  name: "New 12th Standard Examination",
   academicYear: "2027",
   status: "OPEN",
   ruleVersionId: "rv-2027-1",
@@ -210,6 +220,12 @@ const INITIAL_CYCLE: ExamCycleState = {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("ADMIN");
+  const [locale, setLocale] = useState<"en" | "ta">(
+    () => (localStorage.getItem("edas-locale") === "ta" ? "ta" : "en"),
+  );
+  const [tamilFont, setTamilFont] = useState<"unicode" | "bamini" | "vanavil" | "tace16">(
+    () => (localStorage.getItem("edas-tamil-font") as "unicode" | "bamini" | "vanavil" | "tace16") || "unicode",
+  );
   const [dataset, setDataset] = useState<DemoDataset | null>(null);
   const [loading, setLoading] = useState(true);
   const [runs, setRuns] = useState<AllocationRunRecord[]>([]);
@@ -232,9 +248,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     TeacherLocationHistoryRow[]
   >([]);
   const [rules, setRules] = useState<RuleParameters>(DEFAULT_RULE_PARAMETERS);
+  const [timetable, setTimetable] = useState<ExamTimetableEntry[]>([]);
+  const [timetableState, setTimetableState] = useState<"loading" | "ready" | "failed">("loading");
   const [hydrateReport, setHydrateReport] =
     useState<HydrateReport>(EMPTY_HYDRATE_REPORT);
   const [hydrateReady, setHydrateReady] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.lang = locale === "ta" ? "ta" : "en";
+    document.documentElement.dataset.tamilFont = tamilFont;
+    localStorage.setItem("edas-locale", locale);
+    localStorage.setItem("edas-tamil-font", tamilFont);
+  }, [locale, tamilFont]);
 
   // The desktop API snapshots its canonical SQLite state after changes. A
   // short debounce coalesces a form edit that updates several React states.
@@ -256,6 +281,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     rules,
     runs,
     schoolHistory,
+    timetable,
   ]);
 
   const logAudit = useCallback(
@@ -286,7 +312,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: "a0",
             action: "LOGIN",
             timestamp: new Date().toISOString(),
-            detail: "Synthetic officer session (dev auth)",
+            detail: "Local operator session",
           },
         ]);
       }
@@ -351,6 +377,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           auditApi,
           blocksApi,
           subjectsApi,
+          timetableApi,
         ] = await Promise.all([
           api.fetchDutyHistory("OFFICER"),
           api.fetchExemptions("OFFICER"),
@@ -365,6 +392,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           api.fetchAudit("OFFICER"),
           api.fetchMasterBlocks("OFFICER"),
           api.fetchMasterSubjects("OFFICER"),
+          api.fetchExamTimetable("OFFICER", cycleId),
         ]);
 
         if (cancelled) return;
@@ -400,6 +428,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
           subjectsApi,
           subjectsApi?.subjects,
         );
+        if (timetableApi == null) {
+          setTimetableState("failed");
+        } else {
+          setTimetable(
+            (timetableApi.entries ?? []).map((entry) => ({
+              timetableEntryId: String(entry.timetable_entry_id ?? ""),
+              examDate: String(entry.exam_date ?? ""),
+              sessionCode: entry.session_code ?? "MORNING",
+              subjectLabel: String(entry.subject_label ?? ""),
+              requiresChief: entry.requires_chief !== 0,
+              requiresHall: entry.requires_hall !== 0,
+              notes: entry.notes ?? null,
+            })),
+          );
+          setTimetableState("ready");
+        }
 
         const paramsApi = await api.fetchRuleParameters(
           "OFFICER",
@@ -1160,6 +1204,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [examCycle.examCycleId, role, logAudit],
   );
 
+  const saveTimetable = useCallback(
+    async (entries: ExamTimetableEntry[]) => {
+      if (role !== "ADMIN" && role !== "OFFICER") {
+        return { ok: false as const, error: "Insufficient access" };
+      }
+      const { replaceExamTimetableApi } = await import("../lib/api");
+      const api = await replaceExamTimetableApi(role, examCycle.examCycleId, entries);
+      if (!api?.ok) {
+        return { ok: false as const, error: api?.error ?? "Could not save the timetable" };
+      }
+      const saved = (api.entries ?? []).map((entry) => ({
+        timetableEntryId: String(entry.timetable_entry_id ?? ""),
+        examDate: String(entry.exam_date ?? ""),
+        sessionCode: entry.session_code ?? "MORNING",
+        subjectLabel: String(entry.subject_label ?? ""),
+        requiresChief: entry.requires_chief !== 0,
+        requiresHall: entry.requires_hall !== 0,
+        notes: entry.notes ?? null,
+      }));
+      setTimetable(saved);
+      setTimetableState("ready");
+      logAudit("UPDATE", `Saved timetable (${saved.length} session(s))`);
+      return { ok: true as const };
+    },
+    [examCycle.examCycleId, role, logAudit],
+  );
+
   const setActiveRuleVersion = useCallback(
     async (_ruleVersionId: string, _label: string) => {
       // Activate flips rule_versions.is_active only. Do not rewrite the
@@ -1470,6 +1541,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       role,
       setRole,
+      locale,
+      setLocale,
+      tamilFont,
+      setTamilFont,
       dataset,
       setDataset: (d) => setDataset(d),
       loading,
@@ -1492,6 +1567,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyImportPreview,
       transitionExamCycle,
       setExamWindow,
+      timetable,
+      timetableState,
+      saveTimetable,
       setActiveRuleVersion,
       publishLatestTheoryRun,
       createAmendment,
@@ -1500,6 +1578,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }),
     [
       role,
+      locale,
+      tamilFont,
       dataset,
       loading,
       rules,
@@ -1518,6 +1598,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyImportPreview,
       transitionExamCycle,
       setExamWindow,
+      timetable,
+      timetableState,
+      saveTimetable,
       setActiveRuleVersion,
       publishLatestTheoryRun,
       createAmendment,

@@ -133,6 +133,24 @@ describe("theory allocation", () => {
     expect(a.assignments[0]?.teacherId).toBe("t3"); // t1 excluded own school; t3 HM preferred over fallback
   });
 
+  it("gives an eligible teacher with the older last duty priority over a newer duty", () => {
+    const dataset = baseDataset({
+      history: [
+        { teacherId: "t2", centreId: "other", dutyTypeCode: "HALL_INVIGILATOR", examDate: "2025-03-01", sessionCode: "MORNING", academicYear: "2025" },
+        { teacherId: "t3", centreId: "other", dutyTypeCode: "HALL_INVIGILATOR", examDate: "2027-02-28", sessionCode: "MORNING", academicYear: "2027" },
+      ],
+    });
+    const result = allocateTheory([{
+      requirementKey: "c1-chief", centreId: "c1", roleCode: "CHIEF_EXAMINATION",
+      examDate: "2027-03-10", sessionCode: "MORNING",
+      preferredDesignations: ["HM", "SENIOR_PG"], fallbackDesignations: [],
+    }], dataset, rules);
+    expect(result.assignments[0]?.teacherId).toBe("t2");
+    expect(result.assignments[0]?.decisionTrace.reasons.some(
+      (reason) => reason.ruleCode === "INFO-FAIRNESS" && reason.message.includes("2025-03-01"),
+    )).toBe(true);
+  });
+
   it("excludes repeat centre from history without current excel", () => {
     const dataset = baseDataset({
       history: [

@@ -60,11 +60,38 @@ For automatic updates, install the Windows `Erode-Exam-Duty-Setup-<version>.exe`
 from GitHub Releases. The portable ZIP can still be used without installation, but
 portable copies cannot update themselves.
 
-On first launch the application creates its database, applies the SQL
-migrations and seeds the synthetic dataset under the OS app-data directory — on Linux
+On first launch the application creates its database and applies the SQL
+migrations under the OS app-data directory — on Linux
 `~/.config/exam-duty-allotment/data/`, on Windows `%APPDATA%\exam-duty-allotment\data\`.
 File → Open data folder reveals it, and copying that folder is a full backup. The window
 binds a free loopback port; nothing is exposed to the network.
+
+The installed desktop app starts with no sample blocks, schools, centres,
+teachers, duty history or exports. Enter or import only the official records
+you intend to use. Reference subjects and configurable rule settings are kept
+so the entry forms and allocator can operate.
+
+### Timetable and fairness
+
+In **Exam cycle → Exam timetable**, add each official date, morning/afternoon
+session and subject/paper. Mark whether that session needs Chief duty and/or
+Hall duty. Theory and Hall allocation use those exact marked sessions; they do
+not invent a placeholder date.
+
+The Master data teacher table shows each teacher's latest recorded duty date.
+When otherwise eligible teachers are compared, the one whose last duty is
+older is considered first; normal seniority is used only as a deterministic
+tie-breaker. The configured fairness window controls how long a recent duty
+affects this preference.
+
+### Tamil display
+
+Choose **தமிழ்** in the header to use Tamil navigation labels. Tamil names,
+schools, subjects and timetable text can be entered directly as Unicode Tamil.
+The font selector supports Unicode Tamil (recommended) and optional Bamini,
+Vanavil and TACE16 fonts when those fonts are installed on the PC. Legacy font
+encodings are not converted automatically; keep official data in Unicode where
+possible so it is searchable and exports consistently.
 
 When internet is available, an installed app checks GitHub Releases shortly after
 opening. If a newer version exists, it asks before downloading it and asks again
