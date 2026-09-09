@@ -29,6 +29,7 @@ export function ExamCyclePage() {
     timetable,
     timetableState,
     saveTimetable,
+    dataset,
     role,
     runs,
   } = useApp();
@@ -332,20 +333,21 @@ export function ExamCyclePage() {
       <Tile span={6}>
         <TileHeader
           title="Exam timetable"
-          hint="Add one row for every examination date and session. The two duty tick boxes make the required allotment explicit."
+          hint="Add one row for every examination date and session. Select a school when the session applies only to its linked centre; leave All schools for a district-wide session."
           action={<Badge tone={timetableDraft.length ? "ok" : "warn"}>{timetableDraft.length ? `${timetableDraft.length} session(s)` : "Add sessions"}</Badge>}
         />
         {timetableState === "failed" ? <p className="mb-3 text-sm text-[var(--color-err)]">Timetable could not be read from saved data. Reopen the app before generating duties.</p> : null}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-[var(--color-sky-wash)]">
-              <tr><th className="px-2 py-2 text-left">Date</th><th className="px-2 py-2 text-left">Session</th><th className="px-2 py-2 text-left">Subject / paper</th><th className="px-2 py-2 text-left">Chief duty</th><th className="px-2 py-2 text-left">Hall duty</th><th className="px-2 py-2 text-left">Notes</th><th className="px-2 py-2" /></tr>
+              <tr><th className="px-2 py-2 text-left">Date</th><th className="px-2 py-2 text-left">Session</th><th className="px-2 py-2 text-left">School</th><th className="px-2 py-2 text-left">Subject / paper</th><th className="px-2 py-2 text-left">Chief duty</th><th className="px-2 py-2 text-left">Hall duty</th><th className="px-2 py-2 text-left">Notes</th><th className="px-2 py-2" /></tr>
             </thead>
             <tbody>
               {timetableDraft.map((row, index) => (
                 <tr key={row.timetableEntryId || `${row.examDate}-${row.sessionCode}-${index}`} className="border-t border-[var(--color-line)]">
                   <td className="p-2"><input type="date" className="rounded border border-[var(--color-line)] px-2 py-1" value={row.examDate} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, examDate: e.target.value } : r))} /></td>
                   <td className="p-2"><select className="rounded border border-[var(--color-line)] px-2 py-1" value={row.sessionCode} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, sessionCode: e.target.value as ExamTimetableEntry["sessionCode"] } : r))}><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option></select></td>
+                  <td className="p-2"><select className="min-w-48 rounded border border-[var(--color-line)] px-2 py-1" value={row.schoolId ?? ""} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, schoolId: e.target.value || null } : r))}><option value="">All schools</option>{(dataset?.schools ?? []).filter((school) => school.active).map((school) => <option key={school.schoolId} value={school.schoolId}>{school.schoolCode} · {school.schoolName}</option>)}</select></td>
                   <td className="p-2"><input className="min-w-44 rounded border border-[var(--color-line)] px-2 py-1" placeholder="e.g. Tamil" value={row.subjectLabel} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, subjectLabel: e.target.value } : r))} /></td>
                   <td className="p-2 text-center"><input aria-label="Chief duty required" type="checkbox" checked={row.requiresChief} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, requiresChief: e.target.checked } : r))} /></td>
                   <td className="p-2 text-center"><input aria-label="Hall duty required" type="checkbox" checked={row.requiresHall} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, requiresHall: e.target.checked } : r))} /></td>
@@ -353,12 +355,12 @@ export function ExamCyclePage() {
                   <td className="p-2"><button type="button" className="text-[var(--color-err)] underline" onClick={() => setTimetableDraft((rows) => rows.filter((_, i) => i !== index))}>Remove</button></td>
                 </tr>
               ))}
-              {!timetableDraft.length ? <tr><td colSpan={7} className="p-3 text-[var(--color-ink-muted)]">No sessions entered. Add the official timetable before generating theory or hall duties.</td></tr> : null}
+              {!timetableDraft.length ? <tr><td colSpan={8} className="p-3 text-[var(--color-ink-muted)]">No sessions entered. Add the official timetable before generating theory or hall duties.</td></tr> : null}
             </tbody>
           </table>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" className="rounded border border-[var(--color-line)] px-3 py-2 text-sm" disabled={!canManage || busy} onClick={() => setTimetableDraft((rows) => [...rows, { timetableEntryId: `tmp_${crypto.randomUUID()}`, examDate: start, sessionCode: "MORNING", subjectLabel: "", requiresChief: true, requiresHall: true, notes: null }])}>Add timetable row</button>
+          <button type="button" className="rounded border border-[var(--color-line)] px-3 py-2 text-sm" disabled={!canManage || busy} onClick={() => setTimetableDraft((rows) => [...rows, { timetableEntryId: `tmp_${crypto.randomUUID()}`, schoolId: null, examDate: start, sessionCode: "MORNING", subjectLabel: "", requiresChief: true, requiresHall: true, notes: null }])}>Add timetable row</button>
           <button type="button" className="rounded bg-[var(--color-brand)] px-3 py-2 text-sm text-white disabled:opacity-40" disabled={!canManage || busy || timetableState === "loading" || timetableDraft.some((row) => !row.examDate || !row.subjectLabel.trim())} onClick={() => { if (!startBusy("timetable")) return; void (async () => { try { const r = await saveTimetable(timetableDraft.map((row) => ({ ...row, subjectLabel: row.subjectLabel.trim() }))); if (!r.ok) setErr(r.error); else { setMsg(`Saved ${timetableDraft.length} timetable session(s)`); setErr(null); } } finally { stopBusy(); } })(); }}>{busyKind === "timetable" ? "Saving…" : "Save timetable"}</button>
         </div>
       </Tile>

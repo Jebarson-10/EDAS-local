@@ -844,6 +844,7 @@ export async function setExamCycleWindowApi(
 
 export type ApiTimetableEntry = {
   timetable_entry_id?: string;
+  school_id?: string | null;
   exam_date?: string;
   session_code?: "MORNING" | "AFTERNOON";
   subject_label?: string;
@@ -870,6 +871,7 @@ export async function replaceExamTimetableApi(
   examCycleId: string,
   entries: Array<{
     timetableEntryId?: string;
+    schoolId?: string | null;
     examDate: string;
     sessionCode: "MORNING" | "AFTERNOON";
     subjectLabel: string;

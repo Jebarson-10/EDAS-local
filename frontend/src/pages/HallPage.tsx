@@ -212,7 +212,13 @@ export function HallPage() {
       set.add(r.schoolId);
       centreSchoolIds.set(r.centreId, set);
     }
-    const demands = hallSessions.flatMap((slot) => dataset.centres.filter((c) => c.active).map((c, i) => ({
+    const demands = hallSessions.flatMap((slot) => dataset.centres.filter((c) =>
+      c.active && (!slot.schoolId || dataset.relationships.some((relationship) =>
+        relationship.centreId === c.centreId && relationship.schoolId === slot.schoolId &&
+        relationship.effectiveFrom <= slot.examDate &&
+        (!relationship.effectiveTo || relationship.effectiveTo >= slot.examDate),
+      )),
+    ).map((c, i) => ({
       centreId: c.centreId,
       totalStudents:
         typeof c.capacity === "number" && c.capacity > 0

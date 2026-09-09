@@ -157,7 +157,13 @@ export function TheoryPage() {
 
   const requirements: TheoryRequirement[] = useMemo(() => {
     if (!dataset) return [];
-    return chiefSessions.flatMap((slot) => dataset.centres.filter((c) => c.active).map((c) => ({
+    return chiefSessions.flatMap((slot) => dataset.centres.filter((c) =>
+      c.active && (!slot.schoolId || dataset.relationships.some((relationship) =>
+        relationship.centreId === c.centreId && relationship.schoolId === slot.schoolId &&
+        relationship.effectiveFrom <= slot.examDate &&
+        (!relationship.effectiveTo || relationship.effectiveTo >= slot.examDate),
+      )),
+    ).map((c) => ({
       requirementKey: `${c.centreId}-CHIEF-${slot.examDate}-${slot.sessionCode}`,
       centreId: c.centreId,
       roleCode: "CHIEF_EXAMINATION",

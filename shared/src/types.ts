@@ -22,6 +22,8 @@ export type SessionCode = "MORNING" | "AFTERNOON";
 /** One officer-entered examination session used to create duty slots. */
 export interface ExamTimetableEntry {
   timetableEntryId: string;
+  /** Null means the session is district-wide / applies to all linked centres. */
+  schoolId?: string | null;
   examDate: string;
   sessionCode: SessionCode;
   subjectLabel: string;

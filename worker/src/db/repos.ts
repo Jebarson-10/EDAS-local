@@ -163,6 +163,7 @@ export async function setExamCycleWindow(
 
 export type StoredTimetableEntry = {
   timetableEntryId: string;
+  schoolId?: string | null;
   examDate: string;
   sessionCode: "MORNING" | "AFTERNOON";
   subjectLabel: string;
@@ -173,7 +174,7 @@ export type StoredTimetableEntry = {
 
 export async function listExamTimetable(db: DbClient, examCycleId: string) {
   const rs = await db.prepare(
-    `SELECT timetable_entry_id, exam_date, session_code, subject_label,
+    `SELECT timetable_entry_id, school_id, exam_date, session_code, subject_label,
             requires_chief, requires_hall, notes
        FROM exam_timetable_entries
       WHERE exam_cycle_id = ?
@@ -200,12 +201,13 @@ export async function replaceExamTimetable(
     db.prepare(`DELETE FROM exam_timetable_entries WHERE exam_cycle_id = ?`).bind(examCycleId),
     ...entries.map((entry) => db.prepare(
       `INSERT INTO exam_timetable_entries
-        (timetable_entry_id, exam_cycle_id, exam_date, session_code, subject_label,
+        (timetable_entry_id, exam_cycle_id, school_id, exam_date, session_code, subject_label,
          requires_chief, requires_hall, notes, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       entry.timetableEntryId,
       examCycleId,
+      entry.schoolId ?? null,
       entry.examDate,
       entry.sessionCode,
       entry.subjectLabel,

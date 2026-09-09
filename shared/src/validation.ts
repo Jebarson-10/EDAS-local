@@ -455,6 +455,7 @@ export const examCycleWindowBodySchema = z.object({
 export const examTimetableBodySchema = z.object({
   entries: z.array(z.object({
     timetableEntryId: z.string().min(1).optional(),
+    schoolId: z.string().min(1).nullable().optional(),
     examDate: isoDate,
     sessionCode: z.enum(["MORNING", "AFTERNOON"]),
     subjectLabel: z.string().min(1).max(200),

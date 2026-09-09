@@ -434,6 +434,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setTimetable(
             (timetableApi.entries ?? []).map((entry) => ({
               timetableEntryId: String(entry.timetable_entry_id ?? ""),
+              schoolId: entry.school_id ?? null,
               examDate: String(entry.exam_date ?? ""),
               sessionCode: entry.session_code ?? "MORNING",
               subjectLabel: String(entry.subject_label ?? ""),
@@ -1216,6 +1217,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       const saved = (api.entries ?? []).map((entry) => ({
         timetableEntryId: String(entry.timetable_entry_id ?? ""),
+        schoolId: entry.school_id ?? null,
         examDate: String(entry.exam_date ?? ""),
         sessionCode: entry.session_code ?? "MORNING",
         subjectLabel: String(entry.subject_label ?? ""),
