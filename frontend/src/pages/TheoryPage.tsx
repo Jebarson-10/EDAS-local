@@ -113,7 +113,7 @@ export function TheoryPage() {
     },
     {
       outcome: runsOutcome,
-      failed: "Allocation runs unavailable",
+      failed: "Duty lists unavailable",
       loading: "Loading allocation runs…",
     },
     { outcome: rulesOutcome, failed: "Rules unavailable", loading: "Loading rules…" },
@@ -191,72 +191,72 @@ export function TheoryPage() {
     if (!cyclesReady) {
       setProgress(
         cyclesOutcome === "failed"
-          ? "Exam cycle could not be loaded from the API"
-          : "Waiting for the exam cycle from the API",
+          ? "Examination could not be loaded from saved data"
+          : "Waiting for the exam cycle from saved data",
       );
       return;
     }
     if (!centresReady) {
       setProgress(
         centresOutcome === "failed"
-          ? "Centres could not be loaded from the API"
-          : "Waiting for centres from the API",
+          ? "Centres could not be loaded from saved data"
+          : "Waiting for centres from saved data",
       );
       return;
     }
     if (!relationshipsReady) {
       setProgress(
         relationshipsOutcome === "failed"
-          ? "Clubbing relationships could not be loaded from the API"
-          : "Waiting for clubbing relationships from the API",
+          ? "Combined schools could not be loaded from saved data"
+          : "Waiting for clubbing relationships from saved data",
       );
       return;
     }
     if (!rulesReady) {
       setProgress(
         rulesOutcome === "failed"
-          ? "Rule parameters could not be loaded from the API"
-          : "Waiting for rule parameters from the API",
+          ? "Allotment rules could not be loaded from saved data"
+          : "Waiting for rule parameters from saved data",
       );
       return;
     }
     if (!exemptionsReady) {
       setProgress(
         exemptionsOutcome === "failed"
-          ? "Exemptions could not be loaded from the API"
-          : "Waiting for exemptions from the API",
+          ? "Exemptions could not be loaded from saved data"
+          : "Waiting for exemptions from saved data",
       );
       return;
     }
     if (!teachersReady) {
       setProgress(
         teachersOutcome === "failed"
-          ? "Teachers could not be loaded from the API"
-          : "Waiting for teachers from the API",
+          ? "Teachers could not be loaded from saved data"
+          : "Waiting for teachers from saved data",
       );
       return;
     }
     if (!schoolsReady) {
       setProgress(
         schoolsOutcome === "failed"
-          ? "Schools could not be loaded from the API"
-          : "Waiting for schools from the API",
+          ? "Schools could not be loaded from saved data"
+          : "Waiting for schools from saved data",
       );
       return;
     }
     if (!historyReady) {
       setProgress(
         historyOutcome === "failed"
-          ? "Duty history could not be loaded from the API"
-          : "Waiting for duty history from the API",
+          ? "Duty history could not be loaded from saved data"
+          : "Waiting for duty history from saved data",
       );
       return;
     }
     if (!runsReady) {
       setProgress(
         runsOutcome === "failed"
-          ? "Allocation runs could not be loaded from the API"
-          : "Waiting for allocation runs from the API",
+          ? "Duty lists could not be loaded from saved data"
+          : "Waiting for allocation runs from saved data",
       );
       return;
     }
@@ -358,7 +358,7 @@ export function TheoryPage() {
         setBusy(false);
         worker.terminate();
       }).catch(() => {
-        setProgress("Persist failed");
+        setProgress("Could not save");
         setBusy(false);
         worker.terminate();
       });
@@ -514,7 +514,7 @@ export function TheoryPage() {
       <Tile span={6}>
         <TileHeader
           title="Theory examination duty"
-          hint="Deterministic client-side engine (Web Worker). Historical centre assignments from prior cycles apply automatically — no manual history upload."
+          hint="Assigns theory duties using saved teachers, schools, timetable and previous duties."
         />
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -556,8 +556,8 @@ export function TheoryPage() {
             }
           >
             {cyclesOutcome === "failed"
-              ? "Exam cycle unavailable — generate stays disabled so a miss is not treated as the session seed cycle."
-              : "Waiting for the exam cycle from the API…"}
+              ? "Examination unavailable. Allotment is paused until this is available."
+              : "Waiting for the exam cycle from saved data…"}
           </p>
         ) : null}
         {!centresReady ? (
@@ -568,8 +568,8 @@ export function TheoryPage() {
             }
           >
             {centresOutcome === "failed"
-              ? "Centres unavailable — generate stays disabled so a miss is not treated as seed centres."
-              : "Waiting for centres from the API…"}
+              ? "Centres unavailable. Allotment is paused until this is available."
+              : "Waiting for centres from saved data…"}
           </p>
         ) : null}
         {!relationshipsReady ? (
@@ -582,8 +582,8 @@ export function TheoryPage() {
             }
           >
             {relationshipsOutcome === "failed"
-              ? "Clubbing unavailable — generate stays disabled so a miss is not treated as seed relationships."
-              : "Waiting for clubbing relationships from the API…"}
+              ? "Clubbing unavailable. Allotment is paused until this is available."
+              : "Waiting for clubbing relationships from saved data…"}
           </p>
         ) : null}
         {!rulesReady ? (
@@ -594,8 +594,8 @@ export function TheoryPage() {
             }
           >
             {rulesOutcome === "failed"
-              ? "Rule parameters unavailable — generate stays disabled so a miss is not treated as seed defaults."
-              : "Waiting for rule parameters from the API…"}
+              ? "Allotment rules unavailable. Allotment is paused until this is available."
+              : "Waiting for rule parameters from saved data…"}
           </p>
         ) : null}
         {!exemptionsReady ? (
@@ -608,8 +608,8 @@ export function TheoryPage() {
             }
           >
             {exemptionsOutcome === "failed"
-              ? "Exemptions unavailable — generate stays disabled so a miss is not treated as an empty catalog."
-              : "Waiting for exemptions from the API…"}
+              ? "Exemptions unavailable. Allotment is paused until this is available."
+              : "Waiting for exemptions from saved data…"}
           </p>
         ) : null}
         {!teachersReady ? (
@@ -622,8 +622,8 @@ export function TheoryPage() {
             }
           >
             {teachersOutcome === "failed"
-              ? "Teachers unavailable — generate stays disabled so a miss is not treated as seed teachers."
-              : "Waiting for teachers from the API…"}
+              ? "Teachers unavailable. Allotment is paused until this is available."
+              : "Waiting for teachers from saved data…"}
           </p>
         ) : null}
         {!schoolsReady ? (
@@ -634,8 +634,8 @@ export function TheoryPage() {
             }
           >
             {schoolsOutcome === "failed"
-              ? "Schools unavailable — generate stays disabled so a miss is not treated as seed schools."
-              : "Waiting for schools from the API…"}
+              ? "Schools unavailable. Allotment is paused until this is available."
+              : "Waiting for schools from saved data…"}
           </p>
         ) : null}
         {!historyReady ? (
@@ -646,8 +646,8 @@ export function TheoryPage() {
             }
           >
             {historyOutcome === "failed"
-              ? "Duty history unavailable — generate stays disabled so a miss is not treated as seed history."
-              : "Waiting for duty history from the API…"}
+              ? "Duty history unavailable. Allotment is paused until this is available."
+              : "Waiting for duty history from saved data…"}
           </p>
         ) : null}
         {!runsReady ? (
@@ -658,8 +658,8 @@ export function TheoryPage() {
             }
           >
             {runsOutcome === "failed"
-              ? "Allocation runs unavailable — generate stays disabled so a miss is not treated as an empty calendar."
-              : "Waiting for allocation runs from the API…"}
+              ? "Duty lists unavailable. Allotment is paused until this is available."
+              : "Waiting for allocation runs from saved data…"}
           </p>
         ) : null}
         {latest?.result ? (
@@ -708,7 +708,7 @@ export function TheoryPage() {
                   >
                     <td className="px-2 py-1">{a.centreId}</td>
                     <td className="px-2 py-1">
-                      {a.employeeCode} ({a.teacherId})
+                      {dataset.teachers.find((t) => t.teacherId === a.teacherId)?.name ?? "Teacher no longer listed"}
                     </td>
                     <td className="px-2 py-1">{a.roleCode}</td>
                     <td className="px-2 py-1">{a.score.toFixed(2)}</td>
@@ -784,7 +784,7 @@ export function TheoryPage() {
 
           <div className="mt-4 border-t border-[var(--color-line)] pt-3 space-y-2">
             <p className="text-sm font-medium">
-              Manual override (mutates run + revalidates)
+              Replace a teacher (the list will be checked again)
             </p>
             <select
               className="w-full border border-[var(--color-line)] rounded px-2 py-1 text-sm"
@@ -795,17 +795,17 @@ export function TheoryPage() {
               <option value="">Select requirement…</option>
               {latest.result.assignments.map((a) => (
                 <option key={a.requirementKey} value={a.requirementKey}>
-                  {a.requirementKey} · {a.employeeCode}
+                  {dataset.teachers.find((t) => t.teacherId === a.teacherId)?.name} — {dataset.centres.find((c) => c.centreId === a.centreId)?.centreName} — {a.examDate}
                 </option>
               ))}
             </select>
-            <input
+            <select
               className="w-full border border-[var(--color-line)] rounded px-2 py-1 text-sm"
-              placeholder="Replacement teacherId or employeeCode"
+              aria-label="Replacement teacher"
               value={overrideTeacherId}
               onChange={(e) => setOverrideTeacherId(e.target.value)}
               data-testid="override-teacher"
-            />
+            ><option value="">Select replacement teacher</option>{dataset.teachers.filter((t) => t.isActive).map((t) => <option key={t.teacherId} value={t.teacherId}>{t.name} — {dataset.schools.find((s) => s.schoolId === t.schoolId)?.schoolName}</option>)}</select>
             <input
               className="w-full border border-[var(--color-line)] rounded px-2 py-1 text-sm"
               placeholder="Reason for material change (required)"

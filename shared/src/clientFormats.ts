@@ -95,8 +95,8 @@ export function parsePracticalClubbingAoa(aoa: unknown[][]): {
     subject: header.findIndex((h) => h === "subject"),
     centre: header.findIndex((h) => h.includes("practical centre") || h.includes("centre")),
   };
-  if (idx.code < 0 || idx.centre < 0) {
-    errors.push("Required columns SCH CODE / PRACTICAL CENTRE missing");
+  if ((idx.code < 0 && idx.name < 0) || idx.centre < 0) {
+    errors.push("Add School name and Practical centre columns.");
   }
   const rows: PracticalClubbingRow[] = [];
   let last: PracticalClubbingRow | null = null;
@@ -119,7 +119,7 @@ export function parsePracticalClubbingAoa(aoa: unknown[][]): {
       continue;
     }
     if (!code && !centre) continue;
-    if (!code || !centre) {
+    if ((!code && !name) || !centre) {
       errors.push(`Row ${i + 1}: incomplete clubbing row`);
       continue;
     }
@@ -144,7 +144,7 @@ export function parsePracticalBatchDemandAoa(aoa: unknown[][]): {
 } {
   const errors: string[] = [];
   const headerIdx = aoa.findIndex((r) =>
-    (r ?? []).some((c) => /school\s*no/i.test(String(c ?? ""))),
+    (r ?? []).some((c) => /school\s*(no|name)|centre\s*code/i.test(String(c ?? ""))),
   );
   if (headerIdx < 0) {
     return { rows: [], errors: ["Batch demand header not found"] };
@@ -152,7 +152,7 @@ export function parsePracticalBatchDemandAoa(aoa: unknown[][]): {
   const header = (aoa[headerIdx] ?? []).map((c) => normHeader(String(c ?? "")));
   const idx = {
     sno: header.findIndex((h) => h.startsWith("sl") || h === "s.no" || h === "sno"),
-    school: header.findIndex((h) => h.includes("school")),
+    school: header.findIndex((h) => h.includes("school") || h === "centre code"),
     subject: header.findIndex((h) => h.includes("subject")),
     batches: header.findIndex((h) => h.includes("batch")),
   };
@@ -429,7 +429,7 @@ export function parseForm01SeniorityAoa(
 ): { rows: Form01TeacherRow[]; errors: string[] } {
   const errors: string[] = [];
   const headerIdx = aoa.findIndex((r) =>
-    (r ?? []).some((c) => /school\s*code/i.test(String(c ?? ""))),
+    (r ?? []).some((c) => /school\s*(code|name)|name of the school|centre\s*code/i.test(String(c ?? ""))),
   );
   if (headerIdx < 0) {
     return {
@@ -440,7 +440,7 @@ export function parseForm01SeniorityAoa(
   const header = (aoa[headerIdx] ?? []).map((c) => normHeader(String(c ?? "")));
   const idx = {
     sno: header.findIndex((h) => h.startsWith("s.no") || h === "sno" || h === "s no"),
-    code: header.findIndex((h) => h.includes("school code")),
+    code: header.findIndex((h) => h.includes("school code") || h === "centre code"),
     school: header.findIndex(
       (h) => h.includes("name of the school") || h === "school name",
     ),
@@ -456,8 +456,8 @@ export function parseForm01SeniorityAoa(
       (h) => h.includes("major subject") || h === "subject",
     ),
   };
-  if (idx.code < 0 || idx.name < 0) {
-    errors.push(`Sheet ${designation}: SCHOOL CODE / NAME columns required`);
+  if ((idx.code < 0 && idx.school < 0) || idx.name < 0) {
+    errors.push(`Sheet ${designation}: add School name and Teacher name columns.`);
   }
   const rows: Form01TeacherRow[] = [];
   let rank = 0;
@@ -467,7 +467,7 @@ export function parseForm01SeniorityAoa(
     const name = idx.name >= 0 ? cell(r, idx.name) : "";
     if (!schoolCode && !name) continue;
     if (/^\d+$/.test(schoolCode) && !name) continue;
-    if (!schoolCode || !name || name.length < 2) continue;
+    if ((!schoolCode && !(idx.school >= 0 && cell(r, idx.school))) || !name || name.length < 2) continue;
     rank += 1;
     const snoRaw = idx.sno >= 0 ? cell(r, idx.sno) : "";
     const desig =
@@ -570,7 +570,7 @@ export function applyPracticalClubbing(input: {
   asOfDate: string;
 }): ClubbingApplyResult {
   const schoolByCode = new Map(
-    input.schools.map((s) => [normalizeCode(s.schoolCode), s]),
+    input.schools.filter((s) => s.schoolCode.trim()).map((s) => [normalizeCode(s.schoolCode), s]),
   );
   const centreByCode = new Map(
     input.centres.map((c) => [normalizeCode(c.centreCode), c]),
@@ -596,9 +596,10 @@ export function applyPracticalClubbing(input: {
   const additions: ClubbingApplyResult["relationships"] = [];
 
   for (const row of input.rows) {
-    const school = schoolByCode.get(normalizeCode(row.schoolCode));
+    const matches = input.schools.filter((s) => normalizeName(s.schoolName) === normalizeName(row.schoolName));
+    const school = row.schoolCode.trim() ? schoolByCode.get(normalizeCode(row.schoolCode)) : matches.length === 1 ? matches[0] : undefined;
     if (!school) {
-      unmatchedSchools.push(row.schoolCode);
+      unmatchedSchools.push(row.schoolCode || row.schoolName);
       continue;
     }
     const centre = findCentre(row.practicalCentreName);
@@ -683,14 +684,14 @@ export function applyCentreStrengths(input: {
 /** Map batch-demand rows to practical engine demands via school code. */
 export function mapBatchDemandToPractical(input: {
   rows: PracticalBatchDemandRow[];
-  schools: Array<{ schoolId: string; schoolCode: string }>;
+  schools: Array<{ schoolId: string; schoolCode: string; schoolName?: string }>;
   batchSize: number;
 }): {
   demands: Array<{ schoolId: string; subjectId: string; studentCount: number }>;
   unmatched: string[];
 } {
   const byCode = new Map(
-    input.schools.map((s) => [normalizeCode(s.schoolCode), s]),
+    input.schools.filter((s) => s.schoolCode.trim()).map((s) => [normalizeCode(s.schoolCode), s]),
   );
   const unmatched: string[] = [];
   const demands: Array<{
@@ -700,7 +701,8 @@ export function mapBatchDemandToPractical(input: {
   }> = [];
   for (const row of input.rows) {
     if (row.isSchoolTotal) continue;
-    const school = byCode.get(normalizeCode(row.schoolCode));
+    const matches = input.schools.filter((s) => s.schoolName && normalizeName(s.schoolName) === normalizeName(row.schoolCode));
+    const school = byCode.get(normalizeCode(row.schoolCode)) ?? (matches.length === 1 ? matches[0] : undefined);
     if (!school) {
       unmatched.push(row.schoolCode);
       continue;

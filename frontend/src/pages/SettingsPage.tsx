@@ -21,13 +21,6 @@ export function SettingsPage() {
   } = useApp();
   const rulesOutcome = hydrateReport.sources.rule_parameters;
   const [health, setHealth] = useState<string>("Checking…");
-  const [bindings, setBindings] = useState<{
-    dbOk?: boolean;
-    r2Ok?: boolean | null;
-    ok?: boolean;
-    accessRoleMapConfigured?: boolean;
-    accessRoleMapEntries?: number;
-  }>({});
   const [cycles, setCycles] = useState<string>("—");
   const [versions, setVersions] = useState<
     Array<{
@@ -60,31 +53,11 @@ export function SettingsPage() {
     const h = await apiHealth();
     if (!h) {
       setHealth(
-        "API offline — run npm run api:local (UI still works in-memory)",
+        "Saved data is unavailable. Reopen the app to try again.",
       );
-      setBindings({});
       return;
     }
-    setBindings({
-      ok: h.ok,
-      dbOk: h.dbOk,
-      r2Ok: h.r2Ok,
-      accessRoleMapConfigured: h.accessRoleMapConfigured,
-      accessRoleMapEntries: h.accessRoleMapEntries,
-    });
-    const bindingBit =
-      h.dbOk === false ? " · D1 FAIL" : h.dbOk ? " · D1 OK" : "";
-    const r2Bit =
-      h.r2Ok === true
-        ? " · R2 OK"
-        : h.r2Ok === false
-          ? " · R2 unbound/fail"
-          : h.r2Ok === null
-            ? " · R2 n/a (local filesystem)"
-            : "";
-    setHealth(
-      `${h.ok ? "OK" : "DEGRADED"} · ${h.environment ?? "unknown"}${bindingBit}${r2Bit} · teachers=${h.counts?.teachers ?? "?"} centres=${h.counts?.centres ?? "?"}`,
-    );
+    setHealth(h.ok && h.dbOk !== false ? "Saved data is ready" : "Saved data is unavailable. Reopen the app to try again.");
     const c = await fetchExamCycles(role);
     setCycles(c ? `${c.cycles.length} cycle(s)` : "unavailable");
     const v = await fetchRuleVersions(role);
@@ -113,7 +86,7 @@ export function SettingsPage() {
         activate: false,
       });
       if (!api?.ok) {
-        setErr(api?.error ?? "API unavailable");
+        setErr(api?.error ?? "Saved data is unavailable");
         return;
       }
       logAudit(
@@ -141,7 +114,7 @@ export function SettingsPage() {
     try {
       const api = await activateRuleVersionApi(role, ruleVersionId);
       if (!api?.ok) {
-        setErr(api?.error ?? "API unavailable");
+        setErr(api?.error ?? "Saved data is unavailable");
         return;
       }
       await setActiveRuleVersion(ruleVersionId, api.versionLabel ?? versionLabel);
@@ -150,7 +123,7 @@ export function SettingsPage() {
         `Activated rule version ${ruleVersionId} (${api.versionLabel ?? versionLabel})`,
       );
       setMsg(
-        `Activated ${ruleVersionId} — this is now the active catalog row; the cycle's stored rule id is unchanged until the client answers OQ-021`,
+        `Activated ${ruleVersionId} — selected for future examinations. This examination keeps its existing rules.`,
       );
       setErr(null);
       void refresh();
@@ -163,37 +136,21 @@ export function SettingsPage() {
     <Bento>
       <Tile span={3} rowSpan={2}>
         <TileHeader
-          title="Settings & connectivity"
-          hint="Live binding truth — nothing here is assumed"
+          title="Settings"
+          hint="Check saved data and the rules used for allotment."
         />
         <dl className="text-sm space-y-2">
           <div>
-            <dt className="text-[var(--color-ink-muted)]">API / D1 mirror</dt>
+            <dt className="text-[var(--color-ink-muted)]">Saved data</dt>
             <dd data-testid="api-health">{health}</dd>
           </div>
           <div>
-            <dt className="text-[var(--color-ink-muted)]">
-              Binding probe (§107)
-            </dt>
-            <dd data-testid="binding-probe" className="font-mono text-xs">
-              ok={String(bindings.ok ?? "—")} · dbOk=
-              {String(bindings.dbOk ?? "—")} · r2Ok=
-              {String(bindings.r2Ok ?? "—")} · accessRoleMap=
-              {bindings.accessRoleMapConfigured
-                ? `configured(${bindings.accessRoleMapEntries ?? 0})`
-                : "empty (OQ-010 pending)"}
-              {bindings.r2Ok === false
-                ? " — staging/production needs R2 FILES binding"
-                : ""}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-ink-muted)]">Exam cycles (API)</dt>
+            <dt className="text-[var(--color-ink-muted)]">Examinations</dt>
             <dd>{cycles}</dd>
           </div>
           <div>
             <dt className="text-[var(--color-ink-muted)]">
-              Cycle stored rule version (UI)
+              Rules for this examination
             </dt>
             <dd
               data-testid={
@@ -205,9 +162,9 @@ export function SettingsPage() {
               }
             >
               {rulesOutcome === "failed"
-                ? "Rule parameters unavailable — values shown elsewhere are seed defaults, not the stored catalog. Generate stays disabled."
+                ? "Saved rules could not be loaded. Allotment is paused until they are available."
                 : !hydrateReady || !rulesOutcome
-                  ? "Waiting for rule parameters from the API…"
+                  ? "Loading saved rules…"
                   : `${examCycle.ruleVersionLabel} · max distance ${rules.maximum_distance_km} km · repeat ${rules.repeat_years}y · hall ${rules.students_per_hall}/${rules.standby_percentage}%`}
             </dd>
           </div>
@@ -224,7 +181,7 @@ export function SettingsPage() {
       <Tile span={3} rowSpan={2}>
         <TileHeader
           title="Rule versions"
-          hint="Changing parameters requires a new cloned version — the active version is never silently edited. Provisional OQ defaults hold until the client confirms."
+          hint="Keep separate sets of rules for different examinations. Previous examinations keep their own rules."
         />
         <div className="overflow-auto max-h-40 border border-[var(--color-line)] rounded text-sm mb-3">
           <table className="min-w-full">
@@ -304,25 +261,14 @@ export function SettingsPage() {
           >
             {busyKind === "create"
               ? "Creating…"
-              : "Clone new rule version (ADMIN)"}
+              : "Copy rules to a new set"}
           </button>
           {msg && <p className="text-sm text-[var(--color-ok)]">{msg}</p>}
           {err && <p className="text-sm text-[var(--color-err)]">{err}</p>}
         </div>
       </Tile>
 
-      <Tile span={6}>
-        <TileHeader
-          title="Rule parameters (this session)"
-          hint="Hydrated from the cycle's stored rule version in D1. Unknown or invalid keys stay at the documented seed default — they are never invented."
-        />
-        <pre
-          data-testid="rule-parameters-json"
-          className="max-h-80 overflow-auto rounded-xl bg-[var(--color-sky-wash)] p-3 text-xs"
-        >
-          {JSON.stringify(rules, null, 2)}
-        </pre>
-      </Tile>
+
     </Bento>
   );
 }

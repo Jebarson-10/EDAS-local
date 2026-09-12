@@ -1,14 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
 import { Panel } from "../components/ui";
 import { MasterEntryPanel } from "../components/MasterEntryPanel";
 import {
-  apiHealth,
-  fetchMasterBlocks,
-  fetchMasterCentres,
-  fetchMasterSchools,
-  fetchMasterSubjects,
-  fetchMasterTeachers,
   upsertExemptionApi,
 } from "../lib/api";
 
@@ -39,8 +33,6 @@ export function MasterDataPage() {
   const exemptionsCatalogLoading = !hydrateReady;
   const [tab, setTab] = useState<Tab>("teachers");
   const [q, setQ] = useState("");
-  const [apiNote, setApiNote] = useState<string>("Checking API…");
-  const [apiCapacityHint, setApiCapacityHint] = useState<string | null>(null);
   const [exTeacherId, setExTeacherId] = useState("");
   const [exReason, setExReason] = useState("");
   const [exMsg, setExMsg] = useState<string | null>(null);
@@ -48,34 +40,6 @@ export function MasterDataPage() {
   const [exBusy, setExBusy] = useState(false);
   const exBusyRef = useRef(false);
 
-  useEffect(() => {
-    void (async () => {
-      const h = await apiHealth();
-      if (!h) {
-        setApiNote("API offline — showing in-memory demo dataset");
-        setApiCapacityHint(null);
-        return;
-      }
-      const [t, s, c, b, sub] = await Promise.all([
-        fetchMasterTeachers(role),
-        fetchMasterSchools(role),
-        fetchMasterCentres(role),
-        fetchMasterBlocks(role),
-        fetchMasterSubjects(role),
-      ]);
-      const withCap = (c?.centres ?? []).filter(
-        (row) => typeof row.capacity === "number" && row.capacity > 0,
-      ).length;
-      setApiNote(
-        `API mirror · teachers=${t?.teachers?.length ?? h.counts?.teachers ?? "?"} schools=${s?.schools?.length ?? h.counts?.schools ?? "?"} centres=${c?.centres?.length ?? h.counts?.centres ?? "?"} blocks=${b?.blocks?.length ?? h.counts?.blocks ?? "?"} subjects=${sub?.subjects?.length ?? h.counts?.subjects ?? "?"}`,
-      );
-      setApiCapacityHint(
-        withCap > 0
-          ? `${withCap} centre(s) have capacity set in SQLite/D1 (strength import)`
-          : null,
-      );
-    })();
-  }, [role]);
 
   const filteredTeachers = useMemo(() => {
     if (!dataset) return [];
@@ -97,20 +61,12 @@ export function MasterDataPage() {
     return out;
   }, [dataset]);
 
-  if (loading || !dataset) return <Panel title="Master data">Loading…</Panel>;
+  if (loading || !dataset) return <Panel title="Schools & teachers">Loading…</Panel>;
 
   return (
-    <Panel title="Master data">
+    <Panel title="Schools & teachers">
       <p className="text-sm text-[var(--color-ink-muted)] mb-3">
-        Current state only. Historical school/designation/location rows are
-        preserved separately and never overwritten by imports.{" "}
-        <span data-testid="master-api-note">{apiNote}</span>
-        {apiCapacityHint ? (
-          <>
-            {" "}
-            · <span data-testid="master-capacity-hint">{apiCapacityHint}</span>
-          </>
-        ) : null}
+        Add or edit schools, blocks and teachers here. Schools with a centre code appear automatically in the centre list. Previous duty records stay unchanged.
       </p>
       <MasterEntryPanel
         dataset={dataset}
@@ -159,12 +115,10 @@ export function MasterDataPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-[var(--color-sky-wash)] sticky top-0">
               <tr>
-                <Th>Code</Th>
                 <Th>Name</Th>
                 <Th>Designation</Th>
                 <Th>School</Th>
                 <Th>Last duty</Th>
-                <Th>Quality</Th>
               </tr>
             </thead>
             <tbody>
@@ -173,12 +127,10 @@ export function MasterDataPage() {
                   key={t.teacherId}
                   className="border-t border-[var(--color-line)]"
                 >
-                  <Td>{t.employeeCode}</Td>
                   <Td>{t.name}</Td>
                   <Td>{t.designation}</Td>
-                  <Td>{t.schoolId}</Td>
+                  <Td>{dataset.schools.find((s) => s.schoolId === t.schoolId)?.schoolName ?? "School not found"}</Td>
                   <Td>{lastDutyByTeacher.get(t.teacherId) ?? "No recorded duty"}</Td>
-                  <Td>{t.dataQuality}</Td>
                 </tr>
               ))}
             </tbody>
@@ -188,7 +140,7 @@ export function MasterDataPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-[var(--color-sky-wash)] sticky top-0">
               <tr>
-                <Th>Code</Th>
+                <Th>Centre code</Th>
                 <Th>Name</Th>
                 <Th>Block</Th>
               </tr>
@@ -266,7 +218,7 @@ export function MasterDataPage() {
               {(dataset.subjects ?? []).length === 0 && (
                 <tr>
                   <Td>—</Td>
-                  <Td>No subjects hydrated from D1 yet</Td>
+                  <Td>No subjects added yet</Td>
                   <Td>—</Td>
                 </tr>
               )}
@@ -283,7 +235,7 @@ export function MasterDataPage() {
               </tr>
             </thead>
             <tbody>
-              {dataset.centres.map((c) => (
+              {dataset.centres.filter((c) => c.active).map((c) => (
                 <tr
                   key={c.centreId}
                   className="border-t border-[var(--color-line)]"
@@ -321,20 +273,17 @@ export function MasterDataPage() {
         {tab === "exemptions" && (
           <div className="p-3 space-y-3">
             <p className="text-sm text-[var(--color-ink-muted)]">
-              Admin-recorded exemptions (reason required). The Administrator
-              decides physical-disability and other exemption cases; every
-              decision is retained with audit.
+              Choose teachers who should not receive duty, and give a reason. You can end the exemption later.
             </p>
             <div className="flex flex-wrap gap-2 items-end">
               <label className="text-sm">
-                Teacher id
-                <input
+                Teacher
+                <select
                   className="block border border-[var(--color-line)] rounded px-2 py-1 text-sm min-w-[160px]"
                   value={exTeacherId}
                   onChange={(e) => setExTeacherId(e.target.value)}
-                  placeholder="tch_00001"
                   data-testid="exemption-teacher-id"
-                />
+                ><option value="">Select teacher</option>{dataset.teachers.map((t) => <option key={t.teacherId} value={t.teacherId}>{t.name} — {dataset.schools.find((s) => s.schoolId === t.schoolId)?.schoolName}</option>)}</select>
               </label>
               <label className="text-sm grow">
                 Reason
@@ -437,7 +386,7 @@ export function MasterDataPage() {
                     key={`${e.teacherId}-${i}`}
                     className="border-t border-[var(--color-line)]"
                   >
-                    <Td>{e.teacherId}</Td>
+                    <Td>{dataset.teachers.find((t) => t.teacherId === e.teacherId)?.name ?? "Teacher no longer listed"}</Td>
                     <Td>{e.reason}</Td>
                     <Td>{e.effectiveFrom}</Td>
                     <Td>

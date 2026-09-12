@@ -1,3 +1,4 @@
+import { activityDescription } from "../lib/activityText";
 import {
   createContext,
   useCallback,
@@ -469,10 +470,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               id: e.audit_id,
               action: e.action,
               timestamp: e.timestamp,
-              detail: [e.entity, e.entity_id, e.new_value]
-                .filter(Boolean)
-                .join(" · "),
-              reason: e.reason ?? undefined,
+              detail: activityDescription(e.entity, e.new_value),
+              reason: e.reason === "Direct master-data maintenance" ? "Details edited in the app" : e.reason ?? undefined,
             }));
             const ids = new Set(mapped.map((m) => m.id));
             return [...mapped, ...prev.filter((p) => !ids.has(p.id))];

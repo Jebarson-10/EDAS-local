@@ -1,3 +1,4 @@
+import { activityAction } from "../lib/activityText";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -56,7 +57,7 @@ export function DashboardPage() {
         <Tile span={6}>
           <TileHeader
             title="Loading control room"
-            hint="Reading synthetic master data and hydrating from the API"
+            hint="Loading saved schools and teachers"
           />
           <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -108,11 +109,6 @@ export function DashboardPage() {
       : health?.r2Ok === false
         ? "err"
         : "warn";
-  const accessTone = !probed
-    ? "idle"
-    : health?.accessRoleMapConfigured
-      ? "ok"
-      : "warn";
 
   return (
     <Bento>
@@ -151,7 +147,7 @@ export function DashboardPage() {
               tone="brand"
               label="Teachers"
               value={dataset.teachers.length}
-              sub="active master"
+              sub="saved teachers"
             />
             <Stat
               tone="brand"
@@ -167,7 +163,7 @@ export function DashboardPage() {
             />
             <Stat
               tone="brand"
-              label="Runs"
+              label="Duty lists"
               value={runsForExamCycle(runs, examCycle.examCycleId).length}
               sub="this cycle"
             />
@@ -198,7 +194,7 @@ export function DashboardPage() {
       <Tile span={2} rowSpan={2}>
         <TileHeader
           title="System health"
-          hint="Honest binding probe — never assumes Cloudflare is wired"
+          hint="Checks whether the app can read and save your data."
           action={
             probed ? (
               <Badge tone={health?.ok ? "ok" : "err"}>
@@ -238,16 +234,6 @@ export function DashboardPage() {
                       : "local files"}
                 </span>
               </li>
-              <li className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2">
-                  <Dot tone={accessTone} /> User access
-                </span>
-                <span className="text-[var(--color-ink-muted)]">
-                  {health.accessRoleMapConfigured
-                    ? `${health.accessRoleMapEntries} entries`
-                    : "not set up"}
-                </span>
-              </li>
             </ul>
             <div className="rounded-xl bg-[var(--color-paper)] px-3 py-2">
               <p
@@ -262,14 +248,7 @@ export function DashboardPage() {
                 {health.counts?.subjects ?? "?"} history=
                 {health.counts?.history ?? "?"}
               </p>
-              <p
-                className="mt-1 font-mono text-[0.68rem] text-[var(--color-ink-muted)]"
-                data-testid="binding-line"
-              >
-                Bindings: ok={String(health.ok)} dbOk=
-                {String(health.dbOk ?? "—")} r2Ok=
-                {String(health.r2Ok ?? "—")} ({health.environment ?? "?"})
-              </p>
+
             </div>
           </div>
         )}
@@ -288,8 +267,8 @@ export function DashboardPage() {
 
       <Tile span={3}>
         <TileHeader
-          title="Allocation pipeline"
-          hint="Each module keeps its own versioned run and validator verdict"
+          title="Duty lists"
+          hint="Check the latest Theory, Practical and Hall lists."
         />
         <ul className="space-y-2">
           {modules.map((m) => (
@@ -338,13 +317,13 @@ export function DashboardPage() {
       <Tile span={3}>
         <TileHeader
           title="Recent activity"
-          hint="Every override, publish and restore is audited"
+          hint="Changes are recorded automatically."
           action={
             <Link
               to="/audit"
               className="text-xs text-[var(--color-brand)] underline"
             >
-              Full trail
+              Activity log
             </Link>
           }
         />
@@ -361,7 +340,7 @@ export function DashboardPage() {
                 className="border-b border-[var(--color-line)] pb-2 last:border-0"
               >
                 <p className="text-sm">
-                  <span className="font-medium">{a.action}</span>
+                  <span className="font-medium">{activityAction(a.action)}</span>
                   <span className="text-[var(--color-ink-muted)]">
                     {" "}
                     · {a.detail}
@@ -373,35 +352,7 @@ export function DashboardPage() {
         )}
       </Tile>
 
-      <Tile span={6}>
-        <TileHeader
-          title="Data provenance"
-          hint="Where the numbers above came from"
-        />
-        <p className="text-xs text-[var(--color-ink-muted)]">
-          {dataset.meta.note}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            to="/open-questions"
-            className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-xs hover:bg-[var(--color-paper)]"
-          >
-            Open business questions
-          </Link>
-          <Link
-            to="/backups"
-            className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-xs hover:bg-[var(--color-paper)]"
-          >
-            Backup & restore
-          </Link>
-          <Link
-            to="/settings"
-            className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-xs hover:bg-[var(--color-paper)]"
-          >
-            Rules & bindings
-          </Link>
-        </div>
-      </Tile>
+
     </Bento>
   );
 }

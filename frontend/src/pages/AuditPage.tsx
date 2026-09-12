@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../state/AppContext";
+import { activityAction, activityDescription } from "../lib/activityText";
 import { Badge, Bento, EmptyState, Tile, TileHeader } from "../components/ui";
 import { importDrilldownCounts } from "@exam-duty/shared";
 import {
@@ -47,7 +48,7 @@ function teacherOf(value: string): string {
 export function AuditPage() {
   const { audit, role } = useApp();
   const [remote, setRemote] = useState<ApiAuditRow[]>([]);
-  const [remoteNote, setRemoteNote] = useState("Checking API…");
+  const [remoteNote, setRemoteNote] = useState("Loading saved changes…");
   const [overrides, setOverrides] = useState<OverrideRow[]>([]);
   const [exports, setExports] = useState<ExportRow[]>([]);
   const [imports, setImports] = useState<ImportRow[]>([]);
@@ -81,12 +82,12 @@ export function AuditPage() {
       ]);
       if (!data) {
         setOffline(true);
-        setRemoteNote("API offline — showing in-session audit only");
+        setRemoteNote("Saved changes could not be loaded. Only changes from this session are shown.");
         return;
       }
       setOffline(false);
       setRemote(data.entries ?? []);
-      setRemoteNote(`${(data.entries ?? []).length} persisted row(s)`);
+      setRemoteNote(`${(data.entries ?? []).length} saved changes`);
       setOverrides(ov?.overrides ?? []);
       setExports(ex?.exports ?? []);
       setImports(im?.imports ?? []);
@@ -98,7 +99,7 @@ export function AuditPage() {
       <Tile span={3}>
         <TileHeader
           title="This session"
-          hint="Browser trail for the current officer session"
+          hint="Changes made since you opened the app"
           action={<Badge>{audit.length} entries</Badge>}
         />
         <div className="max-h-[38vh] overflow-auto rounded-xl border border-[var(--color-line)] text-sm">
@@ -115,7 +116,7 @@ export function AuditPage() {
               {audit.map((a) => (
                 <tr key={a.id} className="border-t border-[var(--color-line)]">
                   <td className="whitespace-nowrap px-2 py-1">{a.timestamp}</td>
-                  <td className="px-2 py-1 font-medium">{a.action}</td>
+                  <td className="px-2 py-1 font-medium">{activityAction(a.action)}</td>
                   <td className="px-2 py-1">{a.detail}</td>
                   <td className="px-2 py-1">{a.reason ?? "—"}</td>
                 </tr>
@@ -127,7 +128,7 @@ export function AuditPage() {
 
       <Tile span={3}>
         <TileHeader
-          title="Persisted audit (D1/SQLite)"
+          title="Saved activity log"
           hint={remoteNote}
           action={
             <Badge tone={offline ? "warn" : "ok"}>
@@ -137,11 +138,11 @@ export function AuditPage() {
         />
         {remote.length === 0 ? (
           <EmptyState
-            title={offline ? "API offline" : "No persisted audit rows"}
+            title={offline ? "Saved changes unavailable" : "No saved changes yet"}
             body={
               offline
-                ? "Start the API to read the durable audit_logs table. In-session entries above are not persistence."
-                : "Publishing, overrides, imports and restores write here as soon as they run against the API."
+                ? "Reopen the app to try again. Changes shown above may not be saved."
+                : "Changes, imports and published lists are recorded here automatically."
             }
           />
         ) : (
@@ -151,7 +152,7 @@ export function AuditPage() {
                 <tr>
                   <th className="px-2 py-1 text-left">Time</th>
                   <th className="px-2 py-1 text-left">Action</th>
-                  <th className="px-2 py-1 text-left">Entity</th>
+                  <th className="px-2 py-1 text-left">Section</th>
                   <th className="px-2 py-1 text-left">Reason</th>
                 </tr>
               </thead>
@@ -164,12 +165,12 @@ export function AuditPage() {
                     <td className="whitespace-nowrap px-2 py-1">
                       {a.timestamp}
                     </td>
-                    <td className="px-2 py-1 font-medium">{a.action}</td>
+                    <td className="px-2 py-1 font-medium">{activityAction(a.action)}</td>
                     <td className="px-2 py-1">
-                      {a.entity ?? "—"} {a.entity_id ? `(${a.entity_id})` : ""}
+                      {activityDescription(a.entity, a.new_value)}
                     </td>
                     <td className="px-2 py-1">
-                      {a.reason ?? a.new_value ?? "—"}
+                      {a.reason === "Direct master-data maintenance" ? "Details edited in the app" : a.reason ?? "Details saved"}
                     </td>
                   </tr>
                 ))}
@@ -181,14 +182,14 @@ export function AuditPage() {
 
       <Tile span={6}>
         <TileHeader
-          title="Manual overrides"
-          hint="Every officer substitution is stored with a mandatory reason and the value it replaced"
+          title="Teacher replacements"
+          hint="Shows who replaced whom and why."
           action={<Badge testId="override-count">{overrides.length}</Badge>}
         />
         {overrides.length === 0 ? (
           <EmptyState
-            title="No manual overrides recorded"
-            body="Overrides applied on the theory page persist here with the run, result, officer and reason."
+            title="No teacher replacements yet"
+            body="Teacher replacements made in Theory appear here."
           />
         ) : (
           <div className="max-h-[34vh] overflow-auto rounded-xl border border-[var(--color-line)] text-sm">
@@ -233,14 +234,14 @@ export function AuditPage() {
 
       <Tile span={3}>
         <TileHeader
-          title="Import provenance"
-          hint="Uploaded workbooks with SHA-256 and apply status"
+          title="Imported files"
+          hint="Files you uploaded and whether their changes were saved."
           action={<Badge>{imports.length}</Badge>}
         />
         {imports.length === 0 ? (
           <EmptyState
             title="No uploads recorded"
-            body="Uploading a workbook on the Imports page records its filename, hash and row count before anything is applied."
+            body="Files appear here after you upload them in Imports."
           />
         ) : (
           <ul
@@ -261,7 +262,6 @@ export function AuditPage() {
                 <p className="mt-0.5 font-mono text-[0.68rem] text-[var(--color-ink-muted)]">
                   {i.uploaded_at}
                   {i.row_count != null ? ` · ${i.row_count} file rows` : ""}
-                  {i.file_hash ? ` · ${i.file_hash.slice(0, 12)}…` : ""}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <button
@@ -271,8 +271,8 @@ export function AuditPage() {
                     onClick={() => void toggleRows(i.import_id)}
                   >
                     {openImportId === i.import_id
-                      ? "Hide row outcomes"
-                      : "Row outcomes"}
+                      ? "Hide row details"
+                      : "Row details"}
                   </button>
                   {openImportId === i.import_id &&
                   importRows &&
@@ -293,8 +293,7 @@ export function AuditPage() {
                     </p>
                   ) : importRows.length === 0 ? (
                     <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
-                      No per-row provenance stored for this upload (applied
-                      before row outcomes were recorded).
+                      Details are not available for this older import.
                     </p>
                   ) : (
                     <div
@@ -333,13 +332,13 @@ export function AuditPage() {
 
       <Tile span={3}>
         <TileHeader
-          title="Export receipts"
-          hint="Who exported which report type and run. The file stays on the officer's machine — only the receipt is stored."
+          title="Downloaded reports"
+          hint="Shows when reports were downloaded. The files stay on your computer."
           action={<Badge>{exports.length}</Badge>}
         />
         {exports.length === 0 ? (
           <EmptyState
-            title="No export receipts"
+            title="No downloaded reports yet"
             body="Downloading a report from Reports records type, cycle and run here. The workbook, PDF or CSV is not uploaded or archived."
           />
         ) : (

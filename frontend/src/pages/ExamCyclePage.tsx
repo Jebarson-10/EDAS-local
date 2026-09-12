@@ -76,7 +76,7 @@ export function ExamCyclePage() {
     <Bento>
       <Tile span={4}>
         <TileHeader
-          title="Exam cycle workflow"
+          title="Examination workflow"
           hint="Published allocations are immutable — corrections require an audited amendment cycle"
           action={
             <Badge
@@ -347,7 +347,7 @@ export function ExamCyclePage() {
                 <tr key={row.timetableEntryId || `${row.examDate}-${row.sessionCode}-${index}`} className="border-t border-[var(--color-line)]">
                   <td className="p-2"><input type="date" className="rounded border border-[var(--color-line)] px-2 py-1" value={row.examDate} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, examDate: e.target.value } : r))} /></td>
                   <td className="p-2"><select className="rounded border border-[var(--color-line)] px-2 py-1" value={row.sessionCode} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, sessionCode: e.target.value as ExamTimetableEntry["sessionCode"] } : r))}><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option></select></td>
-                  <td className="p-2"><select className="min-w-48 rounded border border-[var(--color-line)] px-2 py-1" value={row.schoolId ?? ""} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, schoolId: e.target.value || null } : r))}><option value="">All schools</option>{(dataset?.schools ?? []).filter((school) => school.active).map((school) => <option key={school.schoolId} value={school.schoolId}>{school.schoolCode} · {school.schoolName}</option>)}</select></td>
+                  <td className="p-2"><select className="min-w-48 rounded border border-[var(--color-line)] px-2 py-1" value={row.schoolId ?? ""} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, schoolId: e.target.value || null } : r))}><option value="">All schools</option>{(dataset?.schools ?? []).filter((school) => school.active).map((school) => <option key={school.schoolId} value={school.schoolId}>{school.schoolName}{school.schoolCode ? ` · ${school.schoolCode}` : ""}</option>)}</select></td>
                   <td className="p-2"><input className="min-w-44 rounded border border-[var(--color-line)] px-2 py-1" placeholder="e.g. Tamil" value={row.subjectLabel} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, subjectLabel: e.target.value } : r))} /></td>
                   <td className="p-2 text-center"><input aria-label="Chief duty required" type="checkbox" checked={row.requiresChief} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, requiresChief: e.target.checked } : r))} /></td>
                   <td className="p-2 text-center"><input aria-label="Hall duty required" type="checkbox" checked={row.requiresHall} onChange={(e) => setTimetableDraft((rows) => rows.map((r, i) => i === index ? { ...r, requiresHall: e.target.checked } : r))} /></td>

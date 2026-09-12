@@ -40,7 +40,7 @@ describe("import preview", () => {
           schoolCode: "S1",
           designation: "HM",
         },
-        { employeeCode: "", name: "Bad", schoolCode: "S1", designation: "HM" },
+        { name: "", schoolCode: "S1", designation: "HM" },
       ],
       existing,
     );

@@ -66,7 +66,7 @@ export function BackupPage() {
     }
     const listed = await listBackupsApi(role);
     if (!listed) {
-      setListNote("API offline — start npm run api:local");
+      setListNote("Saved data is unavailable. Reopen the app to try again.");
       setServerBackups([]);
       return;
     }
@@ -130,16 +130,16 @@ export function BackupPage() {
       logAudit(
         "BACKUP",
         usedCanonical
-          ? "Downloaded encrypted canonical archive"
-          : "Downloaded encrypted memory contingency (API archive unavailable)",
+          ? "Downloaded password-protected backup"
+          : "Downloaded partial backup — full saved data unavailable",
       );
       void refreshServerBackups();
       setMsg(
         usedInline
-          ? "Encrypted canonical backup downloaded (catalog recorded; payload returned inline because the file was not stored)"
+          ? "Backup downloaded. No extra copy was saved in the app."
           : usedCanonical
-            ? "Encrypted canonical backup downloaded (server archive recorded)"
-            : "API archive unavailable — downloaded in-memory contingency. That file omits wipe-trigger keys (exemptions, cycles, audit, runs, pairs); do not use it for DR restore.",
+            ? "Backup downloaded and a copy saved in the app."
+            : "Only a partial backup could be downloaded. It cannot recover all your work. Reopen the app and create a full backup.",
       );
       setErr(null);
     } catch (e) {
@@ -157,7 +157,7 @@ export function BackupPage() {
         fromServer: true,
       });
       if (!r) {
-        setErr("API unavailable — start npm run api:local");
+        setErr("Saved data is unavailable. Reopen the app to try again.");
         return;
       }
       if (r.error) {
@@ -198,7 +198,7 @@ export function BackupPage() {
     }
     const got = await fetchBackupPayload(role, row.backup_id);
     if (!got) {
-      setErr("API unavailable");
+      setErr("Saved data is unavailable");
       return;
     }
     if (got.error || !isLoadableBackupPayload(got.payload)) {
@@ -264,7 +264,7 @@ export function BackupPage() {
         expectedChecksum: pendingChecksum,
       });
       if (!api) {
-        setErr("API unavailable — start npm run api:local");
+        setErr("Saved data is unavailable. Reopen the app to try again.");
         return;
       }
       if (!api.ok) {
@@ -272,7 +272,7 @@ export function BackupPage() {
         return;
       }
       setMsg(
-        `Restore applied: ${JSON.stringify(api.counts)} — reloading from D1`,
+        `Restore applied: ${JSON.stringify(api.counts)} — reloading saved data`,
       );
       setErr(null);
       window.location.reload();
@@ -286,7 +286,7 @@ export function BackupPage() {
       <Tile span={3} rowSpan={2}>
         <TileHeader
           title="Backup & restore"
-          hint="Encrypted download and stored server archives both use the canonical D1 snapshot (runs, pairs, provenance, persisted audit, exemptions). A catalog row with payload not stored cannot be loaded for restore. Encrypted preview and confirm refuse catalog receipts and other non-snapshot JSON (need teachers, schools, and centres arrays). The memory fallback omits wipe-trigger keys so restoring it cannot drop live runs or pairs. Restore is preview → admin confirm → transactional, then reload from D1."
+          hint="Keep a separate copy of your data. Restore a backup only when you want to replace current data with that copy."
           action={
             pendingPayload ? (
               <Badge tone={pendingChecksum ? "ok" : "warn"}>
@@ -302,7 +302,7 @@ export function BackupPage() {
             className="mt-1 w-full border border-[var(--color-line)] rounded px-2 py-1"
             value={passphrase}
             onChange={(e) => setPassphrase(e.target.value)}
-            placeholder="Client-held passphrase (OQ-015)"
+            placeholder="Backup password"
           />
         </label>
         <div className="flex flex-wrap gap-2">

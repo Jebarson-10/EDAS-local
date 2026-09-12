@@ -35,7 +35,6 @@ export async function buildTeacherWiseWorkbook(
   const sheet = wb.addWorksheet("Teacher-wise");
   const headers = [
     "Teacher",
-    "EmployeeCode",
     "School",
     "DutyType",
     "Centre",
@@ -140,15 +139,19 @@ export async function buildTeachersTemplateWorkbook(
   const wb = new ExcelJS.Workbook();
   const sheet = wb.addWorksheet("Teachers");
   const headers = [
-    "employeeCode",
     "name",
+    "schoolName",
     "schoolCode",
     "designation",
     "subject",
     "seniorityRank",
+    "joiningDate",
+    "homeLatitude",
+    "homeLongitude",
     "isActive",
   ];
-  sheet.addRow(headers);
+  const labels: Record<string, string> = { name:"Teacher name", schoolName:"School name", schoolCode:"Centre code", designation:"Designation", subject:"Subject", seniorityRank:"Seniority rank", joiningDate:"Joining date", homeLatitude:"Home latitude", homeLongitude:"Home longitude", isActive:"Active" };
+  sheet.addRow(headers.map((h) => labels[h] ?? h));
   for (const r of rows) {
     sheet.addRow(headers.map((h) => r[h] ?? ""));
   }

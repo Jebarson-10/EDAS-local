@@ -512,6 +512,8 @@ export type ManualMasterRecord =
   | { kind: "block"; blockCode: string; blockName: string; active?: boolean }
   | {
       kind: "school";
+      schoolId?: string;
+      capacity?: number;
       schoolCode: string;
       schoolName: string;
       blockId: string;
@@ -531,7 +533,8 @@ export type ManualMasterRecord =
     }
   | {
       kind: "teacher";
-      employeeCode: string;
+      teacherId?: string;
+      employeeCode?: string;
       name: string;
       schoolId: string;
       designation: string;

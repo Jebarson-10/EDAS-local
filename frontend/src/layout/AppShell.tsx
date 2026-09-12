@@ -12,13 +12,13 @@ const groups: Array<{
     label: "Overview",
     links: [
       { to: "/", label: "Dashboard" },
-      { to: "/cycles", label: "Exam cycle" },
+      { to: "/cycles", label: "Exam & timetable" },
     ],
   },
   {
     label: "Data",
     links: [
-      { to: "/master", label: "Master data" },
+      { to: "/master", label: "Schools & teachers" },
       { to: "/imports", label: "Imports" },
     ],
   },
@@ -28,14 +28,14 @@ const groups: Array<{
       { to: "/theory", label: "Theory" },
       { to: "/practical", label: "Practical" },
       { to: "/hall", label: "Hall" },
-      { to: "/validation", label: "Validation" },
+      { to: "/validation", label: "Check duty lists" },
     ],
   },
   {
-    label: "Governance",
+    label: "Records",
     links: [
       { to: "/reports", label: "Reports" },
-      { to: "/audit", label: "Audit" },
+      { to: "/audit", label: "Activity log" },
       { to: "/backups", label: "Backups" },
       { to: "/settings", label: "Settings" },
       { to: "/help", label: "Help & guide" },
@@ -46,12 +46,12 @@ const groups: Array<{
 const flatLinks = groups.flatMap((g) => g.links);
 
 const tamilLabels: Record<string, string> = {
-  "Dashboard": "முகப்பு", "Exam cycle": "தேர்வு சுற்று", "Master data": "முதன்மைத் தரவு",
+  "Dashboard": "முகப்பு", "Exam & timetable": "தேர்வு சுற்று", "Schools & teachers": "முதன்மைத் தரவு",
   "Imports": "இறக்குமதி", "Theory": "எழுத்துத் தேர்வு", "Practical": "செய்முறைத் தேர்வு",
-  "Hall": "அறைக் கண்காணிப்பு", "Validation": "சரிபார்ப்பு", "Reports": "அறிக்கைகள்",
-  "Audit": "பதிவேடு", "Backups": "காப்புநகல்கள்", "Settings": "அமைப்புகள்",
+  "Hall": "அறைக் கண்காணிப்பு", "Check duty lists": "சரிபார்ப்பு", "Reports": "அறிக்கைகள்",
+  "Activity log": "பதிவேடு", "Backups": "காப்புநகல்கள்", "Settings": "அமைப்புகள்",
   "Open questions": "முடிவு தேவைப்படும் விதிகள்", "Help & guide": "உதவி வழிகாட்டி",
-  "Overview": "மேலோட்டம்", "Data": "தரவு", "Allotment": "பணி ஒதுக்கீடு", "Governance": "நிர்வாகம்",
+  "Overview": "மேலோட்டம்", "Data": "தரவு", "Allotment": "பணி ஒதுக்கீடு", "Records": "நிர்வாகம்",
 };
 
 export function AppShell() {

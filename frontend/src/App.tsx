@@ -9,7 +9,6 @@ import { HallPage } from "./pages/HallPage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { AuditPage } from "./pages/AuditPage";
 import { BackupPage } from "./pages/BackupPage";
-import { OpenQuestionsPage } from "./pages/OpenQuestionsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { ExamCyclePage } from "./pages/ExamCyclePage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -34,7 +33,7 @@ export default function App() {
           <Route path="/backups" element={<BackupPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<HelpPage />} />
-          <Route path="/open-questions" element={<OpenQuestionsPage />} />
+          <Route path="/open-questions" element={<HelpPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

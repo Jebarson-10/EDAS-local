@@ -14,8 +14,6 @@ export function ImportPage() {
     logAudit,
     role,
     applyImportPreview,
-    schoolHistory,
-    locationHistory,
     examCycle,
   } = useApp();
   const [text, setText] = useState("");
@@ -53,16 +51,16 @@ export function ImportPage() {
       if (!Array.isArray(rows))
         throw new Error("Expected a JSON array of teacher rows");
       const existing = dataset.teachers.map((t) => {
-        const school = dataset.schools.find((s) => s.schoolId === t.schoolId);
         return {
+          ...t,
           employeeCode: t.employeeCode,
           name: t.name,
-          schoolCode: school?.schoolCode ?? t.schoolId,
+          schoolCode: t.schoolId,
           designation: t.designation,
           isActive: t.isActive,
         };
       });
-      return previewTeacherImport(rows, existing);
+      return previewTeacherImport(rows, existing, dataset.schools);
     } catch (e) {
       return { parseError: e instanceof Error ? e.message : "Parse error" };
     }
@@ -116,7 +114,7 @@ export function ImportPage() {
         setLastImportId(null);
         setError(
           up?.error ??
-            "Upload archive failed — apply will not attach file provenance",
+            "The file could not be saved. Please upload it again.",
         );
         return null;
       } catch (e) {
@@ -137,13 +135,7 @@ export function ImportPage() {
     <div className="space-y-4">
       <Panel title="Excel import preview">
         <p className="text-sm text-[var(--color-ink-muted)] mb-3">
-          Uploads record provenance when the API accepts them. The file is
-          archived only when object storage is bound (R2) or on the local filesystem in api:local;
-          a stored:false receipt means the file was not archived. Parse .xlsx locally, preview
-          deltas, then apply — history rows are written; nothing is silently
-          deleted. Teacher school-history entries (session + API hydrate):{" "}
-          {schoolHistory.length}. Location-history rows (display only, not
-          scored — OQ-001 / OQ-004): {locationHistory.length}.
+          Choose an Excel file, check the changes, then save. Use the school name for every teacher. Centre code is optional; employee codes are not needed. Add schools first in Schools & teachers.
         </p>
         {!canImport && (
           <p className="text-sm text-[var(--color-err)] mb-3">
@@ -183,13 +175,16 @@ export function ImportPage() {
                     (s) => s.schoolId === t.schoolId,
                   );
                   return {
-                    employeeCode: t.employeeCode,
                     name: t.name,
-                    schoolCode: school?.schoolCode ?? "S1",
+                    schoolName: school?.schoolName ?? "",
+                    schoolCode: school?.schoolCode ?? "",
                     designation: t.designation,
                     subject: t.subject,
                     seniorityRank: t.seniorityRank,
-                    isActive: true,
+                    joiningDate: t.joiningDate,
+                    homeLatitude: t.homeLatitude,
+                    homeLongitude: t.homeLongitude,
+                    isActive: t.isActive,
                   };
                 });
                 const buf = await buildTeachersTemplateWorkbook(sample);
@@ -199,7 +194,7 @@ export function ImportPage() {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = "teachers-template-synthetic.xlsx";
+                a.download = "teachers-template.xlsx";
                 a.click();
                 URL.revokeObjectURL(url);
               })();
@@ -214,51 +209,9 @@ export function ImportPage() {
           )}
         </div>
 
-        <textarea
-          className="w-full h-40 border border-[var(--color-line)] rounded p-2 font-mono text-xs"
-          placeholder='[{"employeeCode":"SYN0001","name":"Synthetic Teacher 1","schoolCode":"S1","designation":"HM"}]'
-          value={text}
-          onChange={(e) => {
-            clearArchivedImport();
-            setText(e.target.value);
-            setError(null);
-            setMessage(null);
-          }}
-        />
         <div className="mt-3 flex flex-wrap gap-2 items-center">
-          <button
-            type="button"
-            className="rounded bg-[var(--color-brand)] text-white px-3 py-2 text-sm"
-            data-testid="load-sample-diff"
-            onClick={() => {
-              clearArchivedImport();
-              const sample = dataset.teachers.slice(0, 5).map((t) => {
-                const school = dataset.schools.find(
-                  (s) => s.schoolId === t.schoolId,
-                );
-                return {
-                  employeeCode: t.employeeCode,
-                  name:
-                    t.name + (t.employeeCode.endsWith("1") ? " Updated" : ""),
-                  schoolCode: school?.schoolCode ?? "S1",
-                  designation: t.designation,
-                  isActive: true,
-                };
-              });
-              sample.push({
-                employeeCode: "SYN9999",
-                name: "Brand New Synthetic",
-                schoolCode: dataset.schools[0]!.schoolCode,
-                designation: "PG",
-                isActive: true,
-              });
-              setText(JSON.stringify(sample, null, 2));
-            }}
-          >
-            Load sample diff
-          </button>
           <label className="text-sm flex items-center gap-2">
-            Missing-from-file
+            Teachers not in this file
             <select
               className="border border-[var(--color-line)] rounded px-2 py-1"
               value={missingAction}
@@ -266,8 +219,8 @@ export function ImportPage() {
                 setMissingAction(e.target.value as "leave" | "deactivate")
               }
             >
-              <option value="leave">Leave unchanged (OQ-014 default)</option>
-              <option value="deactivate">Deactivate explicitly</option>
+              <option value="leave">Keep unchanged</option>
+              <option value="deactivate">Mark inactive</option>
             </select>
           </label>
           <button
@@ -323,7 +276,7 @@ export function ImportPage() {
               })();
             }}
           >
-            {uploadBusy ? "Uploading…" : busy ? "Applying…" : "Apply import (preserve history)"}
+            {uploadBusy ? "Uploading…" : busy ? "Applying…" : "Save changes"}
           </button>
         </div>
         {error && (
@@ -353,7 +306,7 @@ export function ImportPage() {
                   <tr>
                     <th className="text-left px-2 py-1">Row</th>
                     <th className="text-left px-2 py-1">Status</th>
-                    <th className="text-left px-2 py-1">Code</th>
+                    <th className="text-left px-2 py-1">Teacher</th>
                     <th className="text-left px-2 py-1">Message</th>
                   </tr>
                 </thead>
@@ -362,7 +315,7 @@ export function ImportPage() {
                     <tr key={i} className="border-t border-[var(--color-line)]">
                       <td className="px-2 py-1">{r.rowNumber}</td>
                       <td className="px-2 py-1">{r.status}</td>
-                      <td className="px-2 py-1">{r.employeeCode}</td>
+                      <td className="px-2 py-1">{r.payload?.name ?? dataset.teachers.find((t) => t.employeeCode === r.employeeCode)?.name ?? "—"}</td>
                       <td className="px-2 py-1">{r.message}</td>
                     </tr>
                   ))}
@@ -454,7 +407,7 @@ function PracticalFormatImportPanel({
       const applied = mod.applyPracticalClubbing({
         rows,
         schools: dataset.schools,
-        centres: dataset.centres,
+        centres: dataset.centres.filter((c) => c.active),
         existing: dataset.relationships,
         asOfDate: new Date().toISOString().slice(0, 10),
       });
@@ -612,10 +565,10 @@ function PracticalFormatImportPanel({
         errors.push(...parsed.errors);
         for (const r of parsed.rows) {
           allRows.push({
-            employeeCode: r.employeeCode,
             name: r.name,
             schoolCode: r.schoolCode,
             designation: r.designation,
+            schoolName: r.schoolName,
             subject: r.subject,
             seniorityRank: r.seniorityRank,
             isActive: true,
@@ -625,7 +578,7 @@ function PracticalFormatImportPanel({
       if (errors.length) setErr(errors.slice(0, 5).join("; "));
       onForm01Rows(allRows);
       setForm01Msg(
-        `Parsed ${allRows.length} FORM-01 row(s) across ${wb.worksheets.length} sheet(s) with synthetic employee codes (SYN-…). Loaded into teacher import preview above.`,
+        `${allRows.length} teachers loaded. Check the preview above before saving.`,
       );
       logAudit("IMPORT", `FORM-01 parsed rows=${allRows.length}`);
     } catch (e) {
@@ -634,12 +587,9 @@ function PracticalFormatImportPanel({
   }
 
   return (
-    <Panel title="Client practical / centre / seniority layouts">
+    <Panel title="Other Excel files">
       <p className="text-sm text-[var(--color-ink-muted)] mb-3">
-        Apply clubbing and centre strength into the in-memory master; store
-        batch demand for Practical; parse FORM-01 with{" "}
-        <strong>synthetic</strong> employee codes only. Do not commit real
-        client PII. QP labels remain OQ-019.
+        Import combined schools, student numbers, practical groups or the teacher seniority list.
       </p>
       <div className="flex flex-wrap gap-2">
         <label
@@ -669,7 +619,7 @@ function PracticalFormatImportPanel({
               : "cursor-pointer"
           }`}
         >
-          Load batch-demand .xlsx
+          Import practical batches .xlsx
           <input
             type="file"
             accept=".xlsx"

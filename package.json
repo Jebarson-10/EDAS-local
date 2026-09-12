@@ -41,7 +41,7 @@
     "desktop:bundle": "esbuild scripts/local-api-server.ts --bundle --platform=node --target=node20 --format=cjs --external:better-sqlite3 --outfile=desktop/dist/api-server.cjs --log-level=warning",
     "desktop:dev": "npm run app:build && electron desktop/main.cjs",
     "desktop:dist": "npm run app:build && electron-builder --linux AppImage",
-    "desktop:dist:win": "npm run app:build && electron-builder --win nsis",
+    "desktop:dist:win": "npm run app:build && electron-builder --win nsis --publish never",
     "desktop:dist:win:portable": "npm run app:build && electron-builder --win zip",
     "desktop:dist:mac": "npm run app:build && electron-builder --mac dmg",
     "pages:build": "npm run build -w frontend",

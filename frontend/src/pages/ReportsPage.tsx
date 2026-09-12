@@ -442,7 +442,7 @@ export function ReportsPage() {
       );
       const letters = groupDutyInLetters({
         academicYearLabel: `HIGHER SECONDARY PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
-        districtLabel: "ERODE DISTRICT (synthetic layout)",
+        districtLabel: "ERODE DISTRICT",
         signatoryTitle: "CHIEF EDUCATIONAL OFFICER",
         signatoryPlace: "ERODE",
         schedules: practicalResult.schedules,
@@ -495,7 +495,7 @@ export function ReportsPage() {
       );
       const letters = groupDutyOutLetters({
         academicYearLabel: `HIGHER SECONDARY SECOND YEAR PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
-        districtLabel: "ERODE DISTRICT (synthetic layout)",
+        districtLabel: "ERODE DISTRICT",
         signatoryTitle: "CHIEF EDUCATIONAL OFFICER",
         signatoryPlace: "ERODE",
         schedules: practicalResult.schedules,
@@ -581,7 +581,7 @@ export function ReportsPage() {
       <Tile span={4}>
           <TileHeader
             title="Theory duty lists"
-          hint="Workbooks carry cycle, timestamp, rule version, run id and officer. Home coordinates are never exported (letterhead is OQ-016)."
+          hint="Download school-wise and teacher-wise duty lists. Check the details before issuing them."
         />
         {!latest?.result && (
           <EmptyState
@@ -636,7 +636,7 @@ export function ReportsPage() {
       <Tile span={6}>
         <TileHeader
           title="Practical / hall exports"
-          hint="CSV exports plus Duty-In / Duty-Out letters matching client sample layouts (English interim — OQ-016). Question-paper labels are OQ-019."
+          hint="Download duty letters for schools and teachers."
         />
         {!practicalResult?.schedules.length &&
         !hallResult?.assignments.length ? (

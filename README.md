@@ -219,3 +219,14 @@ npm run desktop:dist:win:portable
 
 The test suite covers rule parameters, history, deterministic theory/practical/hall
 allocation, independent validation, authorization and SQLite persistence.
+# Schools, teachers and app updates
+
+- Add blocks, then schools, then teachers in **Schools & teachers**.
+- **Centre code is the school code.** Leave it blank for a school that is not an exam centre. A coded school automatically creates its centre and host-school link. Names, locations and blocks stay in sync.
+- To stop using a school as a centre, select the school for editing and clear its centre code. The centre becomes inactive; earlier duty records remain available. Enter actual student counts for hall allotment.
+- Employee codes are not required. Select a teacher by name to edit them. The app keeps private identifiers so identical names do not overwrite each other.
+- The teacher Excel template uses **School name** and optional **Centre code**, with no employee-code column. Add the schools first. Imports match a teacher's name and school; duplicate names at the same school must be entered or edited individually. For a transfer or name change, edit the existing teacher rather than importing them as a new person. Older files containing employee codes remain supported.
+- The **Activity log** records changes, imported files, teacher replacements and downloaded reports. **Help & guide** explains each section. Developer diagnostics and sample-data entry controls are not shown.
+- Every push to `main` runs tests and builds a Windows installer. A successful release includes the installer, `latest.yml`, a block map and SHA-256 checksum. Installed apps check for a newer release when opened and ask before downloading and restarting to install it. A failed build does not replace the previous release.
+
+Developer compatibility note: existing database identities and duty history are retained. Uncoded schools use private `__school_` storage keys; these are returned as blank centre codes in the app. Backup restore recreates those private keys for blank-code schools. Migration `004_school_centres` aligns existing school codes with centres without deleting old records. Desktop packaging uses `--publish never`; the release workflow publishes all completed update assets together.

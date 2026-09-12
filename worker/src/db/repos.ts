@@ -1516,7 +1516,7 @@ export async function transactionalRestore(
         )
         .bind(
           idOf(s, "schoolId", "school_id"),
-          s.schoolCode ?? s.school_code,
+          (s.schoolCode ?? s.school_code) || `__school_${s.schoolId ?? s.school_id}`,
           s.schoolName ?? s.school_name,
           idOf(s, "blockId", "block_id") || "blk_restored",
           s.latitude ?? null,
@@ -2258,7 +2258,7 @@ export async function listTeachers(db: DbClient, limit = 10000) {
 export async function listSchools(db: DbClient, limit = 5000) {
   const rs = await db
     .prepare(
-      `SELECT school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality
+      `SELECT school_id, CASE WHEN substr(school_code, 1, 9) = '__school_' THEN '' ELSE school_code END AS school_code, school_name, block_id, latitude, longitude, active, data_quality
        FROM schools ORDER BY school_code LIMIT ?`,
     )
     .bind(limit)
@@ -2304,7 +2304,8 @@ export async function upsertMasterRecord(
     | {
         kind: "school";
         schoolId?: string;
-        schoolCode: string;
+        schoolCode?: string;
+        capacity?: number;
         schoolName: string;
         blockId: string;
         latitude: number;
@@ -2325,7 +2326,7 @@ export async function upsertMasterRecord(
     | {
         kind: "teacher";
         teacherId?: string;
-        employeeCode: string;
+        employeeCode?: string;
         name: string;
         schoolId: string;
         designation: string;
@@ -2362,65 +2363,76 @@ export async function upsertMasterRecord(
   }
 
   if (record.kind === "school") {
+    const publicCode = record.schoolCode?.trim() ?? "";
     const parent = await db
       .prepare(`SELECT block_id FROM blocks WHERE block_id = ?`)
       .bind(record.blockId)
       .first<{ block_id: string }>();
     if (!parent) throw new Error("Select a valid block before saving");
     const existing = await db
-      .prepare(`SELECT school_id FROM schools WHERE school_code = ?`)
-      .bind(record.schoolCode.trim())
+      .prepare(`SELECT school_id FROM schools WHERE ${record.schoolId ? "school_id" : "school_code"} = ?`)
+      .bind(record.schoolId ?? (publicCode || "__new__"))
       .first<{ school_id: string }>();
     const id = existing?.school_id ?? record.schoolId ?? `sch_${crypto.randomUUID()}`;
+    const schoolCode = publicCode || `__school_${id}`;
+    if (publicCode.startsWith("__school_")) throw new Error("This centre code is reserved. Choose a different code.");
+    const statements = [];
     if (existing) {
-      await db
+      statements.push(db
         .prepare(
-          `UPDATE schools SET school_name=?, block_id=?, latitude=?, longitude=?, active=?, data_quality='ManuallyCorrected', updated_at=? WHERE school_id=?`,
+          `UPDATE schools SET school_code=?, school_name=?, block_id=?, latitude=?, longitude=?, active=?, data_quality='ManuallyCorrected', updated_at=? WHERE school_id=?`,
         )
-        .bind(record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, id)
-        .run();
+        .bind(schoolCode, record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, id)
+      );
     } else {
-      await db
+      statements.push(db
         .prepare(
           `INSERT INTO schools (school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, 'ManuallyCorrected', ?, ?)`,
         )
-        .bind(id, record.schoolCode.trim(), record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, now)
-        .run();
+        .bind(id, schoolCode, record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, now)
+      );
     }
+    // School and centre changes commit together; published duty rows are never changed.
+    statements.push(db.prepare(`UPDATE centres SET active=0, updated_at=? WHERE centre_id IN
+      (SELECT centre_id FROM centre_school_relationships WHERE school_id=? AND relationship_type='HOST' AND effective_to IS NULL)
+      AND centre_code<>?`).bind(now, id, schoolCode));
+    statements.push(db.prepare(`UPDATE centre_school_relationships SET effective_to=?
+      WHERE school_id=? AND relationship_type='HOST' AND effective_to IS NULL
+      AND centre_id IN (SELECT centre_id FROM centres WHERE centre_code<>?)`).bind(now.slice(0,10), id, schoolCode));
+    if (publicCode) {
+      statements.push(db.prepare(`INSERT INTO centres
+        (centre_id, centre_code, centre_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'ManuallyCorrected', ?, ?)
+        ON CONFLICT(centre_code) DO UPDATE SET centre_name=excluded.centre_name, block_id=excluded.block_id,
+        latitude=excluded.latitude, longitude=excluded.longitude, active=excluded.active, updated_at=excluded.updated_at`)
+        .bind(`ctr_${crypto.randomUUID()}`, schoolCode, record.schoolName.trim(), record.blockId,
+          record.latitude, record.longitude, record.active !== false ? 1 : 0, now, now));
+      statements.push(db.prepare(`INSERT INTO centre_school_relationships
+        (id, centre_id, school_id, relationship_type, effective_from, created_at)
+        SELECT ?, centre_id, ?, 'HOST', ?, ? FROM centres c WHERE centre_code=? AND NOT EXISTS
+        (SELECT 1 FROM centre_school_relationships r WHERE r.school_id=? AND r.centre_id=c.centre_id
+         AND r.relationship_type='HOST' AND r.effective_to IS NULL)`)
+        .bind(crypto.randomUUID(), id, now.slice(0,10), now, schoolCode, id));
+      if (record.capacity != null) statements.push(db.prepare(`UPDATE centres SET capacity=? WHERE centre_code=?`).bind(record.capacity, schoolCode));
+    }
+    await runAtomic(db, statements);
     return { id, created: !existing };
   }
 
   if (record.kind === "centre") {
-    const parent = await db
-      .prepare(`SELECT block_id FROM blocks WHERE block_id = ?`)
-      .bind(record.blockId)
-      .first<{ block_id: string }>();
-    if (!parent) throw new Error("Select a valid block before saving");
-    const existing = await db
-      .prepare(`SELECT centre_id FROM centres WHERE centre_code = ?`)
-      .bind(record.centreCode.trim())
-      .first<{ centre_id: string }>();
-    const id = existing?.centre_id ?? record.centreId ?? `ctr_${crypto.randomUUID()}`;
-    if (existing) {
-      await db
-        .prepare(
-          `UPDATE centres SET centre_name=?, block_id=?, latitude=?, longitude=?, capacity=?, active=?, data_quality='ManuallyCorrected', updated_at=? WHERE centre_id=?`,
-        )
-        .bind(record.centreName.trim(), record.blockId, record.latitude, record.longitude, record.capacity, record.active !== false ? 1 : 0, now, id)
-        .run();
-    } else {
-      await db
-        .prepare(
-          `INSERT INTO centres (centre_id, centre_code, centre_name, block_id, latitude, longitude, capacity, active, data_quality, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ManuallyCorrected', ?, ?)`,
-        )
-        .bind(id, record.centreCode.trim(), record.centreName.trim(), record.blockId, record.latitude, record.longitude, record.capacity, record.active !== false ? 1 : 0, now, now)
-        .run();
-    }
-    return { id, created: !existing };
+    const host = await db.prepare("SELECT school_id FROM schools WHERE school_code=?")
+      .bind(record.centreCode.trim()).first<{school_id:string}>();
+    if (!host) throw new Error("Add this centre code to a school in Schools & teachers first.");
+    const previous = await db.prepare("SELECT centre_id FROM centres WHERE centre_code=?")
+      .bind(record.centreCode.trim()).first<{centre_id:string}>();
+    await upsertMasterRecord(db, { kind:"school", schoolId:host.school_id,
+      schoolCode:record.centreCode, schoolName:record.centreName, blockId:record.blockId,
+      latitude:record.latitude, longitude:record.longitude, capacity:record.capacity, active:record.active });
+    const centre = await db.prepare("SELECT centre_id FROM centres WHERE centre_code=?")
+      .bind(record.centreCode.trim()).first<{centre_id:string}>();
+    return { id:centre!.centre_id, created:!previous };
   }
-
   const school = await db
     .prepare(`SELECT school_id FROM schools WHERE school_id = ?`)
     .bind(record.schoolId)
@@ -2428,12 +2440,13 @@ export async function upsertMasterRecord(
   if (!school) throw new Error("Select a valid school before saving");
   const existing = await db
     .prepare(
-      `SELECT teacher_id, school_id, designation, home_latitude, home_longitude
-       FROM teachers WHERE employee_code = ?`,
+      `SELECT teacher_id, employee_code, school_id, designation, home_latitude, home_longitude
+       FROM teachers WHERE ${record.teacherId ? "teacher_id" : "employee_code"} = ?`,
     )
-    .bind(record.employeeCode.trim())
+    .bind(record.teacherId ?? record.employeeCode?.trim() ?? "__new__")
     .first<{
       teacher_id: string;
+      employee_code: string;
       school_id: string;
       designation: string;
       home_latitude: number | null;
@@ -2443,7 +2456,7 @@ export async function upsertMasterRecord(
   await upsertTeachers(db, [
     {
       teacherId: id,
-      employeeCode: record.employeeCode.trim(),
+      employeeCode: existing?.employee_code ?? (record.employeeCode?.trim() || `auto_${crypto.randomUUID()}`),
       name: record.name.trim(),
       schoolId: record.schoolId,
       designation: record.designation,

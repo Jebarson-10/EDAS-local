@@ -12,6 +12,15 @@ const HEADER_MAP: Record<string, keyof TeacherImportRow | "ignore"> = {
   schoolcode: "schoolCode",
   school_code: "schoolCode",
   "school code": "schoolCode",
+  centrecode: "schoolCode",
+  "centre code": "schoolCode",
+  schoolname: "schoolName",
+  "school name": "schoolName",
+  "teacher name": "name",
+  "seniority rank": "seniorityRank",
+  "joining date": "joiningDate",
+  "home latitude": "homeLatitude",
+  "home longitude": "homeLongitude",
   designation: "designation",
   subject: "subject",
   seniorityrank: "seniorityRank",
@@ -37,7 +46,7 @@ function normalizeHeader(h: unknown): string {
 }
 
 function coerceCell(key: keyof TeacherImportRow, value: unknown): unknown {
-  if (value == null || value === "") return null;
+  if (value == null || value === "") return key === "isActive" ? undefined : null;
   if (key === "seniorityRank") {
     const n = Number(value);
     return Number.isFinite(n) ? n : value;
@@ -53,7 +62,8 @@ function coerceCell(key: keyof TeacherImportRow, value: unknown): unknown {
     if (["0", "false", "no", "n", "inactive"].includes(s)) return false;
     return value;
   }
-  return typeof value === "string" ? value.trim() : value;
+  if (key === "joiningDate" && value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).trim();
 }
 
 /**
@@ -79,12 +89,9 @@ export function parseTeacherRowsFromAoa(aoa: unknown[][]): {
     return key;
   });
 
-  if (!mapping.includes("employeeCode")) {
-    headerErrors.push("Required column employeeCode not found");
-  }
   if (!mapping.includes("name")) headerErrors.push("Required column name not found");
-  if (!mapping.includes("schoolCode")) {
-    headerErrors.push("Required column schoolCode not found");
+  if (!mapping.includes("schoolCode") && !mapping.includes("schoolName")) {
+    headerErrors.push("Add a School name column (or Centre code for an exam centre).");
   }
   if (!mapping.includes("designation")) {
     headerErrors.push("Required column designation not found");

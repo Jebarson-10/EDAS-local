@@ -114,7 +114,7 @@ export function applyTeacherImport(
 ): ApplyTeacherImportResult {
   const importId = historySourceImportId(input.importId);
   const schoolByCode = new Map(
-    input.schools.map((s) => [s.schoolCode, s.schoolId]),
+    input.schools.flatMap((s) => [[s.schoolId, s.schoolId], ...(s.schoolCode ? [[s.schoolCode, s.schoolId]] : [])] as [string, string][]),
   );
   const byCode = new Map(input.teachers.map((t) => [t.employeeCode, { ...t }]));
   const schoolHistory: TeacherSchoolHistoryRow[] = [];

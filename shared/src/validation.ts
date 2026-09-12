@@ -7,6 +7,7 @@ export const teacherImportRowSchema = z.object({
   employeeCode: employeeCodeSchema,
   name: z.string().min(1).max(200),
   schoolCode: z.string().min(1).max(64),
+  schoolName: z.string().optional(),
   designation: designationSchema,
   subject: z.string().max(64).optional().nullable(),
   seniorityRank: z.number().int().nonnegative().optional().nullable(),
@@ -512,7 +513,8 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("school"),
     schoolId: z.string().min(1).optional(),
-    schoolCode: z.string().min(1).max(64),
+    schoolCode: z.string().trim().max(64).default(""),
+    capacity: z.number().int().positive().optional(),
     schoolName: z.string().min(1).max(200),
     blockId: z.string().min(1),
     latitude: z.number().min(-90).max(90),
@@ -533,7 +535,7 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("teacher"),
     teacherId: z.string().min(1).optional(),
-    employeeCode: z.string().min(1).max(64),
+    employeeCode: z.string().trim().max(64).optional(),
     name: z.string().min(1).max(200),
     schoolId: z.string().min(1),
     designation: designationSchema,

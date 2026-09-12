@@ -41,14 +41,14 @@ export function ValidationPage() {
       if (cancelled) return;
       if (!r) {
         setPersistedReasons([]);
-        setPersistNote("API unavailable — session validation only (in memory)");
+        setPersistNote("Saved data is unavailable — session validation only (in memory)");
         return;
       }
       setPersistedReasons(r.reasons);
       setPersistNote(
         r.reasons.length === 0
           ? "No rows in allocation_decision_reasons for this run yet (re-generate to persist)"
-          : `Loaded ${r.reasons.length} persisted reason(s) from D1/SQLite`,
+          : `Loaded ${r.reasons.length} saved checks`,
       );
     });
     return () => {
@@ -90,7 +90,7 @@ export function ValidationPage() {
       <Tile span={6}>
         <TileHeader
           title="Validation"
-          hint="The validator is independent of the allocator and recalculates hard rules. Runs with ERROR cannot be published; issues and conflicts persist to allocation_decision_reasons."
+          hint="Checks duty lists for mistakes and conflicting assignments. Fix errors before approval or printing."
           action={
             latest ? (
               <Badge
@@ -175,7 +175,7 @@ export function ValidationPage() {
         <Tile span={6}>
           <TileHeader
             title="Session conflicts"
-            hint="Cross-module same-session conflicts from the independent conflict engine"
+            hint="Teachers assigned more than one duty at the same time."
           />
           {conflicts.length === 0 ? (
             <p

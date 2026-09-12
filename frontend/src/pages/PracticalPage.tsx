@@ -81,7 +81,7 @@ function toPairHistory(
 }
 
 function demoDemands(
-  schools: Array<{ schoolId: string; schoolCode: string }>,
+  schools: Array<{ schoolId: string; schoolCode: string; schoolName: string }>,
   batchSize: number,
   imported: Array<{
     schoolCode: string;
@@ -103,11 +103,7 @@ function demoDemands(
     });
     if (demands.length) return demands;
   }
-  return schools.slice(0, Math.min(8, schools.length)).map((s, i) => ({
-    schoolId: s.schoolId,
-    subjectId: "PHYSICS",
-    studentCount: 40 + ((i * 17) % 80),
-  }));
+  return [];
 }
 
 export function PracticalPage() {
@@ -190,7 +186,7 @@ export function PracticalPage() {
     },
     {
       outcome: runsOutcome,
-      failed: "Allocation runs unavailable",
+      failed: "Duty lists unavailable",
       loading: "Loading allocation runs…",
     },
     { outcome: rulesOutcome, failed: "Rules unavailable", loading: "Loading rules…" },
@@ -217,8 +213,8 @@ export function PracticalPage() {
     if (!pairsReady) {
       setMessage(
         pairsOutcome === "failed"
-          ? "Pair memory could not be loaded from the API"
-          : "Waiting for examiner pair memory from the API",
+          ? "Previous examiner duties could not be loaded from saved data"
+          : "Waiting for previous examiner duties from saved data",
       );
       setSummary(null);
       return;
@@ -226,8 +222,8 @@ export function PracticalPage() {
     if (!cyclesReady) {
       setMessage(
         cyclesOutcome === "failed"
-          ? "Exam cycle could not be loaded from the API"
-          : "Waiting for the exam cycle from the API",
+          ? "Examination could not be loaded from saved data"
+          : "Waiting for the exam cycle from saved data",
       );
       setSummary(null);
       return;
@@ -235,8 +231,8 @@ export function PracticalPage() {
     if (!rulesReady) {
       setMessage(
         rulesOutcome === "failed"
-          ? "Rule parameters could not be loaded from the API"
-          : "Waiting for rule parameters from the API",
+          ? "Allotment rules could not be loaded from saved data"
+          : "Waiting for rule parameters from saved data",
       );
       setSummary(null);
       return;
@@ -244,8 +240,8 @@ export function PracticalPage() {
     if (!exemptionsReady) {
       setMessage(
         exemptionsOutcome === "failed"
-          ? "Exemptions could not be loaded from the API"
-          : "Waiting for exemptions from the API",
+          ? "Exemptions could not be loaded from saved data"
+          : "Waiting for exemptions from saved data",
       );
       setSummary(null);
       return;
@@ -253,8 +249,8 @@ export function PracticalPage() {
     if (!teachersReady) {
       setMessage(
         teachersOutcome === "failed"
-          ? "Teachers could not be loaded from the API"
-          : "Waiting for teachers from the API",
+          ? "Teachers could not be loaded from saved data"
+          : "Waiting for teachers from saved data",
       );
       setSummary(null);
       return;
@@ -262,8 +258,8 @@ export function PracticalPage() {
     if (!schoolsReady) {
       setMessage(
         schoolsOutcome === "failed"
-          ? "Schools could not be loaded from the API"
-          : "Waiting for schools from the API",
+          ? "Schools could not be loaded from saved data"
+          : "Waiting for schools from saved data",
       );
       setSummary(null);
       return;
@@ -271,8 +267,8 @@ export function PracticalPage() {
     if (!runsReady) {
       setMessage(
         runsOutcome === "failed"
-          ? "Allocation runs could not be loaded from the API"
-          : "Waiting for allocation runs from the API",
+          ? "Duty lists could not be loaded from saved data"
+          : "Waiting for allocation runs from saved data",
       );
       setSummary(null);
       return;
@@ -282,10 +278,12 @@ export function PracticalPage() {
       dataset.schools.map((s) => ({
         schoolId: s.schoolId,
         schoolCode: s.schoolCode,
+        schoolName: s.schoolName,
       })),
       rules.practical_batch_size,
       practicalBatchDemand,
     );
+    if (!demand.length) { setBusy(false); setMessage("Import practical student batches before creating a duty list."); return; }
     const dates = examWindowDates(
       examCycle,
       rules.practical_completion_days,
@@ -465,7 +463,7 @@ export function PracticalPage() {
         }
       })
       .catch(() => {
-        setPersistError("Persist failed");
+        setPersistError("Could not save");
         setBusy(false);
       });
   }
@@ -475,13 +473,13 @@ export function PracticalPage() {
       <Tile span={6}>
         <TileHeader
           title="Practical examination scheduling"
-          hint="Batching balances group sizes (never a silent 50 + remainder). The completion window is hard: infeasible schedules return NO VALID SCHEDULE, and pair role-switch remains provisional (OQ-008)."
+          hint="Creates balanced student batches and assigns examiners within the allowed days. Check any shortage before approval."
         />
         <p className="mb-3 text-sm text-[var(--color-ink-muted)]">
           Demand source:{" "}
           {practicalBatchDemand?.length
             ? `${practicalBatchDemand.length} imported batch row(s) by school code`
-            : "synthetic Physics for up to 8 schools (import a batch sheet to override)"}
+            : "No student batches added. Import a batch file first."}
           .
         </p>
         <button
@@ -507,7 +505,7 @@ export function PracticalPage() {
             : pairsOutcome === null
               ? "Loading pair memory…"
               : pairsOutcome === "failed"
-                ? "Pair memory unavailable"
+                ? "Previous examiner duties unavailable"
                 : (catalogBlock ?? "Generate practical schedule")}
         </button>
         {!cyclesReady ? (
@@ -518,8 +516,8 @@ export function PracticalPage() {
             }
           >
             {cyclesOutcome === "failed"
-              ? "Exam cycle unavailable — generate stays disabled so a miss is not treated as the session seed cycle."
-              : "Waiting for the exam cycle from the API…"}
+              ? "Examination unavailable. Allotment is paused until this is available."
+              : "Waiting for the exam cycle from saved data…"}
           </p>
         ) : null}
         {!rulesReady ? (
@@ -530,8 +528,8 @@ export function PracticalPage() {
             }
           >
             {rulesOutcome === "failed"
-              ? "Rule parameters unavailable — generate stays disabled so a miss is not treated as seed defaults."
-              : "Waiting for rule parameters from the API…"}
+              ? "Allotment rules unavailable. Allotment is paused until this is available."
+              : "Waiting for rule parameters from saved data…"}
           </p>
         ) : null}
         {!exemptionsReady ? (
@@ -544,8 +542,8 @@ export function PracticalPage() {
             }
           >
             {exemptionsOutcome === "failed"
-              ? "Exemptions unavailable — generate stays disabled so a miss is not treated as an empty catalog."
-              : "Waiting for exemptions from the API…"}
+              ? "Exemptions unavailable. Allotment is paused until this is available."
+              : "Waiting for exemptions from saved data…"}
           </p>
         ) : null}
         {!teachersReady ? (
@@ -558,8 +556,8 @@ export function PracticalPage() {
             }
           >
             {teachersOutcome === "failed"
-              ? "Teachers unavailable — generate stays disabled so a miss is not treated as seed teachers."
-              : "Waiting for teachers from the API…"}
+              ? "Teachers unavailable. Allotment is paused until this is available."
+              : "Waiting for teachers from saved data…"}
           </p>
         ) : null}
         {!schoolsReady ? (
@@ -570,8 +568,8 @@ export function PracticalPage() {
             }
           >
             {schoolsOutcome === "failed"
-              ? "Schools unavailable — generate stays disabled so a miss is not treated as seed schools."
-              : "Waiting for schools from the API…"}
+              ? "Schools unavailable. Allotment is paused until this is available."
+              : "Waiting for schools from saved data…"}
           </p>
         ) : null}
         {!runsReady ? (
@@ -582,8 +580,8 @@ export function PracticalPage() {
             }
           >
             {runsOutcome === "failed"
-              ? "Allocation runs unavailable — generate stays disabled so a miss is not treated as an empty calendar."
-              : "Waiting for allocation runs from the API…"}
+              ? "Duty lists unavailable. Allotment is paused until this is available."
+              : "Waiting for allocation runs from saved data…"}
           </p>
         ) : null}
         {summary && <p className="mt-3 text-sm">{summary}</p>}
@@ -614,7 +612,7 @@ export function PracticalPage() {
       <Tile span={6}>
         <TileHeader
           title="Examiner pair memory"
-          hint="Pairs persisted by earlier cycles feed the annual internal/external role switch. Pairs from this cycle are excluded — the documented rule switches on the next cycle (OQ-008)."
+          hint="Previous examiner duties help alternate internal and external roles each year."
           action={
             persistError ? (
               <Badge tone="err" testId="pair-persist-error">
@@ -643,12 +641,12 @@ export function PracticalPage() {
             className="text-sm text-[var(--color-ink-muted)]"
             data-testid="pair-memory-loading"
           >
-            Loading examiner pair memory from the API…
+            Loading previous examiner duties from saved data…
           </p>
         ) : pairsOutcome === "failed" ? (
           <EmptyState
             testId="pair-memory-failed"
-            title="Pair memory unavailable"
+            title="Previous examiner duties unavailable"
             body="GET examiner pairs did not return a list. This is not an empty catalog — generate stays disabled so a schedule is not persisted as if there was no history."
           />
         ) : usablePairs.length > 0 ? (
@@ -672,7 +670,7 @@ export function PracticalPage() {
                 Pair history was read but no swap was possible: a stored pair
                 only switches when both teachers are eligible for both roles at
                 that school, which the same-school internal / other-school
-                external reading forbids. Pending the client answer on OQ-008.
+                external reading forbids. Check the examiner rules before approval.
               </p>
             ) : null}
             <div className="mt-4 overflow-auto max-h-[30vh] border border-[var(--color-line)] rounded text-sm">
