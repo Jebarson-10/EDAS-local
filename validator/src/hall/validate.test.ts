@@ -4,6 +4,23 @@ import { allocateHall } from "@exam-duty/allocation-engine";
 import { validateHallAllocation } from "./validate.js";
 
 describe("hall validator", () => {
+  it("allows the same teacher on different exam dates", () => {
+    const result = {
+      algorithmVersion: "test",
+      requiredHallsByCentre: { c1: 1 },
+      standbyByCentre: { c1: 1 },
+      assignments: [
+        { centreId: "c1", examDate: "2027-03-15", sessionCode: "MORNING" as const, roleCode: "HALL_INVIGILATOR" as const, slotIndex: 1, teacherId: "t1", employeeCode: "E1", score: 0 },
+        { centreId: "c1", examDate: "2027-03-16", sessionCode: "MORNING" as const, roleCode: "HALL_INVIGILATOR" as const, slotIndex: 1, teacherId: "t1", employeeCode: "E1", score: 0 },
+      ],
+      shortages: [],
+      feasible: true,
+    };
+    const validated = validateHallAllocation(result, [{ centreId: "c1", totalStudents: 20 }], DEFAULT_RULE_PARAMETERS);
+    expect(validated.status).toBe("VALID");
+    expect(validated.issues.find((issue) => issue.ruleCode === "RULE-HALL-DUP")).toBeUndefined();
+  });
+
   it("recalculates hall/standby and flags shortages", () => {
     const demands = [
       {

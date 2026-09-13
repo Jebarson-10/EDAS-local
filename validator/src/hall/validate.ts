@@ -32,18 +32,21 @@ export function validateHallAllocation(
     }
   }
 
+  // Reuse on another exam day is allowed. Only two hall places in the same
+  // date/session are a clash.
   const seen = new Set<string>();
   for (const a of result.assignments) {
-    if (seen.has(a.teacherId)) {
+    const assignmentKey = `${a.teacherId}|${a.examDate}|${a.sessionCode}`;
+    if (seen.has(assignmentKey)) {
       errors += 1;
       issues.push({
         ruleCode: "RULE-HALL-DUP",
         severity: "ERROR",
-        message: "Teacher assigned twice in hall run",
+        message: "Teacher assigned twice in the same date and session",
         teacherId: a.teacherId,
       });
     } else {
-      seen.add(a.teacherId);
+      seen.add(assignmentKey);
       valid += 1;
     }
   }
