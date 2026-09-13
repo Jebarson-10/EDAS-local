@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   examWindowDraftInputs,
   latestRunForModuleInCycle,
+  parseTimetableAoa,
   publishBackupSuffix,
   type ExamTimetableEntry,
   type ExamCycleStatus,
@@ -44,6 +45,12 @@ export function ExamCyclePage() {
     null | "status" | "publish" | "amend" | "window" | "timetable"
   >(null);
   const [timetableDraft, setTimetableDraft] = useState<ExamTimetableEntry[]>([]);
+  const [timetableFileBusy, setTimetableFileBusy] = useState(false);
+  const [timetableUpload, setTimetableUpload] = useState<{
+    fileName: string;
+    entries: ReturnType<typeof parseTimetableAoa>["entries"];
+    errors: string[];
+  } | null>(null);
   const busyRef = useRef(false);
   const busy = busyKind !== null;
   useEffect(() => {
@@ -70,6 +77,35 @@ export function ExamCyclePage() {
   function stopBusy() {
     busyRef.current = false;
     setBusyKind(null);
+  }
+
+  async function readTimetableFile(file: File) {
+    setTimetableFileBusy(true);
+    setErr(null);
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(await file.arrayBuffer());
+      const sheet = workbook.worksheets.find((item) => /timetable/i.test(item.name)) ?? workbook.worksheets[0];
+      if (!sheet) throw new Error("This workbook has no sheet.");
+      const rows: unknown[][] = [];
+      sheet.eachRow({ includeEmpty: true }, (row) => {
+        const values = row.values;
+        rows.push(Array.isArray(values) ? values.slice(1) as unknown[] : []);
+      });
+      const parsed = parseTimetableAoa(
+        rows,
+        (dataset?.schools ?? []).filter((school) => school.active),
+      );
+      setTimetableUpload({ fileName: file.name, ...parsed });
+      setMsg(parsed.errors.length ? "Check the highlighted file problems before using this timetable." : `Read ${parsed.entries.length} timetable session(s). Check the preview, then use it.`);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "This file could not be read.";
+      setTimetableUpload(null);
+      setErr(message);
+    } finally {
+      setTimetableFileBusy(false);
+    }
   }
 
   return (
@@ -337,6 +373,21 @@ export function ExamCyclePage() {
           action={<Badge tone={timetableDraft.length ? "ok" : "warn"}>{timetableDraft.length ? `${timetableDraft.length} session(s)` : "Add sessions"}</Badge>}
         />
         {timetableState === "failed" ? <p className="mb-3 text-sm text-[var(--color-err)]">Timetable could not be read from saved data. Reopen the app before generating duties.</p> : null}
+        <div className="mb-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-sky-wash)] p-3 text-sm">
+          <p className="text-[var(--color-ink-muted)]">You can enter sessions below, or upload the official timetable. Uploading only prepares a preview; it does not replace saved sessions until you choose Use uploaded timetable and Save timetable.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <a className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm" href="/templates/EDAS-timetable-template.xlsx" download="EDAS-timetable-template.xlsx">Download timetable template</a>
+            <label className="cursor-pointer rounded bg-[var(--color-brand)] px-3 py-2 text-sm text-white disabled:opacity-40">
+              {timetableFileBusy ? "Reading file…" : "Upload timetable .xlsx"}
+              <input className="sr-only" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={!canManage || busy || timetableFileBusy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void readTimetableFile(file); }} />
+            </label>
+          </div>
+          {timetableUpload ? <div className="mt-3 rounded-lg bg-white p-3">
+            <p><b>{timetableUpload.fileName}</b>: {timetableUpload.entries.length} session(s) ready{timetableUpload.errors.length ? `, ${timetableUpload.errors.length} problem(s) to fix` : ""}.</p>
+            {timetableUpload.errors.length ? <ul className="mt-2 list-disc pl-5 text-[var(--color-err)]">{timetableUpload.errors.slice(0, 8).map((problem) => <li key={problem}>{problem}</li>)}{timetableUpload.errors.length > 8 ? <li>And {timetableUpload.errors.length - 8} more problem(s).</li> : null}</ul> : null}
+            <button type="button" className="mt-3 rounded border border-[var(--color-line)] px-3 py-2 text-sm disabled:opacity-40" disabled={!canManage || busy || timetableFileBusy || timetableUpload.errors.length > 0} onClick={() => { setTimetableDraft(timetableUpload.entries.map((entry) => ({ timetableEntryId: `tmp_${crypto.randomUUID()}`, schoolId: entry.schoolId, examDate: entry.examDate, sessionCode: entry.sessionCode, subjectLabel: entry.subjectLabel, requiresChief: entry.requiresChief, requiresHall: entry.requiresHall, notes: entry.notes }))); setMsg(`Loaded ${timetableUpload.entries.length} timetable session(s). Review them below and save when ready.`); setErr(null); }}>Use uploaded timetable</button>
+          </div> : null}
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-[var(--color-sky-wash)]">
