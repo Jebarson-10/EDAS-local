@@ -29,6 +29,7 @@ export function MasterEntryPanel({
   const [editingId, setEditingId] = useState("");
   const [blockId, setBlockId] = useState("");
   const [code, setCode] = useState("");
+  const [teacherCode, setTeacherCode] = useState("");
   const [name, setName] = useState("");
   const [schoolId, setSchoolId] = useState("");
   const [designation, setDesignation] = useState("PG");
@@ -54,7 +55,7 @@ export function MasterEntryPanel({
 
   function reset() {
     setEditingId("");
-    setCode(""); setName(""); setSchoolId(""); setDesignation("PG");
+    setCode(""); setTeacherCode(""); setName(""); setSchoolId(""); setDesignation("PG");
     setSubject(""); setSeniority(""); setJoiningDate(""); setLatitude("");
     setLongitude(""); setCapacity("");
   }
@@ -66,7 +67,7 @@ export function MasterEntryPanel({
       if (s) { setName(s.schoolName); setCode(s.schoolCode); setBlockId(s.blockId); setLatitude(String(s.latitude)); setLongitude(String(s.longitude)); setCapacity(String(dataset.centres.find((c) => c.centreCode === s.schoolCode)?.capacity ?? "")); }
     } else {
       const t = dataset.teachers.find((t) => t.teacherId === id);
-      if (t) { setName(t.name); setSchoolId(t.schoolId); setBlockId(dataset.schools.find((s) => s.schoolId === t.schoolId)?.blockId ?? ""); setDesignation(t.designation); setSubject(t.subject ?? ""); setSeniority(String(t.seniorityRank ?? "")); setJoiningDate(t.joiningDate ?? ""); setLatitude(String(t.homeLatitude ?? "")); setLongitude(String(t.homeLongitude ?? "")); }
+      if (t) { setName(t.name); setSchoolId(t.schoolId); setBlockId(dataset.schools.find((s) => s.schoolId === t.schoolId)?.blockId ?? ""); setDesignation(t.designation); setSubject(t.subject ?? ""); setSeniority(String(t.seniorityRank ?? "")); setJoiningDate(t.joiningDate ?? ""); setLatitude(String(t.homeLatitude ?? "")); setLongitude(String(t.homeLongitude ?? "")); setTeacherCode(t.teacherCode ?? ""); }
     }
   }
 
@@ -96,7 +97,7 @@ export function MasterEntryPanel({
       ]);
       if (!teachers || !schools || !centres || !relationships) throw new Error("Saved, but the list could not refresh. Reopen this page before making another change.");
       setDataset({ ...previous,
-        teachers: teachers.teachers.map((t) => ({ teacherId:t.teacher_id, employeeCode:t.employee_code, name:t.name, schoolId:t.school_id, designation:t.designation, subject:t.subject ?? null, seniorityRank:t.seniority_rank ?? null, joiningDate:t.joining_date ?? null, homeLatitude:t.home_latitude ?? null, homeLongitude:t.home_longitude ?? null, isActive:t.is_active !== 0, dataQuality:"Imported" as const })),
+        teachers: teachers.teachers.map((t) => ({ teacherId:t.teacher_id, employeeCode:t.employee_code, teacherCode:t.teacher_code ?? null, name:t.name, schoolId:t.school_id, designation:t.designation, subject:t.subject ?? null, seniorityRank:t.seniority_rank ?? null, joiningDate:t.joining_date ?? null, homeLatitude:t.home_latitude ?? null, homeLongitude:t.home_longitude ?? null, isActive:t.is_active !== 0, dataQuality:"Imported" as const })),
         schools: schools.schools.map((s) => ({ schoolId:s.school_id, schoolCode:s.school_code, schoolName:s.school_name, blockId:s.block_id, latitude:s.latitude ?? NaN, longitude:s.longitude ?? NaN, active:s.active !== 0 })),
         centres: centres.centres.map((c) => ({ centreId:c.centre_id, centreCode:c.centre_code, centreName:c.centre_name, blockId:c.block_id ?? "", latitude:c.latitude ?? NaN, longitude:c.longitude ?? NaN, capacity:c.capacity ?? undefined, active:c.active !== 0 })),
         relationships: relationships.relationships.map((r) => ({ centreId:String(r.centre_id), schoolId:String(r.school_id), relationshipType:r.relationship_type === "CLUBBED" ? "CLUBBED" as const : "HOST" as const, effectiveFrom:String(r.effective_from), effectiveTo:r.effective_to })),
@@ -134,6 +135,7 @@ export function MasterEntryPanel({
         kind, teacherId: editingId || undefined, name: name.trim(), schoolId, designation,
         subject, seniorityRank: numericRank, joiningDate: joiningDate || null,
         homeLatitude: location.latitude, homeLongitude: location.longitude,
+        teacherCode: teacherCode.trim() || undefined,
       };
     }
     setSaving(true);
@@ -166,6 +168,7 @@ export function MasterEntryPanel({
         {kind !== "block" && <label className="text-sm">Block<select className={inputClass} value={blockId} onChange={(e) => { setBlockId(e.target.value); setSchoolId(""); }} required><option value="">Select block</option>{dataset.blocks.map((block) => <option key={block.blockId} value={block.blockId}>{block.blockCode} · {block.blockName}</option>)}</select></label>}
         {kind !== "teacher" && <label className="text-sm">{kind === "block" ? "Block code" : "Centre code (optional)"}<input className={inputClass} value={code} onChange={(e) => setCode(e.target.value)} required={kind === "block"} /></label>}
         <label className="text-sm">{kind === "block" ? "Block name" : kind === "school" ? "School name" : kind === "centre" ? "Centre name" : "Teacher name"}<input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required /></label>
+        {kind === "teacher" && <label className="text-sm">Teacher code<input className={inputClass} value={teacherCode} onChange={(e) => setTeacherCode(e.target.value)} placeholder="EMIS / govt. code (optional)" /></label>}
         {kind === "teacher" && <label className="text-sm">School<select className={inputClass} value={schoolId} onChange={(e) => { setSchoolId(e.target.value); const school = dataset.schools.find((x) => x.schoolId === e.target.value); if (school) setBlockId(school.blockId); }} required disabled={!blockId}><option value="">Select school</option>{filteredSchools.map((school) => <option key={school.schoolId} value={school.schoolId}>{school.schoolName}{school.schoolCode ? ` · ${school.schoolCode}` : ""}</option>)}</select>{selectedSchool ? <span className="text-xs text-[var(--color-ink-muted)]">School in {dataset.blocks.find((b) => b.blockId === selectedSchool.blockId)?.blockName}.</span> : null}</label>}
         {kind === "teacher" && <label className="text-sm">Designation<select className={inputClass} value={designation} onChange={(e) => setDesignation(e.target.value)}>{designations.map((item) => <option key={item} value={item}>{{PRINCIPAL:"Principal",HM:"Headmaster",SENIOR_PG:"Senior PG teacher",PG:"PG teacher",OTHER:"Other"}[item]}</option>)}</select></label>}
         {kind === "teacher" && <label className="text-sm">Subject<select className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} required><option value="">Select subject</option>{(dataset.subjects ?? []).filter((item) => item.active).map((item) => <option key={item.subjectId} value={item.code}>{item.code} · {item.name}</option>)}</select></label>}

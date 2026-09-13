@@ -48,7 +48,8 @@ export function MasterDataPage() {
       (t) =>
         !qq ||
         t.name.toLowerCase().includes(qq) ||
-        t.employeeCode.toLowerCase().includes(qq),
+        t.employeeCode.toLowerCase().includes(qq) ||
+        (t.teacherCode ?? "").toLowerCase().includes(qq),
     );
   }, [dataset, q]);
 
@@ -116,6 +117,7 @@ export function MasterDataPage() {
             <thead className="bg-[var(--color-sky-wash)] sticky top-0">
               <tr>
                 <Th>Name</Th>
+                <Th>Teacher code</Th>
                 <Th>Designation</Th>
                 <Th>School</Th>
                 <Th>Last duty</Th>
@@ -128,6 +130,7 @@ export function MasterDataPage() {
                   className="border-t border-[var(--color-line)]"
                 >
                   <Td>{t.name}</Td>
+                  <Td>{t.teacherCode ?? "—"}</Td>
                   <Td>{t.designation}</Td>
                   <Td>{dataset.schools.find((s) => s.schoolId === t.schoolId)?.schoolName ?? "School not found"}</Td>
                   <Td>{lastDutyByTeacher.get(t.teacherId) ?? "No recorded duty"}</Td>

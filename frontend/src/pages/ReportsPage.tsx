@@ -132,6 +132,7 @@ export function ReportsPage() {
         return {
           Teacher: t?.name ?? a.teacherId,
           EmployeeCode: a.employeeCode,
+          TeacherCode: t?.teacherCode ?? "",
           School: t
             ? (schoolById.get(t.schoolId)?.schoolName ?? t.schoolId)
             : "",
@@ -215,6 +216,7 @@ export function ReportsPage() {
       return {
         Teacher: t?.name ?? a.teacherId,
         EmployeeCode: a.employeeCode,
+        TeacherCode: t?.teacherCode ?? "",
         School: t ? (schoolById.get(t.schoolId)?.schoolName ?? t.schoolId) : "",
         DutyType: "THEORY",
         Centre: a.centreId,
@@ -304,6 +306,7 @@ export function ReportsPage() {
         },
         latest.result.assignments.map((a) => ({
           employeeCode: a.employeeCode,
+          teacherCode: teacherById.get(a.teacherId)?.teacherCode ?? "",
           name: teacherById.get(a.teacherId)?.name ?? a.teacherId,
           centre: a.centreId,
           date: a.examDate,
@@ -373,9 +376,10 @@ export function ReportsPage() {
   }
 
   async function exportHallCsv() {
-    if (!hallResult) return;
+    if (!hallResult || !dataset) return;
     if (!startBusy("hall")) return;
     try {
+      const teacherById = new Map(dataset.teachers.map((t) => [t.teacherId, t]));
       const rows = [
         [
           "centreId",
@@ -383,6 +387,7 @@ export function ReportsPage() {
           "slot",
           "teacherId",
           "employeeCode",
+          "teacherCode",
           "examDate",
           "session",
           "score",
@@ -393,6 +398,7 @@ export function ReportsPage() {
           String(a.slotIndex),
           a.teacherId,
           a.employeeCode,
+          teacherById.get(a.teacherId)?.teacherCode ?? "",
           a.examDate,
           a.sessionCode,
           String(a.score),

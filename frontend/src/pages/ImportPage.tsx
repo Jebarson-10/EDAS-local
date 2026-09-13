@@ -61,6 +61,7 @@ export function ImportPage() {
         return {
           ...t,
           employeeCode: t.employeeCode,
+          teacherCode: t.teacherCode ?? null,
           name: t.name,
           schoolCode: t.schoolId,
           designation: t.designation,

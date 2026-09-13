@@ -93,6 +93,7 @@ export function developmentDemoDataset(): DemoDataset {
   const teachers: Teacher[] = Array.from({ length: 48 }, (_, i) => ({
     teacherId: `tch_${i + 1}`,
     employeeCode: `SYN${String(i + 1).padStart(4, "0")}`,
+    teacherCode: null,
     name: `Synthetic Teacher ${i + 1}`,
     schoolId: schools[i % schools.length]!.schoolId,
     designation: i % 8 === 0 ? "HM" : i % 3 === 0 ? "SENIOR_PG" : "PG",

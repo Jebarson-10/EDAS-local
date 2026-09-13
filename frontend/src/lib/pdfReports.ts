@@ -13,6 +13,7 @@ export async function buildTeacherDutyPdf(
   meta: PdfReportMeta,
   rows: Array<{
     employeeCode: string;
+    teacherCode?: string | null;
     name: string;
     centre: string;
     date: string;
@@ -44,9 +45,10 @@ export async function buildTeacherDutyPdf(
 
   autoTable(doc as unknown as jsPDF, {
     startY: 130,
-    head: [["Employee", "Name", "Centre", "Date", "Session", "Role"]],
+    head: [["Employee", "Teacher Code", "Name", "Centre", "Date", "Session", "Role"]],
     body: rows.map((r) => [
       r.employeeCode,
+      r.teacherCode ?? "",
       r.name,
       r.centre,
       r.date,

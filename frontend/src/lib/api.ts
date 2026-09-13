@@ -491,6 +491,7 @@ export async function fetchMasterTeachers(role: ApiRole) {
       teachers: Array<{
         teacher_id: string;
         employee_code: string;
+        teacher_code?: string | null;
         name: string;
         school_id: string;
         designation: string;
@@ -535,6 +536,7 @@ export type ManualMasterRecord =
       kind: "teacher";
       teacherId?: string;
       employeeCode?: string;
+      teacherCode?: string | null;
       name: string;
       schoolId: string;
       designation: string;

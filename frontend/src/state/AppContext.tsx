@@ -575,6 +575,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return {
               teacherId: String(t.teacher_id),
               employeeCode: String(t.employee_code),
+              teacherCode: t.teacher_code ?? prior?.teacherCode ?? null,
               name: String(t.name),
               schoolId: String(t.school_id),
               designation: String(t.designation),
