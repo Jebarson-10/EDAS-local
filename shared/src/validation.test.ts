@@ -9,6 +9,8 @@ import {
   restoreBodySchema,
   foldUnstoredFindingsIntoSummaryJson,
   validationFindingsFromRunBody,
+  teacherImportRowSchema,
+  manualMasterRecordBodySchema,
 } from "./validation.js";
 
 describe("API body schemas", () => {
@@ -367,5 +369,57 @@ describe("API body schemas", () => {
         examCycleId: "ec1",
       }).ok,
     ).toBe(true);
+  });
+
+  it("accepts teacherCode in teacherImportRowSchema, importApplyBodySchema, and manualMasterRecordBodySchema", () => {
+    const row = teacherImportRowSchema.parse({
+      employeeCode: "EMP01",
+      teacherCode: "TC-9988",
+      name: "Ramesh",
+      schoolCode: "SCH01",
+      designation: "PG",
+    });
+    expect(row.teacherCode).toBe("TC-9988");
+
+    const rowWithoutCode = teacherImportRowSchema.parse({
+      employeeCode: "EMP02",
+      name: "Suresh",
+      schoolCode: "SCH01",
+      designation: "PG",
+    });
+    expect(rowWithoutCode.teacherCode).toBeUndefined();
+
+    const applyParsed = parseBody(importApplyBodySchema, {
+      teachers: [
+        {
+          employee_code: "SYN1",
+          teacher_code: "TC-001",
+          name: "Teacher 1",
+          school_id: "s1",
+          designation: "HM",
+        },
+        {
+          employeeCode: "SYN2",
+          teacherCode: "TC-002",
+          name: "Teacher 2",
+          schoolId: "s1",
+          designation: "PG",
+        },
+      ],
+    });
+    expect(applyParsed.ok).toBe(true);
+
+    const manualParsed = manualMasterRecordBodySchema.parse({
+      kind: "teacher",
+      name: "Kavitha",
+      schoolId: "s1",
+      designation: "PG",
+      subject: "MAT",
+      seniorityRank: 5,
+      homeLatitude: 11.34,
+      homeLongitude: 77.72,
+      teacherCode: "EMIS-123456",
+    });
+    expect(manualParsed.kind === "teacher" && manualParsed.teacherCode).toBe("EMIS-123456");
   });
 });

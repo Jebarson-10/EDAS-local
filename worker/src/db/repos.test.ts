@@ -1015,6 +1015,76 @@ describe("transactional restore", () => {
     expect(counts.teachers).toBe(2);
   });
 
+  it("persists, updates, and lists teacher_code via upsertTeachers and listTeachers", async () => {
+    await transactionalRestore(
+      db,
+      {
+        schools: [
+          {
+            schoolId: "s1",
+            schoolCode: "S1",
+            schoolName: "School",
+            blockId: "b1",
+            active: true,
+          },
+        ],
+        centres: [],
+        teachers: [],
+      },
+      { adminConfirmed: true, includeHistory: true },
+    );
+    // Insert new teacher with teacherCode
+    await upsertTeachers(db, [
+      {
+        teacherId: "t_code_1",
+        employeeCode: "EMP-C1",
+        teacherCode: "TC-EMIS-001",
+        name: "Teacher With Code",
+        schoolId: "s1",
+        designation: "PG",
+        isActive: true,
+      },
+      {
+        teacherId: "t_code_2",
+        employeeCode: "EMP-C2",
+        name: "Teacher Without Code",
+        schoolId: "s1",
+        designation: "PG",
+        isActive: true,
+      },
+    ]);
+
+    const teachers = (await listTeachers(db)) as Array<{
+      teacher_id: string;
+      employee_code: string;
+      teacher_code: string | null;
+      name: string;
+    }>;
+    const t1 = teachers.find((t) => t.employee_code === "EMP-C1");
+    expect(t1?.teacher_code).toBe("TC-EMIS-001");
+    const t2 = teachers.find((t) => t.employee_code === "EMP-C2");
+    expect(t2?.teacher_code).toBeNull();
+
+    // Update teacherCode on existing teacher
+    await upsertTeachers(db, [
+      {
+        teacherId: "t_code_1",
+        employeeCode: "EMP-C1",
+        teacherCode: "TC-EMIS-UPDATED",
+        name: "Teacher With Code Updated",
+        schoolId: "s1",
+        designation: "PG",
+        isActive: true,
+      },
+    ]);
+    const updated = (await listTeachers(db)) as Array<{
+      employee_code: string;
+      teacher_code: string | null;
+    }>;
+    const t1Updated = updated.find((t) => t.employee_code === "EMP-C1");
+    expect(t1Updated?.teacher_code).toBe("TC-EMIS-UPDATED");
+  });
+
   it("canonical restore wipes leftover subjects and rule_parameters", async () => {
     const { buildCanonicalBackup, listRuleParameters } = await import(
       "./repos.js"

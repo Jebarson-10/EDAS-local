@@ -62,4 +62,24 @@ describe("heading-based imports", () => {
     const coded={blocks:[...data.blocks,{blockId:"b2",blockCode:"B2",blockName:"Other block"}],schools:[{...data.schools[0]!,schoolCode:"001"}]};
     expect(planColumnImport([{schoolName:"New school",schoolCode:"001",blockCode:"B2",latitude:11,longitude:77}],coded).errors.join()).toContain("another block");
   });
+  it("recognises Teacher Code and EMIS code headings in English and Tamil", () => {
+    expect(guessImportColumns(["Teacher Code", "EMIS Code", "ஆசிரியர் குறியீடு"])).toEqual([
+      "teacherCode",
+      "teacherCode",
+      "teacherCode",
+    ]);
+    const parsed = mapImportColumns([["TC-101", "PG", "Teacher A", "Test school"]], [
+      "teacherCode",
+      "designation",
+      "name",
+      "schoolName",
+    ]);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.rows[0]).toMatchObject({
+      teacherCode: "TC-101",
+      name: "Teacher A",
+      designation: "PG",
+      schoolName: "Test school",
+    });
+  });
 });
