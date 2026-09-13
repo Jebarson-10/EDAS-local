@@ -8,6 +8,7 @@ import type {
 import type { ValidationResult } from "@exam-duty/validator";
 import { useApp, isTheoryRun } from "../state/AppContext";
 import { crossModuleCalendar } from "../lib/crossModuleCalendar";
+import { timetableYearProblem } from "../lib/timetableChecks";
 import {
   Bento,
   EmptyState,
@@ -180,6 +181,11 @@ export function TheoryPage() {
     if (!dataset || !canGenerate || !theoryDataset) return;
     if (timetableState !== "ready" || chiefSessions.length === 0) {
       setProgress("Add at least one timetable session marked Chief duty before allocating theory duties.");
+      return;
+    }
+    const dateProblem = timetableYearProblem(chiefSessions, examCycle.academicYear);
+    if (dateProblem) {
+      setProgress(dateProblem);
       return;
     }
     const gate = assertMutable(examCycle.status, "generate allocation");
