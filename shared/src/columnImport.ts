@@ -1,6 +1,7 @@
 import { normalizeImportedDesignation } from "./excelTeachers.js";
 import { manualMasterRecordBodySchema as manualMasterRecordSchema } from "./validation.js";
 import type { z } from "zod";
+import { normalizeImportValue, friendlyImportIssue } from "./importValues.js";
 
 export const importFields = {
   name: "Teacher name", designation: "Teacher post", subject: "Subject",
@@ -67,14 +68,10 @@ export function mapImportColumns(lines: unknown[][], mapping: (ImportField | "")
         const value = cellValue(line[col]);
         if (value == null || String(value).trim() === "") return;
         if (["latitude", "longitude", "homeLatitude", "homeLongitude", "capacity", "seniorityRank"].includes(field)) {
-          const n = Number(value);
-          if (!Number.isFinite(n)) throw new Error(`${importFields[field]} must be a number.`);
-          row[field] = n;
+          row[field] = normalizeImportValue(field,value);
         } else if (field === "isActive") {
-          const s = key(value);
-          if (!["1","0","true","false","yes","no","active","inactive"].includes(s)) throw new Error("Active must be Yes or No.");
-          row[field] = ["1","true","yes","active"].includes(s);
-        } else if (field === "joiningDate" && value instanceof Date) row[field] = value.toISOString().slice(0,10);
+          row[field] = normalizeImportValue(field,value);
+        } else if (field === "joiningDate") row[field] = normalizeImportValue(field,value);
         else row[field] = field === "designation" ? normalizeImportedDesignation(value) : String(value).trim();
       });
       if (Object.keys(row).length) rows.push(row);
@@ -99,7 +96,7 @@ export function planColumnImport(rows: Record<string, unknown>[], data: {blocks:
   const planned = new Map<string, string>();
   function add(id: string, record: unknown) {
     const parsed = manualMasterRecordSchema.safeParse(record);
-    if (!parsed.success) throw new Error(parsed.error.issues.map((e) => `${e.path.join(" ")}: ${e.message}`).join("; "));
+    if (!parsed.success) throw new Error(parsed.error.issues.map(friendlyImportIssue).join("; "));
     const signature = JSON.stringify(parsed.data);
     if (planned.has(id) && planned.get(id) !== signature) throw new Error("Repeated school or block has different details. Make the repeated details agree.");
     if (!planned.has(id)) { records.push(parsed.data); planned.set(id, signature); }

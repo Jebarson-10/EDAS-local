@@ -8,7 +8,17 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 ### Import by column heading
 
-In **Imports → Import Excel**, choose an `.xlsx` file. The first non-empty row
+In **Imports → Import Excel**, choose an `.xlsx` file.
+You can download **Template (all sheets)** in the app, or use
+[EDAS import template](frontend/public/templates/EDAS-import-template.xlsx).
+It contains empty Teachers, Schools and Blocks sheets plus a heading guide.
+No sample people, cell validation rules or sheet protection are included.
+Fill and import Blocks, then Schools, then Teachers. Codes may be text or numeric
+cells; numeric details may be entered as text, including `1,200`. Joining dates
+accept Excel dates, `15/06/2010` or `2010-06-15`. Real invalid values are explained
+in plain language; coordinate ranges and whole student counts are still checked.
+
+The first non-empty row
 contains the headings; the columns can be in any order. For example, `Teacher`,
 `Teacher Post`, `School`, `Centre Code`, `Block`, `Subject`, `Seniority`,
 `School Latitude` and `School Longitude` are recognised automatically.

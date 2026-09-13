@@ -1,5 +1,6 @@
 import { teacherImportRowSchema, type TeacherImportRow } from "./validation.js";
 import { createId } from "./ids.js";
+import { normalizeImportValue, friendlyImportIssue } from "./importValues.js";
 
 export type ImportRowStatus =
   | "NEW"
@@ -61,6 +62,14 @@ export function previewTeacherImport(
   rawRows.forEach((raw, idx) => {
     const rowNumber = idx + 1;
     const input = raw && typeof raw === "object" ? { ...raw } as Record<string, unknown> : {};
+    try {
+      for (const field of ["employeeCode","name","schoolCode","schoolName","designation","subject","seniorityRank","homeLatitude","homeLongitude","joiningDate","isActive"]) {
+        if (input[field] != null) input[field] = normalizeImportValue(field,input[field]);
+      }
+    } catch (e) {
+      rows.push({rowNumber,teacherName:String(input.name ?? ""),status:"INVALID",message:e instanceof Error ? e.message : "Check this row."});
+      return;
+    }
     if (input.schoolName == null) delete input.schoolName;
     const teacherName = String(input.name ?? "");
     if (schools) {
@@ -101,7 +110,7 @@ export function previewTeacherImport(
         rowNumber,
         teacherName,
         status: "INVALID",
-        message: parsed.error.issues.map((i) => `${({name:"Teacher name",schoolCode:"School",designation:"Designation",seniorityRank:"Seniority rank",homeLatitude:"Home latitude",homeLongitude:"Home longitude",isActive:"Active"} as Record<string,string>)[String(i.path[0])] ?? "Details"}: ${i.message}`).join("; "),
+        message: parsed.error.issues.map(friendlyImportIssue).join("; "),
       });
       return;
     }

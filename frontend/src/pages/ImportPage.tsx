@@ -179,45 +179,6 @@ export function ImportPage() {
               }}
             />
           </label>
-          <button
-            type="button"
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm"
-            onClick={() => {
-              void (async () => {
-                const { buildTeachersTemplateWorkbook } =
-                  await import("@exam-duty/shared");
-                const sample = dataset.teachers.slice(0, 8).map((t) => {
-                  const school = dataset.schools.find(
-                    (s) => s.schoolId === t.schoolId,
-                  );
-                  return {
-                    name: t.name,
-                    schoolName: school?.schoolName ?? "",
-                    schoolCode: school?.schoolCode ?? "",
-                    designation: t.designation,
-                    subject: t.subject,
-                    seniorityRank: t.seniorityRank,
-                    joiningDate: t.joiningDate,
-                    homeLatitude: t.homeLatitude,
-                    homeLongitude: t.homeLongitude,
-                    isActive: t.isActive,
-                  };
-                });
-                const buf = await buildTeachersTemplateWorkbook(sample);
-                const blob = new Blob([buf], {
-                  type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "teachers-template.xlsx";
-                a.click();
-                URL.revokeObjectURL(url);
-              })();
-            }}
-          >
-            Download template .xlsx
-          </button>
           {fileName && (
             <span className="text-xs text-[var(--color-ink-muted)]">
               Loaded: {fileName}

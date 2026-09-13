@@ -83,6 +83,7 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
   return <Panel title="Import Excel">
     <p className="text-sm mb-3">Put headings in the first row. Columns can be in any order. Each teacher stays linked to the school and other details on the same row.</p>
     <div className="flex gap-3 flex-wrap items-center">
+      <a className={style} href="/templates/EDAS-import-template.xlsx" download="EDAS-import-template.xlsx">Download template (all sheets)</a>
       <label className={style}>Choose .xlsx<input aria-label="Choose Excel file for automatic column matching" type="file" accept=".xlsx" disabled={busy || !allowed} className="block" onChange={(e) => {const f=e.target.files?.[0];if(f) void upload(f);e.target.value="";}} /></label>
       <label>File contains <select className={style} value={kind} disabled={busy} onChange={(e) => {const k=e.target.value as typeof kind;setKind(k);if(sheet)setMapping(guessImportColumns(sheet.lines[0]!,k));onTeachers([]);}}><option value="teacher">Teachers (with school details)</option><option value="school">Schools / centres</option><option value="block">Blocks</option></select></label>
       {sheets.length>1 && <label>Sheet <select className={style} value={sheetIndex} disabled={busy} onChange={(e) => {const n=Number(e.target.value);setSheetIndex(n);setMapping(guessImportColumns(sheets[n]!.lines[0]!,kind));onTeachers([]);}}>{sheets.map((s,i) => <option key={i} value={i}>{s.name}</option>)}</select></label>}

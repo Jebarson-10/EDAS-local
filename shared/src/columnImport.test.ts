@@ -49,7 +49,7 @@ describe("heading-based imports", () => {
   });
   it("recognises Tamil headings and blocks invalid numeric/boolean values", () => {
     expect(guessImportColumns(["ஆசிரியர் பெயர்","பதவி","பள்ளி"])).toEqual(["name","designation","schoolName"]);
-    expect(mapImportColumns([["not a number"]],["latitude"]).errors.join()).toContain("must be a number");
+    expect(mapImportColumns([["not a number"]],["latitude"]).errors.join()).toContain("11.34");
     expect(mapImportColumns([["perhaps"]],["isActive"]).errors.join()).toContain("Yes or No");
   });
   it("uses a supplied centre code for the teacher's existing school", () => {
