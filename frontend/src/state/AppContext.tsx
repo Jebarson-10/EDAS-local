@@ -77,6 +77,12 @@ export interface AuditEntry {
   reason?: string;
 }
 
+export interface AppRuntimeError {
+  happenedAt: string;
+  message: string;
+  source: "app" | "background";
+}
+
 export type ModuleResult =
   TheoryAllocationResult | PracticalResult | HallResult;
 
@@ -131,6 +137,7 @@ interface AppState {
   addRun: (run: AllocationRunRecord) => void;
   updateRun: (runId: string, patch: Partial<AllocationRunRecord>) => void;
   audit: AuditEntry[];
+  runtimeErrors: AppRuntimeError[];
   logAudit: (action: string, detail: string, reason?: string) => void;
   examCycle: ExamCycleState;
   examCycleName: string;
@@ -231,6 +238,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [runs, setRuns] = useState<AllocationRunRecord[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [runtimeErrors, setRuntimeErrors] = useState<AppRuntimeError[]>([]);
   const [examCycle, setExamCycle] = useState<ExamCycleState>(INITIAL_CYCLE);
   const examCycleIdRef = useRef(INITIAL_CYCLE.examCycleId);
   const [practicalBatchDemand, setPracticalBatchDemand] = useState<Array<{
@@ -256,6 +264,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [hydrateReady, setHydrateReady] = useState(false);
 
   useEffect(() => {
+    const remember = (message: string, source: AppRuntimeError["source"]) => {
+      if (!message.trim()) return;
+      setRuntimeErrors((rows) => [...rows, { happenedAt: new Date().toISOString(), message, source }].slice(-50));
+    };
+    const onError = (event: ErrorEvent) => remember(event.error instanceof Error ? event.error.message : event.message, "app");
+    const onRejection = (event: PromiseRejectionEvent) => remember(event.reason instanceof Error ? event.reason.message : String(event.reason ?? "Unknown background error"), "background");
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => { window.removeEventListener("error", onError); window.removeEventListener("unhandledrejection", onRejection); };
+  }, []);
+
+  useEffect(() => {
     document.documentElement.lang = locale === "ta" ? "ta" : "en";
     document.documentElement.dataset.tamilFont = tamilFont;
     localStorage.setItem("edas-locale", locale);
@@ -272,6 +292,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [
     audit,
+    runtimeErrors,
     dataset,
     designationHistory,
     examCycle,

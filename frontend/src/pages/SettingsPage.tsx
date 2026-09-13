@@ -8,6 +8,7 @@ import {
   fetchExamCycles,
   fetchRuleVersions,
 } from "../lib/api";
+import { downloadSupportPackage } from "../lib/supportPackage";
 
 export function SettingsPage() {
   const {
@@ -18,6 +19,16 @@ export function SettingsPage() {
     setActiveRuleVersion,
     hydrateReady,
     hydrateReport,
+    dataset,
+    runs,
+    timetable,
+    audit,
+    runtimeErrors,
+    schoolHistory,
+    designationHistory,
+    locationHistory,
+    exemptions,
+    practicalBatchDemand,
   } = useApp();
   const rulesOutcome = hydrateReport.sources.rule_parameters;
   const [health, setHealth] = useState<string>("Checking…");
@@ -132,6 +143,25 @@ export function SettingsPage() {
     }
   }
 
+  function downloadAppCheckFile() {
+    downloadSupportPackage({
+      app: { page: window.location.hash || "/", browser: navigator.userAgent, createdBy: "single-user desktop app" },
+      savedData: dataset,
+      examCycle,
+      rules,
+      timetable,
+      generatedDutyLists: runs,
+      validationAndLoading: { hydrateReady, hydrateReport },
+      practicalBatchDemand,
+      exemptions,
+      history: { schoolHistory, designationHistory, locationHistory },
+      activityLog: audit,
+      recentAppErrors: runtimeErrors,
+    });
+    setMsg("App check file downloaded. It includes saved data and duty lists, so share it only with a trusted support person.");
+    setErr(null);
+  }
+
   return (
     <Bento>
       <Tile span={3} rowSpan={2}>
@@ -176,6 +206,12 @@ export function SettingsPage() {
             </dd>
           </div>
         </dl>
+      </Tile>
+
+      <Tile span={3}>
+        <TileHeader title="Help with an app problem" hint="Download one file containing the saved data, generated duty lists, checks and recent app errors. It helps us find problems without changing anything." />
+        <button type="button" className="rounded bg-[var(--color-brand)] px-3 py-2 text-sm text-white" onClick={downloadAppCheckFile}>Download app check file</button>
+        <p className="mt-2 text-xs text-[var(--color-ink-muted)]">This file includes teacher and school details. Do not share it publicly. It does not include backup passwords or keys.</p>
       </Tile>
 
       <Tile span={3} rowSpan={2}>
