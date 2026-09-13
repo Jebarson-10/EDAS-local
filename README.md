@@ -6,6 +6,34 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 ## What this application does
 
+### Import by column heading
+
+In **Imports → Import Excel**, choose an `.xlsx` file. The first non-empty row
+contains the headings; the columns can be in any order. For example, `Teacher`,
+`Teacher Post`, `School`, `Centre Code`, `Block`, `Subject`, `Seniority`,
+`School Latitude` and `School Longitude` are recognised automatically.
+Each row stays together. Common Tamil headings are recognised too.
+
+Check the **Save as** dropdown beside each heading. Choose a field for unfamiliar
+headings, or explicitly choose **Do not import this column**. Duplicate field
+choices must be corrected. For generic `Name` headings, first select whether the
+file contains teachers, schools/centres, or blocks. For workbooks with multiple
+sheets, select and import each sheet separately.
+
+New schools need a block and coordinates. New blocks need both their name and
+code. Existing schools are matched by centre code or school name (and block
+where supplied). Blank cells keep saved details unchanged. New schools without
+a centre code remain ordinary schools. A supplied centre code automatically
+creates the linked exam centre. Different School and Centre names are not
+merged; use the combined-schools import for those relationships.
+
+Review the column choices, then save school/block changes. Teachers appear in
+the **Teacher review** below; check them and select **Save changes**. Employee
+codes are not needed. Schools/blocks save individually; if interrupted, the app
+reports how many saved. Reopen the page and re-upload to continue. Historical
+duties and published allotments are not replaced. This heading-based reader
+supports `.xlsx`; save old `.xls` files as `.xlsx` first.
+
 This is an offline-first application for 12th-standard public-examination duty
 allotment across Erode blocks and centres. It lets the CEO office maintain the
 master lists, generate deterministic theory/practical/hall allotments, review

@@ -8,6 +8,7 @@ import {
 } from "@exam-duty/shared";
 import { useApp } from "../state/AppContext";
 import { Panel } from "../components/ui";
+import { ColumnImportPanel } from "../components/ColumnImportPanel";
 
 export function ImportPage() {
   const {
@@ -142,9 +143,15 @@ export function ImportPage() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Excel import preview">
+      <ColumnImportPanel onTeachers={(rows) => {
+        clearArchivedImport();
+        setUseEmployeeCodes(false);
+        setText(rows.length ? JSON.stringify(rows) : "");
+        setError(null); setMessage(null);
+      }} />
+      <Panel title="Teacher review">
         <p className="text-sm text-[var(--color-ink-muted)] mb-3">
-          Choose an Excel file, check the changes, then save. Use the school name for every teacher. Centre code is optional; employee codes are not needed. Add schools first in Schools & teachers.
+          Teachers from the import above appear here. Check their details, then save. Employee codes are not needed. Teachers not included in the file are kept unchanged by default.
         </p>
         {!canImport && (
           <p className="text-sm text-[var(--color-err)] mb-3">
@@ -160,7 +167,7 @@ export function ImportPage() {
 
         <div className="flex flex-wrap gap-2 mb-3 items-center">
           <label className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm cursor-pointer">
-            Upload .xlsx
+            Upload older teacher template .xlsx
             <input
               type="file"
               accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
