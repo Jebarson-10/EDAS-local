@@ -23,6 +23,7 @@ export interface ExistingTeacherRef {
 }
 
 export interface ImportPreviewRow {
+  teacherName?: string;
   rowNumber: number;
   status: ImportRowStatus;
   message?: string;
@@ -55,19 +56,24 @@ export function previewTeacherImport(
   const existingByCode = new Map(existing.map((e) => [e.employeeCode, e]));
   const touched = new Set<string>();
   const seenNames = new Map<string, number>();
-  const normal = (value: unknown) => String(value ?? "").trim().toLocaleLowerCase();
+  const normal = (value: unknown) => String(value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
 
   rawRows.forEach((raw, idx) => {
     const rowNumber = idx + 1;
     const input = raw && typeof raw === "object" ? { ...raw } as Record<string, unknown> : {};
+    if (input.schoolName == null) delete input.schoolName;
+    const teacherName = String(input.name ?? "");
     if (schools) {
       const code = normal(input.schoolCode);
       const name = normal(input.schoolName);
-      const matches = schools.filter((s) =>
+      let matches = schools.filter((s) =>
         (code ? normal(s.schoolCode) === code || s.schoolId === input.schoolCode : normal(s.schoolName) === name) &&
         (!name || normal(s.schoolName) === name));
+      // Older templates put school names under "schoolCode". Match an exact saved
+      // name only after code lookup fails; never create a centre from that text.
+      if (!matches.length && code && !name) matches = schools.filter((s) => normal(s.schoolName) === code);
       if (matches.length !== 1) {
-        rows.push({ rowNumber, status: "INVALID", message: matches.length ? "More than one school matches. Select the school in Schools & teachers instead." : "School not found. Add it in Schools & teachers, then check the school name or centre code." });
+        rows.push({ rowNumber, teacherName, status: "INVALID", message: matches.length ? "More than one school matches. Select the school in Schools & teachers instead." : `School "${input.schoolName || input.schoolCode || "not provided"}" not found. Add it in Schools & teachers with its block and location, then upload again.` });
         return;
       }
       input.schoolCode = matches[0]!.schoolId;
@@ -93,8 +99,9 @@ export function previewTeacherImport(
     if (!parsed.success) {
       rows.push({
         rowNumber,
+        teacherName,
         status: "INVALID",
-        message: parsed.error.issues.map((i) => i.message).join("; "),
+        message: parsed.error.issues.map((i) => `${({name:"Teacher name",schoolCode:"School",designation:"Designation",seniorityRank:"Seniority rank",homeLatitude:"Home latitude",homeLongitude:"Home longitude",isActive:"Active"} as Record<string,string>)[String(i.path[0])] ?? "Details"}: ${i.message}`).join("; "),
       });
       return;
     }

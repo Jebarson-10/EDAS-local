@@ -221,6 +221,8 @@ The test suite covers rule parameters, history, deterministic theory/practical/h
 allocation, independent validation, authorization and SQLite persistence.
 # Schools, teachers and app updates
 
+Teacher import also accepts older templates containing school names under `schoolCode`. Matching is exact against saved school names (case and repeated spaces are ignored); it never invents a school, block, location or centre code. Employee-code columns are ignored by default, so serial numbers do not become teacher identities. Enable **Use employee codes from this file** only for genuine existing codes. Common Headmaster and PG Assistant spellings are normalised; acting/in-charge posts are kept as written for confirmation. Missing subjects, seniority and home locations are listed before allotment. The original workbook is not changed.
+
 - Add blocks, then schools, then teachers in **Schools & teachers**.
 - **Centre code is the school code.** Leave it blank for a school that is not an exam centre. A coded school automatically creates its centre and host-school link. Names, locations and blocks stay in sync.
 - To stop using a school as a centre, select the school for editing and clear its centre code. The centre becomes inactive; earlier duty records remain available. Enter actual student counts for hall allotment.

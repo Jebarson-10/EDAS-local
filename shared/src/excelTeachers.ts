@@ -1,5 +1,32 @@
 import type { TeacherImportRow } from "./validation.js";
 
+/** Only spelling variants of established designations; acting posts stay unchanged. */
+export function normalizeImportedDesignation(value: unknown): string {
+  const text = String(value ?? "").trim();
+  const key = text.toUpperCase().replace(/[\s._'’]+/g, "");
+  return ({ HEADMASTER:"HM", HEADMISTRESS:"HM", HM:"HM", PRINCIPAL:"PRINCIPAL", PGASST:"PG", PGASSISTANT:"PG", PGTEACHER:"PG", PG:"PG", SENIORPG:"SENIOR_PG", SENIORPGTEACHER:"SENIOR_PG" } as Record<string,string>)[key] ?? text;
+}
+
+/** Codes are optional: ordinary uploads match by teacher name and school. */
+export function prepareTeacherUpload(rawRows: unknown[], useEmployeeCodes = false) {
+  const rows = rawRows.map((raw) => {
+    const row = raw && typeof raw === "object" ? {...raw} as Record<string,unknown> : {};
+    if (!useEmployeeCodes) delete row.employeeCode;
+    else if (row.employeeCode != null) row.employeeCode = String(row.employeeCode).trim();
+    row.designation = normalizeImportedDesignation(row.designation);
+    return row;
+  });
+  const notes: string[] = [];
+  const missing = (key: string) => rows.filter((r) => r[key] == null || String(r[key]).trim() === "").length;
+  if (missing("subject")) notes.push(`${missing("subject")} teachers have no subject. Add it where required for their duty.`);
+  if (missing("seniorityRank")) notes.push(`${missing("seniorityRank")} teachers have no seniority rank. Add ranks before seniority-based allotment.`);
+  const locations = rows.filter((r) => r.homeLatitude == null || r.homeLongitude == null).length;
+  if (locations) notes.push(`${locations} teachers have no complete home location. Add missing locations before distance checks.`);
+  const unconfirmed = [...new Set(rows.map((r) => String(r.designation)).filter((d) => d && !["HM","PRINCIPAL","PG","SENIOR_PG","OTHER"].includes(d)))];
+  if (unconfirmed.length) notes.push(`Confirm these designations in Schools & teachers: ${unconfirmed.join(", ")}. They are kept as written, not treated as regular headmasters or PG teachers.`);
+  return { rows, notes };
+}
+
 /** Normalized column aliases for teacher Excel sheets (synthetic / provisional headers). */
 const HEADER_MAP: Record<string, keyof TeacherImportRow | "ignore"> = {
   employeecode: "employeeCode",
@@ -63,6 +90,7 @@ function coerceCell(key: keyof TeacherImportRow, value: unknown): unknown {
     return value;
   }
   if (key === "joiningDate" && value instanceof Date) return value.toISOString().slice(0, 10);
+  if (key === "designation") return normalizeImportedDesignation(value);
   return String(value).trim();
 }
 

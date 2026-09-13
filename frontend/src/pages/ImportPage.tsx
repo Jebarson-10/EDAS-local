@@ -3,6 +3,7 @@ import {
   assertMutable,
   importUploadOfficerMessage,
   previewTeacherImport,
+  prepareTeacherUpload,
   shouldApplySessionAfterApi,
 } from "@exam-duty/shared";
 import { useApp } from "../state/AppContext";
@@ -17,6 +18,11 @@ export function ImportPage() {
     examCycle,
   } = useApp();
   const [text, setText] = useState("");
+  const [useEmployeeCodes, setUseEmployeeCodes] = useState(false);
+  const uploadDetails = useMemo(() => {
+    try { const rows = JSON.parse(text); return Array.isArray(rows) ? prepareTeacherUpload(rows, useEmployeeCodes) : null; }
+    catch { return null; }
+  }, [text, useEmployeeCodes]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [lastImportId, setLastImportId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +53,7 @@ export function ImportPage() {
   const preview = useMemo(() => {
     if (!dataset || !text.trim()) return null;
     try {
-      const rows = JSON.parse(text) as unknown[];
+      const rows = uploadDetails?.rows ?? JSON.parse(text) as unknown[];
       if (!Array.isArray(rows))
         throw new Error("Expected a JSON array of teacher rows");
       const existing = dataset.teachers.map((t) => {
@@ -64,7 +70,7 @@ export function ImportPage() {
     } catch (e) {
       return { parseError: e instanceof Error ? e.message : "Parse error" };
     }
-  }, [text, dataset]);
+  }, [text, dataset, uploadDetails]);
 
   if (!dataset) return <Panel title="Imports">Loading…</Panel>;
 
@@ -72,6 +78,9 @@ export function ImportPage() {
     const gen = ++uploadGenRef.current;
     setError(null);
     setMessage(null);
+    setText("");
+    setUseEmployeeCodes(false);
+    setLastImportId(null);
     setUploadBusy(true);
     const run = (async (): Promise<string | null> => {
       try {
@@ -209,6 +218,11 @@ export function ImportPage() {
           )}
         </div>
 
+        {uploadDetails && <div className="mb-3 space-y-2 text-sm">
+          <p>School names are matched to your saved school list, even under an older “schoolCode” heading. Headmaster and PG assistant spellings are recognised.</p>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={useEmployeeCodes} onChange={(e) => setUseEmployeeCodes(e.target.checked)} disabled={busy || uploadBusy} />Use employee codes from this file for matching (leave off for serial numbers)</label>
+          {uploadDetails.notes.length > 0 && <details><summary className="cursor-pointer">Missing details to check before allotment</summary><ul className="mt-2 list-disc pl-5">{uploadDetails.notes.map((note) => <li key={note}>{note}</li>)}</ul></details>}
+        </div>}
         <div className="mt-3 flex flex-wrap gap-2 items-center">
           <label className="text-sm flex items-center gap-2">
             Teachers not in this file
@@ -315,7 +329,7 @@ export function ImportPage() {
                     <tr key={i} className="border-t border-[var(--color-line)]">
                       <td className="px-2 py-1">{r.rowNumber}</td>
                       <td className="px-2 py-1">{r.status}</td>
-                      <td className="px-2 py-1">{r.payload?.name ?? dataset.teachers.find((t) => t.employeeCode === r.employeeCode)?.name ?? "—"}</td>
+                      <td className="px-2 py-1">{r.teacherName ?? r.payload?.name ?? dataset.teachers.find((t) => t.employeeCode === r.employeeCode)?.name ?? "—"}</td>
                       <td className="px-2 py-1">{r.message}</td>
                     </tr>
                   ))}

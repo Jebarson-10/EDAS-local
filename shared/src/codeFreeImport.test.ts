@@ -1,10 +1,42 @@
 import { describe, it, expect } from "vitest";
 import { previewTeacherImport } from "./importPreview.js";
 import { applyTeacherImport } from "./importApply.js";
-import { parseTeacherRowsFromAoa } from "./excelTeachers.js";
+import { parseTeacherRowsFromAoa, prepareTeacherUpload, normalizeImportedDesignation } from "./excelTeachers.js";
 import { buildTeachersTemplateWorkbook, parseTeachersWorkbook } from "./excelReports.js";
 const schools = [{schoolId:"s1",schoolCode:"",schoolName:"Ordinary school"},{schoolId:"s2",schoolCode:"350",schoolName:"Centre school"}];
 describe("imports without employee codes", () => {
+  it("recognises numbered legacy uploads with school names in the code column", () => {
+    const parsed = parseTeacherRowsFromAoa([
+      ["employeeCode","name","schoolCode","designation","subject","seniorityRank","isActive"],
+      [1,"Teacher A","Ordinary school","HEAD MASTER",null,null,1],
+      [2,"Teacher B","Centre school","PG'ASST",null,null,1],
+    ]);
+    const prepared = prepareTeacherUpload(parsed.rows);
+    expect(prepared.rows[0]).not.toHaveProperty("employeeCode");
+    expect(prepared.rows.map((r) => r.designation)).toEqual(["HM","PG"]);
+    const preview = previewTeacherImport(prepared.rows,[],schools);
+    expect(preview.newTeachers).toBe(2); expect(preview.invalidRows).toBe(0);
+    const result = applyTeacherImport({preview,schools,teachers:[],asOfDate:"2026-09-13"});
+    const reordered = prepareTeacherUpload([...parsed.rows].reverse());
+    expect(previewTeacherImport(reordered.rows,result.teachers.map((t)=>({...t,schoolCode:t.schoolId})),schools).unchanged).toBe(2);
+    expect(prepared.notes.some((n) => n.includes("seniority"))).toBe(true);
+    expect(prepareTeacherUpload(parsed.rows,true).rows[0]?.employeeCode).toBe("1");
+  });
+  it("keeps acting headmaster posts distinct until the user confirms them", () => {
+    expect(normalizeImportedDesignation("HEADMASTER")).toBe("HM");
+    expect(normalizeImportedDesignation("PG ASST")).toBe("PG");
+    expect(normalizeImportedDesignation("HEAD MASTER I/C")).toBe("HEAD MASTER I/C");
+    expect(prepareTeacherUpload([{designation:"HEADMASTER I/C"}]).notes.some((n)=>n.includes("Confirm these designations"))).toBe(true);
+  });
+  it("does not guess missing or ambiguous schools from a name under schoolCode", () => {
+    const row = {name:"Teacher",schoolCode:"Ordinary school",schoolName:null,designation:"PG"};
+    expect(previewTeacherImport([row],[],schools).newTeachers).toBe(1);
+    const missing = previewTeacherImport([row],[],[]);
+    expect(missing.invalidRows).toBe(1);
+    expect(missing.rows[0]?.teacherName).toBe("Teacher");
+    expect(missing.rows[0]?.message).toContain("Ordinary school");
+    expect(previewTeacherImport([row],[],[...schools,{...schools[0]!,schoolId:"duplicate"}]).invalidRows).toBe(1);
+  });
   it("round-trips the user template with simple headings and a blank centre code", async () => {
     const workbook = await buildTeachersTemplateWorkbook([{name:"Teacher",schoolName:"Ordinary school",designation:"PG",subject:"PHY",seniorityRank:1,homeLatitude:11.3,homeLongitude:77.7}]);
     const parsed = await parseTeachersWorkbook(workbook);
