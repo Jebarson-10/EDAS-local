@@ -104,6 +104,7 @@ export const DEFAULT_RULE_PARAMETERS: RuleParameters = {
 export interface Teacher {
   teacherId: string;
   employeeCode: string;
+  teacherCode?: string | null;
   name: string;
   schoolId: string;
   designation: string;

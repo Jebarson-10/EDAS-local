@@ -398,6 +398,7 @@ export interface Form01TeacherRow {
   subject: string | null;
   /** Synthetic only — never use real employee numbers from client files in fixtures. */
   employeeCode: string;
+  teacherCode?: string;
   seniorityRank: number;
 }
 

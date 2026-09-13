@@ -10,7 +10,7 @@ export const importFields = {
   latitude: "School latitude", longitude: "School longitude", capacity: "Student count",
   homeLatitude: "Home latitude", homeLongitude: "Home longitude",
   seniorityRank: "Seniority rank", joiningDate: "Joining date", isActive: "Teacher active",
-  employeeCode: "Old employee code", ignore: "Do not import this column",
+  teacherCode: "Teacher code", employeeCode: "Old employee code", ignore: "Do not import this column",
 } as const;
 export type ImportField = keyof typeof importFields;
 const key = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/[\s_.\-()]+/g, "");
@@ -31,6 +31,7 @@ for (const [field, titles] of Object.entries({
   homeLatitude: ["home lat"], homeLongitude: ["home lon", "home lng"],
   latitude: ["lat", "centre latitude"], longitude: ["lon", "lng", "centre longitude"],
   seniorityRank: ["seniority", "rank"], isActive: ["active"],
+  teacherCode: ["teacher code", "ஆசிரியர் குறியீடு", "emis code", "tch code"],
   ignore: ["s no", "sl no", "serial number", "serial no"],
 })) for (const title of titles) aliases[key(title)] = field as ImportField;
 
@@ -104,7 +105,7 @@ export function planColumnImport(rows: Record<string, unknown>[], data: {blocks:
   rows.forEach((row, i) => {
     try {
       const str = (f: string) => String(row[f] ?? "").trim();
-      if (["designation","subject","seniorityRank","joiningDate","homeLatitude","homeLongitude","isActive","employeeCode"].some((f) => row[f] !== undefined) && !str("name")) throw new Error("Add Teacher name for this row, or leave out the teacher-only columns.");
+      if (["designation","subject","seniorityRank","joiningDate","homeLatitude","homeLongitude","isActive","teacherCode","employeeCode"].some((f) => row[f] !== undefined) && !str("name")) throw new Error("Add Teacher name for this row, or leave out the teacher-only columns.");
       let block: BlockRef | undefined;
       if (str("blockCode") || str("blockName")) {
         const hits = blocks.filter((b) => str("blockCode") ? b.blockCode === str("blockCode") : matchName(b.blockName) === matchName(row.blockName));

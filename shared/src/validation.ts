@@ -5,6 +5,7 @@ export const designationSchema = z.string().min(1).max(64);
 
 export const teacherImportRowSchema = z.object({
   employeeCode: employeeCodeSchema,
+  teacherCode: z.string().max(64).optional().nullable(),
   name: z.string().min(1).max(200),
   schoolCode: z.string().min(1).max(64),
   schoolName: z.string().optional(),
@@ -302,6 +303,8 @@ export const importApplyBodySchema = z.object({
         teacher_id: z.string().min(1).optional(),
         employeeCode: z.string().min(1).optional(),
         employee_code: z.string().min(1).optional(),
+        teacherCode: z.string().max(64).optional().nullable(),
+        teacher_code: z.string().max(64).optional().nullable(),
         name: z.string().min(1),
         schoolId: z.string().min(1).optional(),
         school_id: z.string().min(1).optional(),
@@ -536,6 +539,7 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
     kind: z.literal("teacher"),
     teacherId: z.string().min(1).optional(),
     employeeCode: z.string().trim().max(64).optional(),
+    teacherCode: z.string().trim().max(64).optional().nullable(),
     name: z.string().min(1).max(200),
     schoolId: z.string().min(1),
     designation: designationSchema,
