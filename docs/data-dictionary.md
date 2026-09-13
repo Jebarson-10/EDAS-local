@@ -66,6 +66,7 @@ FK-safe.
 |--------|------|-------|
 | teacher_id | TEXT PK | |
 | employee_code | TEXT UNIQUE | |
+| `teacher_code` | `TEXT` | Government-issued teacher identifier (e.g., EMIS code). Nullable. Unique where non-null. |
 | name | TEXT | |
 | school_id | TEXT FK | current |
 | designation | TEXT | |

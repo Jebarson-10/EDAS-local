@@ -99,6 +99,7 @@ const teachers = Array.from({ length: TEACHERS }, (_, i) => {
   return {
     teacherId: `tch_${String(i + 1).padStart(5, "0")}`,
     employeeCode: `SYN${String(i + 1).padStart(5, "0")}`,
+    teacherCode: `TC${String(i + 1).padStart(6, "0")}`,
     name: `Synthetic Teacher ${i + 1}`,
     schoolId: school.schoolId,
     designation:

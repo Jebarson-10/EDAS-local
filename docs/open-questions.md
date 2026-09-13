@@ -243,3 +243,11 @@ and Hall duty are required. Theory and Hall allocation create duties only for
 the marked sessions, across the entered active centres. This removes the
 placeholder-date behaviour formerly described in OQ-020; it does not decide
 the separate Department Officer staffing table.
+
+## OQ-015 — Teacher Code Format and Source
+
+**Status:** Open  
+**Added:** 2026-09-13
+
+What is the official format and source of Teacher Code? Is it EMIS, a district-level code, or another system? Should it participate in import matching or tie-breaking? Currently implemented as an optional display-only field with unique constraint where non-null.
+
