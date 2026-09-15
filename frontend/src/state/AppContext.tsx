@@ -153,6 +153,8 @@ interface AppState {
     opts?: {
       missingAction?: "leave" | "deactivate";
       importId?: string;
+      /** Fresh lists returned while a combined school + teacher import is saving. */
+      datasetOverride?: DemoDataset;
       rows?: Array<{
         rowNumber: number;
         status:
@@ -1084,6 +1086,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       opts?: {
         missingAction?: "leave" | "deactivate";
         importId?: string;
+        datasetOverride?: DemoDataset;
         rows?: Array<{
           rowNumber: number;
           status:
@@ -1098,7 +1101,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }>;
       },
     ) => {
-      if (!dataset) return { ok: false as const, error: "Dataset not loaded" };
+      const currentDataset = opts?.datasetOverride ?? dataset;
+      if (!currentDataset)
+        return { ok: false as const, error: "Dataset not loaded" };
       if (role === "VIEWER") {
         return { ok: false as const, error: "VIEWER cannot apply imports" };
       }
@@ -1110,8 +1115,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const asOf = new Date().toISOString().slice(0, 10);
       const applied = applyTeacherImport({
         preview,
-        teachers: dataset.teachers,
-        schools: dataset.schools.map((s) => ({
+        teachers: currentDataset.teachers,
+        schools: currentDataset.schools.map((s) => ({
           schoolId: s.schoolId,
           schoolCode: s.schoolCode,
         })),
@@ -1136,12 +1141,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return { ok: false as const, error: decision.error };
       }
       setDataset({
-        ...dataset,
+        ...currentDataset,
         teachers: applied.teachers,
         meta: {
-          ...dataset.meta,
+          ...currentDataset.meta,
           counts: {
-            ...dataset.meta.counts,
+            ...currentDataset.meta.counts,
             teachers: applied.teachers.length,
           },
         },

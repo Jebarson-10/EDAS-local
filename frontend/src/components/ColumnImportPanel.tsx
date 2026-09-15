@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { assertMutable, guessImportColumns, importFields, mapImportColumns, planColumnImport, type ImportField } from "@exam-duty/shared";
+import { assertMutable, guessImportColumns, importFields, mapImportColumns, planColumnImport, previewTeacherImport, type ImportField } from "@exam-duty/shared";
 import { useApp } from "../state/AppContext";
 import { fetchMasterBlocks, fetchMasterSchools, fetchMasterCentres, fetchMasterRelationships, upsertManualMasterRecord } from "../lib/api";
 import { Panel } from "./ui";
@@ -8,7 +8,7 @@ type Sheet = {name: string; lines: unknown[][]};
 const style = "rounded border border-[var(--color-line)] bg-white px-2 py-1 text-sm";
 
 export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<string,unknown>[]) => void}) {
-  const {dataset, setDataset, role, examCycle, logAudit} = useApp();
+  const {dataset, setDataset, role, examCycle, logAudit, applyImportPreview} = useApp();
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [mapping, setMapping] = useState<(ImportField | "")[]>([]);
@@ -59,19 +59,48 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
         saved++;
         if (record.kind === "block") blockIds.set(`import-block:${record.blockCode}`,result.id);
       }
+      let refreshed = dataset;
       if (saved) {
         const [blocks,schools,centres,links] = await Promise.all([fetchMasterBlocks(role),fetchMasterSchools(role),fetchMasterCentres(role),fetchMasterRelationships(role)]);
         if (!blocks || !schools || !centres || !links) throw new Error("Saved lists could not refresh. Reopen the app before retrying.");
-        setDataset({...dataset,
+        refreshed = {...dataset,
           blocks:blocks.blocks.map((b) => ({blockId:b.block_id,blockCode:b.block_code,blockName:b.block_name})),
           schools:schools.schools.map((s) => ({schoolId:s.school_id,schoolCode:s.school_code,schoolName:s.school_name,blockId:s.block_id,latitude:s.latitude ?? NaN,longitude:s.longitude ?? NaN,active:s.active !== 0})),
           centres:centres.centres.map((c) => ({centreId:c.centre_id,centreCode:c.centre_code,centreName:c.centre_name,blockId:c.block_id ?? "",latitude:c.latitude ?? NaN,longitude:c.longitude ?? NaN,capacity:c.capacity ?? undefined,active:c.active !== 0})),
           relationships:links.relationships.map((r) => ({centreId:String(r.centre_id),schoolId:String(r.school_id),relationshipType:r.relationship_type === "CLUBBED" ? "CLUBBED" as const : "HOST" as const,effectiveFrom:String(r.effective_from),effectiveTo:r.effective_to})),
-        });
+        };
+        setDataset(refreshed);
       }
-      onTeachers(plan.teachers);
-      logAudit("IMPORT",`Column import: ${saved} school/block records saved; ${plan.teachers.length} teachers prepared for review`);
-      setMessage(`${saved} school/block records saved.${plan.teachers.length ? ` Check ${plan.teachers.length} teachers in the preview below, then select Save changes.` : " Import complete."}`);
+      let teacherMessage = "";
+      if (plan.teachers.length) {
+        const preview = previewTeacherImport(
+          plan.teachers,
+          refreshed.teachers.map((t) => ({
+            ...t,
+            teacherCode: t.teacherCode ?? null,
+            schoolCode: t.schoolId,
+          })),
+          refreshed.schools,
+        );
+        const result = await applyImportPreview(preview, {
+          missingAction: "leave",
+          datasetOverride: refreshed,
+          rows: preview.rows.map((row) => ({
+            rowNumber: row.rowNumber,
+            status: row.status,
+            entityKey: row.employeeCode,
+            message: row.message,
+          })),
+        });
+        if (!result.ok) {
+          onTeachers(plan.teachers);
+          throw new Error(`${result.error} The teachers remain in Teacher review below; select Save changes to retry.`);
+        }
+        onTeachers([]);
+        teacherMessage = ` ${result.teachers.length} total teachers are now saved.`;
+      }
+      logAudit("IMPORT",`Column import saved ${saved} school/block records and ${plan.teachers.length} teacher rows`);
+      setMessage(`${saved} school/block records saved.${teacherMessage || " Import complete."}`);
       setSheets([]);
     } catch (e) {
       setMessage(`${saved} school/block records were saved; no teachers were saved. ${e instanceof Error ? e.message : "Saving stopped."} Reopen this page and upload again to continue.`);
@@ -93,7 +122,7 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
       <div className="overflow-auto max-h-80 my-3"><table className="w-full text-sm"><thead><tr><th className="text-left">Your heading</th><th className="text-left">Save as</th><th className="text-left">First value</th></tr></thead><tbody>{mapping.map((field,i) => <tr key={i}><td>{String(sheet.lines[0]?.[i] ?? "") || `Column ${i+1} (no heading)`}</td><td><select aria-label={`Column ${i+1} field`} className={style} value={field} disabled={busy} onChange={(e) => {setMapping(mapping.map((f,j) => i===j ? e.target.value as ImportField : f));onTeachers([]);}}><option value="">Choose a field</option>{Object.entries(importFields).map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></td><td>{String(sheet.lines[1]?.[i] ?? "").slice(0,100)}</td></tr>)}</tbody></table></div>
       {plan && <p className="text-sm">{mapped?.rows.length} rows · {plan.records.length} school/block changes · {plan.teachers.length} teachers to review</p>}
       {errors.length>0 && <div role="alert" className="text-sm text-[var(--color-err)] max-h-48 overflow-auto">{errors.map((e,i) => <p key={i}>{e}</p>)}</div>}
-      <button className={`${style} mt-3 disabled:opacity-40`} disabled={!allowed || busy || errors.length>0 || !plan || (!plan.records.length && !plan.teachers.length)} onClick={() => void save()}>{busy ? "Saving…" : plan?.records.length ? "Save schools / blocks and review teachers" : "Review teachers"}</button>
+      <button className={`${style} mt-3 disabled:opacity-40`} disabled={!allowed || busy || errors.length>0 || !plan || (!plan.records.length && !plan.teachers.length)} onClick={() => void save()}>{busy ? "Saving…" : "Save imported data"}</button>
     </>}
     {message && <p role="status" className="text-sm mt-3">{message}</p>}
   </Panel>;
