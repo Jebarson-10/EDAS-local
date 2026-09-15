@@ -423,31 +423,85 @@ export async function applyImportApi(
   }>,
   examCycleId?: string,
 ) {
+  // D1 on Cloudflare's free plan allows only a small number of database
+  // queries in one Worker request. A teacher may need an upsert plus school,
+  // designation, location and source-row writes, so keep batches deliberately
+  // small. Repeating a batch is safe because teacher and history writes upsert
+  // or use stable IDs.
+  const batchSize = 6;
+  let totals = {
+    upserted: 0,
+    schoolHistory: 0,
+    designationHistory: 0,
+    locationHistory: 0,
+    importRows: 0,
+  };
   try {
-    const res = await fetch(`${API_BASE}/api/imports/apply`, {
-      method: "POST",
-      headers: headers(role),
-      body: JSON.stringify({
-        teachers,
-        importId,
-        note: "client apply",
-        schoolHistory: history?.schoolHistory,
-        designationHistory: history?.designationHistory,
-        locationHistory: history?.locationHistory,
-        rows,
-        examCycleId,
-      }),
-    });
-    return (await res.json()) as {
-      ok?: boolean;
-      upserted?: number;
-      schoolHistory?: number;
-      designationHistory?: number;
-      locationHistory?: number;
-      importRows?: number;
-      error?: string;
-      detail?: string;
-      conflict?: boolean;
+    for (let offset = 0; offset < teachers.length; offset += batchSize) {
+      const teacherBatch = teachers.slice(offset, offset + batchSize) as Array<
+        Record<string, unknown>
+      >;
+      const teacherIds = new Set(
+        teacherBatch.map((teacher) =>
+          String(teacher.teacherId ?? teacher.teacher_id ?? ""),
+        ),
+      );
+      const rowBatch = rows?.slice(offset, offset + batchSize);
+      const res = await fetch(`${API_BASE}/api/imports/apply`, {
+        method: "POST",
+        headers: headers(role),
+        body: JSON.stringify({
+          teachers: teacherBatch,
+          importId,
+          note: `client apply batch ${Math.floor(offset / batchSize) + 1}`,
+          schoolHistory: history?.schoolHistory?.filter((item) =>
+            teacherIds.has(item.teacherId),
+          ),
+          designationHistory: history?.designationHistory?.filter((item) =>
+            teacherIds.has(item.teacherId),
+          ),
+          locationHistory: history?.locationHistory?.filter((item) =>
+            teacherIds.has(item.teacherId),
+          ),
+          rows: rowBatch,
+          examCycleId,
+        }),
+      });
+      const body = (await res.json()) as {
+        ok?: boolean;
+        upserted?: number;
+        schoolHistory?: number;
+        designationHistory?: number;
+        locationHistory?: number;
+        importRows?: number;
+        error?: string;
+        detail?: string;
+        conflict?: boolean;
+      };
+      if (!res.ok || !body.ok) {
+        return {
+          ...body,
+          error: body.error ?? `Import batch failed (${res.status})`,
+          detail: `${body.detail ?? ""}${body.detail ? " · " : ""}${totals.upserted} teacher records completed before this batch; retry is safe`,
+        };
+      }
+      totals = {
+        upserted: totals.upserted + (body.upserted ?? 0),
+        schoolHistory:
+          totals.schoolHistory + (body.schoolHistory ?? 0),
+        designationHistory:
+          totals.designationHistory + (body.designationHistory ?? 0),
+        locationHistory:
+          totals.locationHistory + (body.locationHistory ?? 0),
+        importRows: totals.importRows + (body.importRows ?? 0),
+      };
+    }
+    return {
+      ok: true,
+      ...totals,
+      error: undefined,
+      detail: undefined,
+      conflict: undefined,
     };
   } catch {
     return null;
