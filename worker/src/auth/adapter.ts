@@ -73,6 +73,8 @@ function resolveAccessRole(
 
 /**
  * Default adapter: Access email in staging/production; X-Dev-* only in development.
+ * Local and explicitly development-only test builds default to full access because
+ * this app is operated by one person and no role selector is shown in the UI.
  * Role mapping is never invented — email map (OQ-010) or optional claim header only.
  */
 export class DefaultAuthAdapter implements AuthAdapter {
@@ -97,11 +99,11 @@ export class DefaultAuthAdapter implements AuthAdapter {
       return null;
     }
     const roleHeader = request.headers.get("X-Dev-Role");
-    const role: AppRole = isRole(roleHeader) ? roleHeader : "OFFICER";
+    const role: AppRole = isRole(roleHeader) ? roleHeader : "ADMIN";
     const email =
       request.headers.get("X-Dev-Email") ??
       request.headers.get("X-Dev-User") ??
-      "officer@example.local";
+      "admin@example.local";
     return {
       userId: `dev:${email}`,
       email,

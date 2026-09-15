@@ -795,6 +795,42 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     }
   }
 
+  // Hosted changes are written directly to D1 by each API operation. This
+  // endpoint mirrors the desktop app's autosave signal and, when R2 is bound,
+  // also keeps a recoverable latest snapshot. R2 is optional for test sites.
+  if (url.pathname === "/api/autosave" && request.method === "POST") {
+    const denied = requirePerm(auth, "master.write");
+    if (denied) return denied;
+    const savedAt = new Date().toISOString();
+    if (!env.FILES) {
+      return json({
+        ok: true,
+        savedAt,
+        stored: false,
+        note: "Changes are saved in the online database; extra autosave archives need cloud file storage",
+      });
+    }
+    try {
+      const payload = await buildCanonicalBackup(db);
+      const bytes = new TextEncoder().encode(JSON.stringify(payload));
+      const checksum = await sha256Hex(bytes);
+      await env.FILES.put("autosave/latest.json", bytes, {
+        httpMetadata: { contentType: "application/json" },
+        customMetadata: { checksum, savedAt },
+      });
+      return json({ ok: true, savedAt, stored: true, checksum });
+    } catch (e) {
+      return json(
+        {
+          ok: false,
+          savedAt,
+          error: e instanceof Error ? e.message : "Autosave failed",
+        },
+        503,
+      );
+    }
+  }
+
   if (
     url.pathname.match(/^\/api\/exam-cycles\/[^/]+\/timetable$/) &&
     request.method === "GET"

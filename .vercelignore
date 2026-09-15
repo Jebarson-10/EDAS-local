@@ -1,0 +1,25 @@
+.git
+.github
+.vercel
+.data
+.map-inspect
+.cursor
+node_modules
+release
+desktop
+docs
+scripts
+worker
+database
+functions
+coverage
+main.cjs
+*.sqlite
+*.sqlite-*
+*.log
+*.zip
+*.exe
+
+# Vercel builds this directory from source.
+frontend/dist
+frontend/node_modules

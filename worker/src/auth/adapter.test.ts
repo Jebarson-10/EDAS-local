@@ -73,6 +73,15 @@ describe("AuthAdapter / resolveAuth policy", () => {
     expect(id?.source).toBe("dev-headers");
   });
 
+  it("defaults a single-user development build to full access", () => {
+    const id = adapter.resolve(
+      new Request("https://example.test/api/me"),
+      "development",
+    );
+    expect(id?.role).toBe("ADMIN");
+    expect(id?.email).toBe("admin@example.local");
+  });
+
   it("accepts X-Dev-User as email alias in development", () => {
     const req = new Request("https://example.test/api/me", {
       headers: { "X-Dev-Role": "ADMIN", "X-Dev-User": "smoke@local" },

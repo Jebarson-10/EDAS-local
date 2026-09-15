@@ -17,3 +17,5 @@ desktop/dist/
 desktop/ui/
 desktop/build-info.json
 .map-inspect/
+
+.vercel
