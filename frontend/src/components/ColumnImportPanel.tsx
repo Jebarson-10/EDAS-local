@@ -48,6 +48,7 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
     if (!dataset || !plan || errors.length || lock.current || !allowed) return;
     lock.current=true; setBusy(true);setMessage("");
     let saved=0;
+    let teachersPreparedForRetry=false;
     try {
       const blockIds = new Map<string,string>();
       // Every successful row is durable. If interrupted, report the saved count; retry matches existing names/codes.
@@ -94,6 +95,7 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
         });
         if (!result.ok) {
           onTeachers(plan.teachers);
+          teachersPreparedForRetry=true;
           throw new Error(`${result.error} The teachers remain in Teacher review below; select Save changes to retry.`);
         }
         onTeachers([]);
@@ -105,7 +107,8 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
     } catch (e) {
       setMessage(`${saved} school/block records were saved; no teachers were saved. ${e instanceof Error ? e.message : "Saving stopped."} Reopen this page and upload again to continue.`);
       // Prevent retry with stale school IDs after a partial save.
-      setSheets([]);onTeachers([]);
+      setSheets([]);
+      if (!teachersPreparedForRetry) onTeachers([]);
     } finally {lock.current=false;setBusy(false);}
   }
 

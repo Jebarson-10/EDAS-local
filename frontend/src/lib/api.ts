@@ -446,6 +446,7 @@ export async function applyImportApi(
       locationHistory?: number;
       importRows?: number;
       error?: string;
+      detail?: string;
       conflict?: boolean;
     };
   } catch {

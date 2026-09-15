@@ -1124,8 +1124,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         asOfDate: asOf,
         missingAction: opts?.missingAction ?? "leave",
       });
-      const { applyImportApi } = await import("../lib/api");
-      const api = await applyImportApi(
+      const { applyImportApi, createExamCycleApi } = await import("../lib/api");
+      let api = await applyImportApi(
         role,
         applied.teachers,
         importId,
@@ -1136,6 +1136,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
         opts?.rows,
         examCycle.examCycleId,
       );
+      const cycleMissing = `${api?.error ?? ""} ${api?.detail ?? ""}`
+        .toLowerCase()
+        .includes("exam cycle") &&
+        `${api?.error ?? ""} ${api?.detail ?? ""}`
+          .toLowerCase()
+          .includes("not found");
+      if (cycleMissing) {
+        const created = await createExamCycleApi(role, {
+          examCycleId: examCycle.examCycleId,
+          name: examCycle.name,
+          academicYear: examCycle.academicYear,
+          ruleVersionId: examCycle.ruleVersionId,
+          status: examCycle.status,
+          ...(examCycle.startDate ? { startDate: examCycle.startDate } : {}),
+          ...(examCycle.endDate ? { endDate: examCycle.endDate } : {}),
+        });
+        if (created?.ok || created?.error?.toLowerCase().includes("exists")) {
+          api = await applyImportApi(
+            role,
+            applied.teachers,
+            importId,
+            {
+              schoolHistory: applied.schoolHistory,
+              designationHistory: applied.designationHistory,
+            },
+            opts?.rows,
+            examCycle.examCycleId,
+          );
+        }
+      }
       const decision = shouldApplySessionAfterApi(api);
       if (!decision.apply) {
         return { ok: false as const, error: decision.error };
