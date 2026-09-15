@@ -437,13 +437,13 @@ export async function persistAllocationRun(
     unstoredFindings,
   );
 
+  const statements: DbStatement[] = [];
   let snapshotId: string | null = null;
   if (input.snapshotJson) {
-    const { sha256Hex } = await import("@exam-duty/shared");
     snapshotId = crypto.randomUUID();
     const payloadHash = await sha256Hex(input.snapshotJson);
-    await db
-      .prepare(
+    statements.push(
+      db.prepare(
         `INSERT INTO input_snapshots (snapshot_id, payload_hash, inline_json, created_at)
          VALUES (?, ?, ?, ?)`,
       )
@@ -452,11 +452,11 @@ export async function persistAllocationRun(
         payloadHash,
         input.snapshotJson,
         new Date().toISOString(),
-      )
-      .run();
+      ),
+    );
   }
-  await db
-    .prepare(
+  statements.push(
+    db.prepare(
       `INSERT INTO allocation_runs
         (run_id, exam_cycle_id, rule_version_id, algorithm_version, module, input_snapshot_id, created_by, created_at, status, validation_status, summary_json)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'GENERATED', ?, ?)`,
@@ -472,36 +472,38 @@ export async function persistAllocationRun(
       new Date().toISOString(),
       input.validationStatus,
       summaryJson,
-    )
-    .run();
+    ),
+  );
 
-  let reasonCount = 0;
+  const resultRows: Array<Record<string, unknown>> = [];
+  const reasonRows: Array<Record<string, unknown>> = [];
   for (const r of input.results) {
-    await db
-      .prepare(
-        `INSERT INTO allocation_run_results
-          (result_id, run_id, teacher_id, centre_id, duty_type_code, role_code, exam_date, session_code, score, decision_trace_json, is_generated, is_override, final_teacher_id, generated_teacher_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`,
-      )
-      .bind(
-        r.resultId,
-        input.runId,
-        r.teacherId,
-        r.centreId,
-        r.dutyTypeCode,
-        r.roleCode,
-        r.examDate,
-        r.sessionCode,
-        r.score,
-        mergeFallbackIntoDecisionTrace(r.decisionTraceJson, r.usedFallback),
-        r.teacherId,
-        r.teacherId,
-      )
-      .run();
+    resultRows.push({
+      resultId: r.resultId,
+      runId: input.runId,
+      teacherId: r.teacherId,
+      centreId: r.centreId,
+      dutyTypeCode: r.dutyTypeCode,
+      roleCode: r.roleCode,
+      examDate: r.examDate,
+      sessionCode: r.sessionCode,
+      score: r.score,
+      decisionTraceJson: mergeFallbackIntoDecisionTrace(
+        r.decisionTraceJson,
+        r.usedFallback,
+      ),
+    });
 
     for (const reason of extractTraceReasons(r.decisionTraceJson)) {
-      await insertDecisionReason(db, r.resultId, reason);
-      reasonCount += 1;
+      reasonRows.push({
+        id: crypto.randomUUID(),
+        resultId: r.resultId,
+        ruleCode: reason.ruleCode,
+        severity: reason.severity,
+        message: reason.message,
+        detailsJson:
+          reason.details != null ? JSON.stringify(reason.details) : null,
+      });
     }
   }
 
@@ -519,9 +521,13 @@ export async function persistAllocationRun(
         typeof finding.details === "object" && finding.details
           ? { ...(finding.details as Record<string, unknown>) }
           : {};
-      await insertDecisionReason(db, resultId, {
-        ...finding,
-        details: {
+      reasonRows.push({
+        id: crypto.randomUUID(),
+        resultId,
+        ruleCode: finding.ruleCode,
+        severity: finding.severity,
+        message: finding.message,
+        detailsJson: JSON.stringify({
           ...details,
           teacherId: finding.teacherId,
           centreId: finding.centreId,
@@ -530,13 +536,55 @@ export async function persistAllocationRun(
           source:
             typeof details.source === "string" ? details.source : "validator",
           unmatched,
-        },
+        }),
       });
-      reasonCount += 1;
     }
   }
 
-  return { reasonCount };
+  // One JSON-backed statement stores many rows. This keeps large online saves
+  // under D1's per-request query limit while remaining atomic on D1 and SQLite.
+  const pushJsonChunks = (
+    rows: Array<Record<string, unknown>>,
+    sql: string,
+    chunkSize = 250,
+  ) => {
+    for (let offset = 0; offset < rows.length; offset += chunkSize) {
+      statements.push(
+        db
+          .prepare(sql)
+          .bind(JSON.stringify(rows.slice(offset, offset + chunkSize))),
+      );
+    }
+  };
+
+  pushJsonChunks(
+    resultRows,
+    `INSERT INTO allocation_run_results
+      (result_id, run_id, teacher_id, centre_id, duty_type_code, role_code,
+       exam_date, session_code, score, decision_trace_json, is_generated,
+       is_override, final_teacher_id, generated_teacher_id)
+     SELECT
+       json_extract(value, '$.resultId'), json_extract(value, '$.runId'),
+       json_extract(value, '$.teacherId'), json_extract(value, '$.centreId'),
+       json_extract(value, '$.dutyTypeCode'), json_extract(value, '$.roleCode'),
+       json_extract(value, '$.examDate'), json_extract(value, '$.sessionCode'),
+       json_extract(value, '$.score'), json_extract(value, '$.decisionTraceJson'),
+       1, 0, json_extract(value, '$.teacherId'), json_extract(value, '$.teacherId')
+     FROM json_each(?)`,
+  );
+  pushJsonChunks(
+    reasonRows,
+    `INSERT INTO allocation_decision_reasons
+      (id, result_id, rule_code, severity, message, details_json)
+     SELECT
+       json_extract(value, '$.id'), json_extract(value, '$.resultId'),
+       json_extract(value, '$.ruleCode'), json_extract(value, '$.severity'),
+       json_extract(value, '$.message'), json_extract(value, '$.detailsJson')
+     FROM json_each(?)`,
+  );
+
+  await runAtomic(db, statements);
+  return { reasonCount: reasonRows.length };
 }
 
 export type PublishRunResult =

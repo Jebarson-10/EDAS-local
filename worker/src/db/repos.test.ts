@@ -1503,6 +1503,66 @@ describe("allocation decision reasons", () => {
     expect(codes).toContain("RULE-CONFLICT-SESSION");
   });
 
+  it("bulk-saves a large allocation in only a few database statements", async () => {
+    let statementCount = 0;
+    const countingDb = {
+      ...db,
+      batch: async (statements: Parameters<NonNullable<typeof db.batch>>[0]) => {
+        statementCount = statements.length;
+        return db.batch!(statements);
+      },
+    };
+    const results = Array.from({ length: 500 }, (_, index) => ({
+      resultId: `res_bulk_${index}`,
+      teacherId: "t1",
+      centreId: "c1",
+      dutyTypeCode: "DEPARTMENT_OFFICER",
+      roleCode: "DEPARTMENT_OFFICER",
+      examDate: "2027-03-15",
+      sessionCode: "MORNING",
+      score: index,
+      decisionTraceJson: JSON.stringify({
+        reasons: [{
+          ruleCode: "INFO-FAIRNESS",
+          severity: "INFO",
+          message: "Selected by fairness order",
+        }],
+      }),
+      usedFallback: false,
+    }));
+
+    const persisted = await persistAllocationRun(countingDb, {
+      runId: "run_bulk",
+      examCycleId: "ec1",
+      ruleVersionId: "rv-2027-1",
+      algorithmVersion: "theory-1.1.0",
+      module: "THEORY",
+      validationStatus: "VALID",
+      createdBy: "test",
+      summaryJson: "{}",
+      snapshotJson: "{}",
+      results,
+    });
+
+    expect(persisted.reasonCount).toBe(500);
+    expect(statementCount).toBeLessThan(10);
+    const savedResults = await db
+      .prepare("SELECT COUNT(*) AS count FROM allocation_run_results WHERE run_id = ?")
+      .bind("run_bulk")
+      .first<{ count: number }>();
+    expect(savedResults?.count).toBe(500);
+    const savedReasons = await db
+      .prepare(
+        `SELECT COUNT(*) AS count
+         FROM allocation_decision_reasons adr
+         INNER JOIN allocation_run_results arr ON arr.result_id = adr.result_id
+         WHERE arr.run_id = ?`,
+      )
+      .bind("run_bulk")
+      .first<{ count: number }>();
+    expect(savedReasons?.count).toBe(500);
+  });
+
   it("drops generate INFO-* from listed reasons after override", async () => {
     const { listAllocationDecisionReasons, recordManualOverride } =
       await import("./repos.js");

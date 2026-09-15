@@ -64,7 +64,26 @@ export async function persistRun(
       headers: headers(role),
       body: JSON.stringify(body),
     });
-    return (await res.json()) as { accepted?: boolean; error?: string };
+    const payload = (await res.json().catch(() => ({}))) as {
+      accepted?: boolean;
+      error?: string;
+    };
+    if (res.ok) return payload;
+    const technicalMessage = payload.error ?? "";
+    if (
+      technicalMessage.includes("Too many API requests") ||
+      technicalMessage.includes("D1_ERROR")
+    ) {
+      return {
+        accepted: false,
+        error:
+          "The duty list could not be saved online. Please update the app and try again.",
+      };
+    }
+    return {
+      accepted: false,
+      error: technicalMessage || "The duty list could not be saved. Try again.",
+    };
   } catch {
     return null;
   }
