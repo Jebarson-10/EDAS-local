@@ -8,7 +8,7 @@ import type {
 import type { ValidationResult } from "@exam-duty/validator";
 import { useApp, isTheoryRun } from "../state/AppContext";
 import { crossModuleCalendar } from "../lib/crossModuleCalendar";
-import { timetableYearProblem } from "../lib/timetableChecks";
+import { timetableDateProblem } from "../lib/timetableChecks";
 import {
   Bento,
   EmptyState,
@@ -183,7 +183,7 @@ export function TheoryPage() {
       setProgress("Add at least one timetable session marked Chief duty before allocating theory duties.");
       return;
     }
-    const dateProblem = timetableYearProblem(chiefSessions, examCycle.academicYear);
+    const dateProblem = timetableDateProblem(chiefSessions);
     if (dateProblem) {
       setProgress(dateProblem);
       return;

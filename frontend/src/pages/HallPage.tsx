@@ -7,7 +7,7 @@ import {
 import { validateHallAllocation } from "@exam-duty/validator";
 import { useApp } from "../state/AppContext";
 import { crossModuleCalendar } from "../lib/crossModuleCalendar";
-import { timetableYearProblem } from "../lib/timetableChecks";
+import { timetableDateProblem } from "../lib/timetableChecks";
 import {
   assertMutable,
   catalogUsableForGenerate,
@@ -128,7 +128,7 @@ export function HallPage() {
       setText("Add at least one timetable session marked Hall duty before allocating hall duties.");
       return;
     }
-    const dateProblem = timetableYearProblem(hallSessions, examCycle.academicYear);
+    const dateProblem = timetableDateProblem(hallSessions);
     if (dateProblem) {
       setText(dateProblem);
       return;
