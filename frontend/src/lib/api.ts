@@ -576,6 +576,7 @@ export async function fetchMasterTeachers(role: ApiRole) {
         home_longitude?: number | null;
         is_active?: number;
         data_quality?: string;
+        staff_category?: "TEACHING" | "NON_TEACHING";
       }>;
     };
   } catch {
@@ -614,12 +615,13 @@ export type ManualMasterRecord =
       name: string;
       schoolId: string;
       designation: string;
-      subject: string;
-      seniorityRank: number;
+      subject?: string | null;
+      seniorityRank?: number | null;
       joiningDate?: string | null;
       homeLatitude: number;
       homeLongitude: number;
       isActive?: boolean;
+      staffCategory?: "TEACHING" | "NON_TEACHING";
     };
 
 /** Save one manually entered master record. The server validates all required fields. */

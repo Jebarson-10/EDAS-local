@@ -1,4 +1,4 @@
-const labels: Record<string,string> = {name:"Teacher name",designation:"Teacher post",schoolCode:"Centre code",schoolName:"School name",blockId:"Block",blockCode:"Block code",blockName:"Block name",latitude:"School latitude",longitude:"School longitude",homeLatitude:"Home latitude",homeLongitude:"Home longitude",capacity:"Student count",seniorityRank:"Seniority rank",joiningDate:"Joining date",isActive:"Teacher active",subject:"Subject",employeeCode:"Employee code"};
+const labels: Record<string,string> = {name:"Teacher name",designation:"Teacher post",schoolCode:"Centre code",schoolName:"School name",blockId:"Block",blockCode:"Block code",blockName:"Block name",latitude:"School latitude",longitude:"School longitude",homeLatitude:"Home latitude",homeLongitude:"Home longitude",capacity:"Student count",seniorityRank:"Seniority rank",joiningDate:"Joining date",isActive:"Teacher active",subject:"Subject",employeeCode:"Employee code",staffCategory:"Staff group"};
 
 /** Accept Excel storage differences without weakening the actual meaning of a field. */
 export function normalizeImportValue(field: string, value: unknown): unknown {
@@ -17,6 +17,12 @@ export function normalizeImportValue(field: string, value: unknown): unknown {
     if (["1","true","yes","y","active","ஆம்"].includes(s)) return true;
     if (["0","false","no","n","inactive","இல்லை"].includes(s)) return false;
     throw new Error("Teacher active: enter Yes or No (1 or 0 also works).");
+  }
+  if (field === "staffCategory") {
+    const compact = text.toLowerCase().replace(/[\s_-]+/g, "");
+    if (["teaching", "teacher", "teachers"].includes(compact)) return "TEACHING";
+    if (["nonteaching", "nonteacher", "officestaff", "office"].includes(compact)) return "NON_TEACHING";
+    throw new Error("Staff group: choose Teaching or Non-teaching.");
   }
   if (field === "joiningDate") {
     if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString().slice(0,10);

@@ -1,11 +1,11 @@
 import type { RuleParameters, ValidationStatus } from "@exam-duty/shared";
-import {
-  evaluateTheoryCandidate,
-  type TheoryAllocationResult,
-  type TheoryDataset,
-  type TheoryRequirement,
+import type {
+  TheoryAllocationResult,
+  TheoryDataset,
+  TheoryRequirement,
 } from "@exam-duty/allocation-engine";
 import { detectSessionConflicts, type ConflictFinding } from "../conflict/engine.js";
+import { validateTheoryCandidateEligibility } from "./eligibility.js";
 
 export interface ValidationIssue {
   ruleCode: string;
@@ -49,7 +49,42 @@ export function validateTheoryAllocation(
   let errors = 0;
 
   // Duplicate teacher assignments
-  const seenTeachers = new Set<string>();
+  const seenTeacherSessions = new Set<string>();
+  const assignmentsByRequirement = new Map<string, number>();
+  for (const assignment of result.assignments) {
+    assignmentsByRequirement.set(
+      assignment.requirementKey,
+      (assignmentsByRequirement.get(assignment.requirementKey) ?? 0) + 1,
+    );
+  }
+
+  const shortageKeys = new Set(result.shortages.map((s) => s.requirementKey));
+  for (const requirement of requirements) {
+    const count = assignmentsByRequirement.get(requirement.requirementKey) ?? 0;
+    if (count === 0 && !shortageKeys.has(requirement.requirementKey)) {
+      errors += 1;
+      issues.push({
+        ruleCode: "RULE-VALIDATOR-MISSING",
+        severity: "ERROR",
+        message: "Required duty has neither an assignment nor a recorded shortage",
+        centreId: requirement.centreId,
+        date: requirement.examDate,
+        duty: requirement.roleCode,
+        details: { requirementKey: requirement.requirementKey },
+      });
+    } else if (count > 1) {
+      errors += 1;
+      issues.push({
+        ruleCode: "RULE-VALIDATOR-REQUIREMENT-DUP",
+        severity: "ERROR",
+        message: "More than one teacher is assigned to the same required duty",
+        centreId: requirement.centreId,
+        date: requirement.examDate,
+        duty: requirement.roleCode,
+        details: { requirementKey: requirement.requirementKey, assignments: count },
+      });
+    }
+  }
 
   for (const a of result.assignments) {
     const req = reqByKey.get(a.requirementKey);
@@ -68,21 +103,47 @@ export function validateTheoryAllocation(
       continue;
     }
 
-    if (seenTeachers.has(a.teacherId)) {
+    const identityMatches =
+      a.centreId === req.centreId &&
+      a.roleCode === req.roleCode &&
+      a.examDate === req.examDate &&
+      a.sessionCode === req.sessionCode;
+    if (!identityMatches) {
+      errors += 1;
+      issues.push({
+        ruleCode: "RULE-VALIDATOR-IDENTITY",
+        severity: "ERROR",
+        message: "Assignment does not match its required centre, role, date, or session",
+        teacherId: a.teacherId,
+        centreId: a.centreId,
+        date: a.examDate,
+        duty: a.roleCode,
+        details: {
+          requirementKey: req.requirementKey,
+          expectedCentreId: req.centreId,
+          expectedRoleCode: req.roleCode,
+          expectedExamDate: req.examDate,
+          expectedSessionCode: req.sessionCode,
+        },
+      });
+    }
+
+    const teacherSessionKey = `${a.teacherId}|${a.examDate}|${a.sessionCode}`;
+    if (seenTeacherSessions.has(teacherSessionKey)) {
       errors += 1;
       issues.push({
         ruleCode: "RULE-VALIDATOR-DUP",
         severity: "ERROR",
-        message: "Teacher assigned more than once in this run",
+        message: "Teacher assigned more than once in the same date/session",
         teacherId: a.teacherId,
       });
     }
-    seenTeachers.add(a.teacherId);
+    seenTeacherSessions.add(teacherSessionKey);
 
     const band: "preferred" | "fallback" = a.usedFallbackBand
       ? "fallback"
       : "preferred";
-    const ev = evaluateTheoryCandidate(
+    const evaluation = validateTheoryCandidateEligibility(
       teacher,
       centre,
       schoolById,
@@ -93,74 +154,32 @@ export function validateTheoryAllocation(
       band,
     );
 
-    // If fallback used, also accept preferred band failure as long as fallback passes
-    let ok = ev.eligible;
-    if (!ok && a.usedFallbackBand) {
-      const ev2 = evaluateTheoryCandidate(
-        teacher,
-        centre,
-        schoolById,
-        dataset,
-        rules,
-        occupied,
-        req,
-        "fallback",
-      );
-      ok = ev2.eligible;
-      for (const r of ev2.hardReasons) {
-        if (!ok) {
-          errors += 1;
-          issues.push({
-            ruleCode: r.ruleCode,
-            severity: "ERROR",
-            message: r.message,
-            teacherId: a.teacherId,
-            centreId: a.centreId,
-            date: a.examDate,
-            duty: a.roleCode,
-          });
-        }
-      }
-      for (const r of ev2.softNotes) {
-        if (r.severity === "WARNING") {
-          warnings += 1;
-          issues.push({
-            ruleCode: r.ruleCode,
-            severity: "WARNING",
-            message: r.message,
-            teacherId: a.teacherId,
-            centreId: a.centreId,
-          });
-        }
-      }
-    } else {
-      for (const r of ev.hardReasons) {
-        errors += 1;
-        issues.push({
-          ruleCode: r.ruleCode,
-          severity: "ERROR",
-          message: r.message,
-          teacherId: a.teacherId,
-          centreId: a.centreId,
-          date: a.examDate,
-          duty: a.roleCode,
-        });
-      }
-      for (const r of ev.softNotes) {
-        if (r.severity === "WARNING") {
-          warnings += 1;
-          issues.push({
-            ruleCode: r.ruleCode,
-            severity: "WARNING",
-            message: r.message,
-            teacherId: a.teacherId,
-            centreId: a.centreId,
-          });
-        }
-      }
+    for (const reason of evaluation.hardReasons) {
+      errors += 1;
+      issues.push({
+        ruleCode: reason.ruleCode,
+        severity: "ERROR",
+        message: reason.message,
+        teacherId: a.teacherId,
+        centreId: a.centreId,
+        date: a.examDate,
+        duty: a.roleCode,
+      });
+    }
+    for (const warning of evaluation.warnings) {
+      warnings += 1;
+      issues.push({
+        ruleCode: warning.ruleCode,
+        severity: "WARNING",
+        message: warning.message,
+        teacherId: a.teacherId,
+        centreId: a.centreId,
+        date: a.examDate,
+        duty: a.roleCode,
+      });
     }
 
-    if (ok) valid += 1;
+    if (evaluation.eligible && identityMatches) valid += 1;
     occupied.add(`${a.teacherId}|${a.examDate}|${a.sessionCode}`);
   }
 

@@ -148,7 +148,7 @@ describe("HTTP AuthZ on Worker handlers", () => {
     const body = (await res.json()) as {
       parameters: Array<{ param_key: string }>;
     };
-    expect(body.parameters.length).toBe(18);
+    expect(body.parameters.length).toBe(21);
 
     const missing = await call("/api/rule-versions/rv-missing/parameters", {
       role: "OFFICER",

@@ -64,6 +64,12 @@ export interface RuleParameters {
   role_switch_mode: "soft" | "hard";
   hall_designation_allowlist: string[];
   missing_coordinates_policy: "INELIGIBLE" | "WARN";
+  /** Student strength above which a centre needs a second Department Officer. */
+  department_officer_second_threshold: number;
+  /** Number of support-office staff required at each centre/session. */
+  office_staff_per_centre: number;
+  /** Planning ratio for custodian duty; final custodian points are entered separately. */
+  custodian_schools_per_custodian: number;
 }
 
 export interface ScoringWeights {
@@ -99,6 +105,9 @@ export const DEFAULT_RULE_PARAMETERS: RuleParameters = {
   role_switch_mode: "soft",
   hall_designation_allowlist: [],
   missing_coordinates_policy: "INELIGIBLE",
+  department_officer_second_threshold: 500,
+  office_staff_per_centre: 2,
+  custodian_schools_per_custodian: 10,
 };
 
 export interface Teacher {
@@ -116,6 +125,8 @@ export interface Teacher {
   isActive: boolean;
   dataQuality: DataQuality;
   blockId?: string;
+  /** Keeps non-teaching office staff out of teaching-duty pools. */
+  staffCategory?: "TEACHING" | "NON_TEACHING";
 }
 
 export interface School {

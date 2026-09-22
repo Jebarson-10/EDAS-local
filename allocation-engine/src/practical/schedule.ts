@@ -7,10 +7,10 @@ import type {
   DutyCalendarEvent,
 } from "@exam-duty/shared";
 
-// 1.1 schedules different subjects in parallel.  A subject's own batches
+// 1.2 schedules different subjects in parallel.  A subject's own batches
 // still remain in morning/afternoon order, which models the 50 + 50 pattern
 // without incorrectly treating all subjects in one school as one queue.
-export const PRACTICAL_ALGORITHM_VERSION = "practical-1.1.0";
+export const PRACTICAL_ALGORITHM_VERSION = "practical-1.2.0";
 
 export interface PracticalSchoolDemand {
   schoolId: string;
@@ -94,6 +94,11 @@ function conflicted(
   return calendar.some(
     (c) => c.teacherId === teacherId && c.date === date && c.session === session,
   );
+}
+
+/** Office staff are deliberately kept out of all teaching examiner pools. */
+function isTeachingStaff(teacher: Teacher): boolean {
+  return (teacher.staffCategory ?? "TEACHING") === "TEACHING";
 }
 
 function sessionsForDates(dates: string[]): { date: string; session: SessionCode }[] {
@@ -217,6 +222,7 @@ export function schedulePractical(
         .filter(
           (t) =>
             t.isActive &&
+            isTeachingStaff(t) &&
             !dataset.exemptions.some(
               (e) => e.teacherId === t.teacherId && exemptionActive(e, dataset.asOfDate),
             ) &&
@@ -229,6 +235,7 @@ export function schedulePractical(
         .filter(
           (t) =>
             t.isActive &&
+            isTeachingStaff(t) &&
             !dataset.exemptions.some(
               (e) => e.teacherId === t.teacherId && exemptionActive(e, dataset.asOfDate),
             ) &&

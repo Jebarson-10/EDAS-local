@@ -1,4 +1,5 @@
 import type { jsPDF } from "jspdf";
+import { formatDutyRole } from "@exam-duty/shared";
 
 export interface PdfReportMeta {
   title: string;
@@ -12,8 +13,6 @@ export interface PdfReportMeta {
 export async function buildTeacherDutyPdf(
   meta: PdfReportMeta,
   rows: Array<{
-    employeeCode: string;
-    teacherCode?: string | null;
     name: string;
     centre: string;
     date: string;
@@ -45,15 +44,13 @@ export async function buildTeacherDutyPdf(
 
   autoTable(doc as unknown as jsPDF, {
     startY: 130,
-    head: [["Employee", "Teacher Code", "Name", "Centre", "Date", "Session", "Role"]],
+    head: [["Teacher", "Centre", "Date", "Session", "Duty"]],
     body: rows.map((r) => [
-      r.employeeCode,
-      r.teacherCode ?? "",
       r.name,
       r.centre,
       r.date,
       r.session,
-      r.role,
+      formatDutyRole(r.role),
     ]),
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: [27, 58, 75] },

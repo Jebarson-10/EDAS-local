@@ -65,4 +65,43 @@ describe("school centre codes and code-free teachers", () => {
     expect(await listTeachers(db)).toHaveLength(2);
     expect((await listTeachers(db)).find((t) => t.teacher_id === first.id)).toMatchObject({employee_code:original.employee_code,name:"Edited teacher"});
   });
+
+  it("saves office staff without a teaching subject or seniority rank", async () => {
+    const s = await upsertMasterRecord(db, school(blockId));
+    const office = await upsertMasterRecord(db, {
+      kind: "teacher",
+      name: "Office assistant",
+      schoolId: s.id,
+      designation: "Junior Assistant",
+      staffCategory: "NON_TEACHING",
+      homeLatitude: 11.3,
+      homeLongitude: 77.7,
+    });
+    let saved = (await listTeachers(db)).find((teacher) => teacher.teacher_id === office.id)!;
+    expect(saved).toMatchObject({
+      designation: "Junior Assistant",
+      subject: null,
+      seniority_rank: null,
+      staff_category: "NON_TEACHING",
+    });
+
+    await upsertMasterRecord(db, {
+      kind: "teacher",
+      teacherId: office.id,
+      name: "Office assistant updated",
+      schoolId: s.id,
+      designation: "Assistant",
+      staffCategory: "NON_TEACHING",
+      homeLatitude: 11.3,
+      homeLongitude: 77.7,
+    });
+    saved = (await listTeachers(db)).find((teacher) => teacher.teacher_id === office.id)!;
+    expect(saved).toMatchObject({
+      name: "Office assistant updated",
+      designation: "Assistant",
+      subject: null,
+      seniority_rank: null,
+      staff_category: "NON_TEACHING",
+    });
+  });
 });

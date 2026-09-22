@@ -22,6 +22,7 @@ export interface ExistingTeacherRef {
   joiningDate?: string | null;
   homeLatitude?: number | null;
   homeLongitude?: number | null;
+  staffCategory?: "TEACHING" | "NON_TEACHING";
 }
 
 export interface ImportPreviewRow {
@@ -64,7 +65,7 @@ export function previewTeacherImport(
     const rowNumber = idx + 1;
     const input = raw && typeof raw === "object" ? { ...raw } as Record<string, unknown> : {};
     try {
-      for (const field of ["employeeCode","teacherCode","name","schoolCode","schoolName","designation","subject","seniorityRank","homeLatitude","homeLongitude","joiningDate","isActive"]) {
+      for (const field of ["employeeCode","teacherCode","name","schoolCode","schoolName","designation","subject","seniorityRank","homeLatitude","homeLongitude","joiningDate","isActive","staffCategory"]) {
         if (input[field] != null) input[field] = normalizeImportValue(field,input[field]);
       }
     } catch (e) {
@@ -140,6 +141,8 @@ export function previewTeacherImport(
       cur.schoolCode !== row.schoolCode ||
       cur.designation !== row.designation ||
       cur.isActive !== (row.isActive ?? true) ||
+      (row.staffCategory !== undefined &&
+        (cur.staffCategory ?? "TEACHING") !== row.staffCategory) ||
       (["subject", "seniorityRank", "joiningDate", "homeLatitude", "homeLongitude", "teacherCode"] as const)
         .some((key) => row[key] !== undefined && (cur[key] ?? null) !== (row[key] ?? null));
     rows.push({

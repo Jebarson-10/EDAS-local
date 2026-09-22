@@ -104,10 +104,26 @@ post-publish amendment infeasible, since every teacher would block themselves).
 
 ## OQ-011 — Department Officer eligibility
 
-**Question:** Who may be DEPARTMENT_OFFICER? Separate seniority list?  
+**Status:** Partly answered (2026-09-22).
+
+**Confirmed:** A Departmental Officer is selected from the Senior PG pool,
+block first and then district-wide. Each marked centre session has one; a second
+is required only where the entered student strength is above 500.
+
+**Source convention:** The official staff return labels the relevant roster
+`PG`, rather than `SENIOR_PG`. The import keeps the source designation and the
+planner treats that roster as the Senior PG candidate pool. It derives its
+seniority order from appointment date (earliest appointment first), using source
+row order only to break an equal-date tie.
+
+**Question:** Are there designation-, subject-, or post-specific exclusions
+within that PG roster?
+
 **Impact:** Theory roles.  
-**Interim:** Configurable eligibility designation set + seniority mode.  
-**Needed:** Official criteria.
+**Interim:** Do not substitute another teaching designation when that candidate
+pool is short; show the shortage instead.
+
+**Needed:** Confirmation of any exclusions or a different fallback list.
 
 ## OQ-012 — Hall designation restrictions
 
@@ -223,6 +239,8 @@ configuration screens have received the remaining formal inputs.
 | Repeat-centre history | The lookback period is user-defined. An approved manual exception is permitted, but requires administrator approval and an audit record. |
 | Chief designation | Principal and HM are equivalent for Chief of Examination priority. Eligible Senior PG is the fallback when this pool is short. |
 | Senior PG fallback | Use candidates from the centre's block first; only then consider district-wide candidates. |
+| Centre staffing | For every marked centre session, plan one Chief, one Departmental Officer, and two Office Staff duties. Plan a second Departmental Officer only above 500 entered students. |
+| Custodian planning | Start with one custodian per ten active schools. Availability may change the final feasible total; no named custodian is allotted without point, route and eligibility data. |
 | Exemptions | The administrator decides physical-disability/other manual exemptions and records them. |
 | Practical batches | Determine batch count from student strength, target 50 students, and split remainders equally. Different subjects may run in parallel where distinct examiner pairs are available. |
 | Practical examiner eligibility | Use the teacher's current school. Where two teachers cover one subject, rotate internal/external roles each year when they remain eligible. |
@@ -230,9 +248,10 @@ configuration screens have received the remaining formal inputs.
 
 ## Still required before a final official allocation
 
-1. The student-strength-to-Department-Officer staffing table and confirmation
-   of Chief count per centre/day/session.
-2. The approved school-wise and teacher-wise report columns, grouping,
+1. Custodian points, routes, eligible people and the rule for allocating names
+   to those points.
+2. The approved Office Staff, school-wise and teacher-wise report columns,
+   grouping,
    signatures and letterhead layout.
 
 ## Timetable decision received (2026-09-09)
@@ -250,4 +269,40 @@ the separate Department Officer staffing table.
 **Added:** 2026-09-13
 
 What is the official format and source of Teacher Code? Is it EMIS, a district-level code, or another system? Should it participate in import matching or tie-breaking? Currently implemented as an optional display-only field with unique constraint where non-null.
+
+## OQ-022 — Custodian point and eligibility data
+
+**Question:** Which custodian point and route serves each active school or
+centre, and which staff may serve as custodians? Does the released two-person
+Custodian I / Custodian II format always apply, or are one-person points
+permitted when availability is limited?
+
+**Impact:** A named custodian allocation and the official Custodian duty list.
+
+**Confirmed planning count:** Start with one custodian for every ten active
+schools. The available staff count may make the final feasible total different.
+
+**Interim:** Show the required count only. Do not invent points, routes,
+eligibility, or named custodian assignments.
+
+**Needed:** Point list, routes/centre coverage, eligible-person list, and the
+shortage/one-person-point policy.
+
+## OQ-023 — Ambiguous fields in the official staff workbook
+
+**Question:** The official multi-sheet return can contain several subject
+columns for one person and free-text remarks such as physical disability,
+medical status, or earlier duty notes. Which of these are authoritative subject
+assignments, approved exemptions, or verified duty history?
+
+**Impact:** Practical eligibility, exclusion rules and fairness/history.
+
+**Interim:** Import only clear staff facts (name, school, designation,
+appointment date and staff group). When more than one subject field is present,
+do not choose one automatically. Do not turn free-text medical/disability or
+old-duty remarks into an exemption or a historical assignment; an authorised
+operator must record those separately.
+
+**Needed:** A field-by-field mapping and the authorised source/process for
+exemptions and prior-duty history.
 

@@ -371,7 +371,7 @@ describe("API body schemas", () => {
     ).toBe(true);
   });
 
-  it("accepts teacherCode in teacherImportRowSchema, importApplyBodySchema, and manualMasterRecordBodySchema", () => {
+  it("accepts teacherCode and an optional staff group in import and manual schemas", () => {
     const row = teacherImportRowSchema.parse({
       employeeCode: "EMP01",
       teacherCode: "TC-9988",
@@ -388,12 +388,14 @@ describe("API body schemas", () => {
       designation: "PG",
     });
     expect(rowWithoutCode.teacherCode).toBeUndefined();
+    expect(rowWithoutCode.staffCategory).toBeUndefined();
 
     const applyParsed = parseBody(importApplyBodySchema, {
       teachers: [
         {
           employee_code: "SYN1",
           teacher_code: "TC-001",
+          staff_category: "NON_TEACHING",
           name: "Teacher 1",
           school_id: "s1",
           designation: "HM",
@@ -408,6 +410,9 @@ describe("API body schemas", () => {
       ],
     });
     expect(applyParsed.ok).toBe(true);
+    if (applyParsed.ok) {
+      expect(applyParsed.data.teachers[0]?.staff_category).toBe("NON_TEACHING");
+    }
 
     const manualParsed = manualMasterRecordBodySchema.parse({
       kind: "teacher",
@@ -421,5 +426,29 @@ describe("API body schemas", () => {
       teacherCode: "EMIS-123456",
     });
     expect(manualParsed.kind === "teacher" && manualParsed.teacherCode).toBe("EMIS-123456");
+
+    const officeStaff = manualMasterRecordBodySchema.safeParse({
+      kind: "teacher",
+      name: "Office assistant",
+      schoolId: "s1",
+      designation: "Junior Assistant",
+      staffCategory: "NON_TEACHING",
+      homeLatitude: 11.34,
+      homeLongitude: 77.72,
+    });
+    expect(officeStaff.success).toBe(true);
+    if (officeStaff.success && officeStaff.data.kind === "teacher") {
+      expect(officeStaff.data.subject).toBeUndefined();
+      expect(officeStaff.data.seniorityRank).toBeUndefined();
+    }
+
+    expect(manualMasterRecordBodySchema.safeParse({
+      kind: "teacher",
+      name: "Incomplete teacher",
+      schoolId: "s1",
+      designation: "PG",
+      homeLatitude: 11.34,
+      homeLongitude: 77.72,
+    }).success).toBe(false);
   });
 });

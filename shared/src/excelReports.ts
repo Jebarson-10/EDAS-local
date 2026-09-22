@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { parseTeacherRowsFromAoa } from "./excelTeachers.js";
+import { parseOfficialStaffWorkbook } from "./officialStaffWorkbook.js";
 
 export interface WorkbookMeta {
   title: string;
@@ -9,6 +10,62 @@ export interface WorkbookMeta {
   allocationRun: string;
   officer: string;
   dataVersion: string;
+}
+
+/**
+ * Presentation-only names for duty roles. Allocation and audit records keep
+ * their stable role codes; downloaded lists use the names staff recognise.
+ */
+const DUTY_ROLE_LABELS: Record<string, string> = {
+  CHIEF_EXAMINATION: "Chief examiner",
+  DEPARTMENT_OFFICER: "Departmental officer",
+  OFFICE_STAFF: "Office staff",
+  CUSTODIAN: "Custodian",
+  HALL_INVIGILATOR: "Hall invigilator",
+  HALL_STANDBY: "Hall standby",
+  PRACTICAL_INTERNAL: "Internal examiner",
+  PRACTICAL_EXTERNAL: "External examiner",
+};
+
+export function formatDutyRole(roleCode: string | null | undefined): string {
+  const raw = String(roleCode ?? "").trim();
+  if (!raw) return "";
+  const normalized = raw.toUpperCase();
+  if (DUTY_ROLE_LABELS[normalized]) return DUTY_ROLE_LABELS[normalized];
+  const knownLabel = Object.values(DUTY_ROLE_LABELS).find(
+    (label) => label.toUpperCase() === normalized,
+  );
+  if (knownLabel) return knownLabel;
+
+  // A future role can still be printed readably before its label is added.
+  return normalized
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) => `${word[0] ?? ""}${word.slice(1).toLowerCase()}`)
+    .join(" ");
+}
+
+type ReportRow = Record<string, string | number | boolean | null | undefined>;
+
+function rowValue(row: ReportRow, ...keys: string[]): string | number | boolean | null | undefined {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== null && value !== undefined) return value;
+  }
+  return "";
+}
+
+function teacherDutyCells(row: ReportRow) {
+  return [
+    rowValue(row, "Teacher"),
+    rowValue(row, "School"),
+    rowValue(row, "Duty", "DutyType"),
+    rowValue(row, "Centre"),
+    rowValue(row, "Date"),
+    rowValue(row, "Session"),
+    formatDutyRole(String(rowValue(row, "Duty role", "Role"))),
+    rowValue(row, "Subject"),
+  ];
 }
 
 function applyMetaSheet(wb: ExcelJS.Workbook, meta: WorkbookMeta): void {
@@ -27,7 +84,7 @@ function applyMetaSheet(wb: ExcelJS.Workbook, meta: WorkbookMeta): void {
 
 export async function buildTeacherWiseWorkbook(
   meta: WorkbookMeta,
-  rows: Array<Record<string, string | number | boolean | null | undefined>>,
+  rows: ReportRow[],
 ): Promise<ArrayBuffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "Erode Exam Duty Allotment";
@@ -36,16 +93,16 @@ export async function buildTeacherWiseWorkbook(
   const headers = [
     "Teacher",
     "School",
-    "DutyType",
+    "Duty",
     "Centre",
     "Date",
     "Session",
-    "Role",
+    "Duty role",
     "Subject",
   ];
   sheet.addRow(headers);
   for (const r of rows) {
-    sheet.addRow(headers.map((h) => r[h] ?? ""));
+    sheet.addRow(teacherDutyCells(r));
   }
   const buf = await wb.xlsx.writeBuffer();
   return buf as ArrayBuffer;
@@ -72,16 +129,16 @@ export async function buildExceptionWorkbook(
 
 export async function buildCompleteAllotmentWorkbook(
   meta: WorkbookMeta,
-  teacherRows: Array<Record<string, string | number | boolean | null | undefined>>,
-  schoolRows: Array<Record<string, string | number | boolean | null | undefined>>,
-  centreRows: Array<Record<string, string | number | boolean | null | undefined>>,
+  teacherRows: ReportRow[],
+  schoolRows: ReportRow[],
+  centreRows: ReportRow[],
 ): Promise<ArrayBuffer> {
   const wb = new ExcelJS.Workbook();
   applyMetaSheet(wb, meta);
   const add = (
     name: string,
     headers: string[],
-    rows: Array<Record<string, string | number | boolean | null | undefined>>,
+    rows: ReportRow[],
   ) => {
     const sheet = wb.addWorksheet(name);
     sheet.addRow(headers);
@@ -91,16 +148,24 @@ export async function buildCompleteAllotmentWorkbook(
     "Teacher-wise",
     [
       "Teacher",
-      "EmployeeCode",
       "School",
-      "DutyType",
+      "Duty",
       "Centre",
       "Date",
       "Session",
-      "Role",
+      "Duty role",
       "Subject",
     ],
-    teacherRows,
+    teacherRows.map((row) => ({
+      Teacher: rowValue(row, "Teacher"),
+      School: rowValue(row, "School"),
+      Duty: rowValue(row, "Duty", "DutyType"),
+      Centre: rowValue(row, "Centre"),
+      Date: rowValue(row, "Date"),
+      Session: rowValue(row, "Session"),
+      "Duty role": formatDutyRole(String(rowValue(row, "Duty role", "Role"))),
+      Subject: rowValue(row, "Subject"),
+    })),
   );
   add(
     "School-wise",
@@ -110,7 +175,14 @@ export async function buildCompleteAllotmentWorkbook(
   add(
     "Centre-wise",
     ["Centre", "Teachers", "Roles", "Dates", "Sessions", "Standby"],
-    centreRows,
+    centreRows.map((row) => ({
+      ...row,
+      Roles: String(rowValue(row, "Roles"))
+        .split(",")
+        .map((role) => formatDutyRole(role))
+        .filter(Boolean)
+        .join(", "),
+    })),
   );
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
 }
@@ -118,18 +190,40 @@ export async function buildCompleteAllotmentWorkbook(
 /** Parse teachers sheet from an uploaded .xlsx ArrayBuffer. */
 export async function parseTeachersWorkbook(
   buffer: ArrayBuffer,
-): Promise<{ rows: Record<string, unknown>[]; headerErrors: string[] }> {
+): Promise<{
+  rows: Record<string, unknown>[];
+  headerErrors: string[];
+  notes?: string[];
+  format?: "official-staff-workbook" | "standard";
+}> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
-  const sheet = wb.worksheets[0];
-  if (!sheet) return { rows: [], headerErrors: ["Workbook has no sheets"] };
-  const aoa: unknown[][] = [];
-  sheet.eachRow({ includeEmpty: true }, (row) => {
-    const values = row.values as unknown[];
-    // exceljs is 1-indexed
-    aoa.push((values ?? []).slice(1));
+  const sheets = wb.worksheets.map((sheet) => {
+    const lines: unknown[][] = [];
+    sheet.eachRow({ includeEmpty: true }, (row) => {
+      const values = row.values as unknown[];
+      // exceljs is 1-indexed
+      lines.push((values ?? []).slice(1));
+    });
+    return { name: sheet.name, lines };
   });
-  return parseTeacherRowsFromAoa(aoa);
+  if (!sheets.length) return { rows: [], headerErrors: ["Workbook has no sheets"] };
+
+  const official = parseOfficialStaffWorkbook(sheets);
+  if (official.detectedSheetNames.length > 0) {
+    return {
+      rows: official.rows,
+      headerErrors:
+        official.rows.length > 0
+          ? []
+          : ["No staff names were found in the official workbook."],
+      notes: official.warnings,
+      format: "official-staff-workbook",
+    };
+  }
+
+  const parsed = parseTeacherRowsFromAoa(sheets[0]!.lines);
+  return { ...parsed, format: "standard" };
 }
 
 /** Build a synthetic teachers.xlsx for demos/tests. */
@@ -143,6 +237,7 @@ export async function buildTeachersTemplateWorkbook(
     "schoolName",
     "schoolCode",
     "designation",
+    "staffCategory",
     "subject",
     "seniorityRank",
     "joiningDate",
@@ -150,7 +245,7 @@ export async function buildTeachersTemplateWorkbook(
     "homeLongitude",
     "isActive",
   ];
-  const labels: Record<string, string> = { name:"Teacher name", schoolName:"School name", schoolCode:"Centre code", designation:"Designation", subject:"Subject", seniorityRank:"Seniority rank", joiningDate:"Joining date", homeLatitude:"Home latitude", homeLongitude:"Home longitude", isActive:"Active" };
+  const labels: Record<string, string> = { name:"Teacher name", schoolName:"School name", schoolCode:"Centre code", designation:"Designation", staffCategory:"Staff group (Teaching / Office staff)", subject:"Subject", seniorityRank:"Seniority rank", joiningDate:"Joining date", homeLatitude:"Home latitude", homeLongitude:"Home longitude", isActive:"Active" };
   sheet.addRow(headers.map((h) => labels[h] ?? h));
   for (const r of rows) {
     sheet.addRow(headers.map((h) => r[h] ?? ""));

@@ -16,6 +16,7 @@ export const teacherImportRowSchema = z.object({
   homeLatitude: z.number().min(-90).max(90).optional().nullable(),
   homeLongitude: z.number().min(-180).max(180).optional().nullable(),
   isActive: z.boolean().optional().default(true),
+  staffCategory: z.enum(["TEACHING", "NON_TEACHING"]).optional(),
 });
 
 export type TeacherImportRow = z.infer<typeof teacherImportRowSchema>;
@@ -320,6 +321,8 @@ export const importApplyBodySchema = z.object({
         is_active: z.union([z.boolean(), z.number()]).optional(),
         dataQuality: z.string().optional(),
         data_quality: z.string().optional(),
+        staffCategory: z.enum(["TEACHING", "NON_TEACHING"]).optional(),
+        staff_category: z.enum(["TEACHING", "NON_TEACHING"]).optional(),
       }),
     )
     .min(1),
@@ -543,14 +546,36 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
     name: z.string().min(1).max(200),
     schoolId: z.string().min(1),
     designation: designationSchema,
-    subject: z.string().min(1).max(64),
-    seniorityRank: z.number().int().nonnegative(),
+    // Office staff do not have a teaching subject or teacher seniority rank.
+    // Keep these nullable so the same simple form can save both staff groups.
+    subject: z.string().min(1).max(64).optional().nullable(),
+    seniorityRank: z.number().int().nonnegative().optional().nullable(),
     joiningDate: isoDate.optional().nullable(),
     homeLatitude: z.number().min(-90).max(90),
     homeLongitude: z.number().min(-180).max(180),
     isActive: z.boolean().optional().default(true),
+    staffCategory: z.enum(["TEACHING", "NON_TEACHING"]).optional(),
   }),
-]);
+]).superRefine((record, ctx) => {
+  // Existing records without a saved group are teaching staff. The checks here
+  // prevent an incomplete teaching record while allowing office staff to be
+  // entered without inventing a subject or rank.
+  if (record.kind !== "teacher" || record.staffCategory === "NON_TEACHING") return;
+  if (!record.subject) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["subject"],
+      message: "Select a subject for teaching staff",
+    });
+  }
+  if (record.seniorityRank == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["seniorityRank"],
+      message: "Enter a seniority rank for teaching staff",
+    });
+  }
+});
 
 export const practicalBatchesBodySchema = z.object({
   examCycleId: z.string().min(1),

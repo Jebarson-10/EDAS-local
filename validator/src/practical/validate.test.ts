@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_RULE_PARAMETERS } from "@exam-duty/shared";
-import { schedulePractical, balanceBatches } from "@exam-duty/allocation-engine";
+import {
+  schedulePractical,
+  balanceBatches,
+  type PracticalResult,
+} from "@exam-duty/allocation-engine";
 import { validatePracticalAllocation } from "../practical/validate.js";
 
 const rules = { ...DEFAULT_RULE_PARAMETERS };
@@ -86,5 +90,137 @@ describe("practical validator", () => {
       expect(v.status).toBe("INVALID");
     }
     expect(balanceBatches(120, 50).length).toBeGreaterThan(1);
+  });
+
+  it("rejects a forged schedule that uses office staff as an examiner", () => {
+    const result: PracticalResult = {
+      algorithmVersion: "forged",
+      batches: [
+        {
+          batchKey: "s1|phy|1",
+          schoolId: "s1",
+          subjectId: "phy",
+          batchIndex: 1,
+          studentCount: 40,
+        },
+      ],
+      schedules: [
+        {
+          batchKey: "s1|phy|1",
+          schoolId: "s1",
+          subjectId: "phy",
+          examDate: "2027-03-01",
+          sessionCode: "MORNING",
+          internalExaminerId: "office",
+          externalExaminerId: "teacher",
+          roleSwitchApplied: false,
+          decisionNotes: [],
+        },
+      ],
+      feasible: true,
+    };
+
+    const validation = validatePracticalAllocation(result, rules, {
+      teachers: [
+        {
+          teacherId: "office",
+          employeeCode: "O1",
+          name: "Office staff",
+          schoolId: "s1",
+          designation: "Junior Assistant",
+          subject: null,
+          staffCategory: "NON_TEACHING",
+          isActive: true,
+          dataQuality: "Confirmed",
+        },
+        {
+          teacherId: "teacher",
+          employeeCode: "T1",
+          name: "Teacher",
+          schoolId: "s2",
+          designation: "PG",
+          subject: "Physics",
+          staffCategory: "TEACHING",
+          isActive: true,
+          dataQuality: "Confirmed",
+        },
+      ],
+    });
+
+    expect(validation.status).toBe("INVALID");
+    expect(validation.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleCode: "RULE-PRACTICAL-STAFF-CATEGORY",
+          teacherId: "office",
+        }),
+      ]),
+    );
+  });
+
+  it("rejects a forged schedule whose examiner teaches a different subject", () => {
+    const result: PracticalResult = {
+      algorithmVersion: "forged",
+      batches: [
+        {
+          batchKey: "s1|COMPUTER_SCIENCE|1",
+          schoolId: "s1",
+          subjectId: "COMPUTER_SCIENCE",
+          batchIndex: 1,
+          studentCount: 40,
+        },
+      ],
+      schedules: [
+        {
+          batchKey: "s1|COMPUTER_SCIENCE|1",
+          schoolId: "s1",
+          subjectId: "COMPUTER_SCIENCE",
+          examDate: "2027-03-01",
+          sessionCode: "MORNING",
+          internalExaminerId: "physics-internal",
+          externalExaminerId: "computer-external",
+          roleSwitchApplied: false,
+          decisionNotes: [],
+        },
+      ],
+      feasible: true,
+    };
+
+    const validation = validatePracticalAllocation(result, rules, {
+      teachers: [
+        {
+          teacherId: "physics-internal",
+          employeeCode: "P1",
+          name: "Physics teacher",
+          schoolId: "s1",
+          designation: "PG",
+          subject: "PHY",
+          staffCategory: "TEACHING",
+          isActive: true,
+          dataQuality: "Confirmed",
+        },
+        {
+          teacherId: "computer-external",
+          employeeCode: "C1",
+          name: "Computer teacher",
+          schoolId: "s2",
+          designation: "PG",
+          subject: "CS",
+          staffCategory: "TEACHING",
+          isActive: true,
+          dataQuality: "Confirmed",
+        },
+      ],
+    });
+
+    expect(validation.status).toBe("INVALID");
+    expect(validation.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleCode: "RULE-PRACTICAL-SUBJECT",
+          teacherId: "physics-internal",
+        }),
+      ]),
+    );
   });
 });

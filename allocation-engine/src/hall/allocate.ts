@@ -127,6 +127,7 @@ export function allocateHall(
 
     const eligible = dataset.teachers.filter((t) => {
       if (!t.isActive) return false;
+      if ((t.staffCategory ?? "TEACHING") !== "TEACHING") return false;
       if (
         dataset.exemptions.some(
           (e) =>

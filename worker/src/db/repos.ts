@@ -1636,8 +1636,8 @@ export async function transactionalRestore(
       db
         .prepare(
           `INSERT INTO teachers
-            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, home_latitude, home_longitude, is_active, data_quality, teacher_code, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, teacher_code, staff_category, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(teacher_id) DO UPDATE SET
              employee_code=excluded.employee_code,
              name=excluded.name,
@@ -1645,11 +1645,13 @@ export async function transactionalRestore(
              designation=excluded.designation,
              subject=excluded.subject,
              seniority_rank=excluded.seniority_rank,
+             joining_date=excluded.joining_date,
              home_latitude=excluded.home_latitude,
              home_longitude=excluded.home_longitude,
              is_active=excluded.is_active,
              data_quality=excluded.data_quality,
              teacher_code=excluded.teacher_code,
+             staff_category=excluded.staff_category,
              updated_at=excluded.updated_at`,
         )
         .bind(
@@ -1660,11 +1662,13 @@ export async function transactionalRestore(
           t.designation,
           t.subject ?? null,
           t.seniorityRank ?? t.seniority_rank ?? null,
+          t.joiningDate ?? t.joining_date ?? null,
           t.homeLatitude ?? t.home_latitude ?? null,
           t.homeLongitude ?? t.home_longitude ?? null,
           t.isActive === false || t.is_active === 0 ? 0 : 1,
           t.dataQuality ?? t.data_quality ?? "Imported",
           t.teacherCode ?? t.teacher_code ?? null,
+          t.staffCategory ?? t.staff_category ?? "TEACHING",
           now,
           now,
         ),
@@ -2297,7 +2301,7 @@ export async function listTeachers(db: DbClient, limit = 10000) {
   const rs = await db
     .prepare(
       `SELECT teacher_id, employee_code, teacher_code, name, school_id, designation, subject, seniority_rank, joining_date,
-              home_latitude, home_longitude, is_active, data_quality
+              home_latitude, home_longitude, is_active, data_quality, staff_category
        FROM teachers ORDER BY employee_code LIMIT ?`,
     )
     .bind(limit)
@@ -2381,12 +2385,13 @@ export async function upsertMasterRecord(
         name: string;
         schoolId: string;
         designation: string;
-        subject: string;
-        seniorityRank: number;
+        subject?: string | null;
+        seniorityRank?: number | null;
         joiningDate?: string | null;
         homeLatitude: number;
         homeLongitude: number;
         isActive?: boolean;
+        staffCategory?: "TEACHING" | "NON_TEACHING";
       },
 ): Promise<{ id: string; created: boolean }> {
   const now = new Date().toISOString();
@@ -2491,7 +2496,7 @@ export async function upsertMasterRecord(
   if (!school) throw new Error("Select a valid school before saving");
   const existing = await db
     .prepare(
-      `SELECT teacher_id, employee_code, teacher_code, school_id, designation, home_latitude, home_longitude
+      `SELECT teacher_id, employee_code, teacher_code, school_id, designation, home_latitude, home_longitude, staff_category
        FROM teachers WHERE ${record.teacherId ? "teacher_id" : "employee_code"} = ?`,
     )
     .bind(record.teacherId ?? record.employeeCode?.trim() ?? "__new__")
@@ -2503,6 +2508,7 @@ export async function upsertMasterRecord(
       designation: string;
       home_latitude: number | null;
       home_longitude: number | null;
+      staff_category: "TEACHING" | "NON_TEACHING";
     }>();
   const id = existing?.teacher_id ?? record.teacherId ?? `tch_${crypto.randomUUID()}`;
   await upsertTeachers(db, [
@@ -2513,13 +2519,14 @@ export async function upsertMasterRecord(
       name: record.name.trim(),
       schoolId: record.schoolId,
       designation: record.designation,
-      subject: record.subject,
-      seniorityRank: record.seniorityRank,
+      subject: record.subject ?? null,
+      seniorityRank: record.seniorityRank ?? null,
       joiningDate: record.joiningDate ?? null,
       homeLatitude: record.homeLatitude,
       homeLongitude: record.homeLongitude,
       isActive: record.isActive !== false,
       dataQuality: "ManuallyCorrected",
+      staffCategory: record.staffCategory ?? existing?.staff_category ?? "TEACHING",
     },
   ]);
   const effectiveFrom = now.slice(0, 10);
@@ -2666,18 +2673,25 @@ export async function upsertTeachers(
     const active = t.isActive === false || t.is_active === 0 ? 0 : 1;
     const quality = t.dataQuality ?? t.data_quality ?? "Imported";
     const teacherCode = t.teacherCode ?? t.teacher_code ?? null;
+    const requestedStaffCategory =
+      t.staffCategory === "NON_TEACHING" || t.staff_category === "NON_TEACHING"
+        ? "NON_TEACHING"
+        : t.staffCategory === "TEACHING" || t.staff_category === "TEACHING"
+          ? "TEACHING"
+          : undefined;
 
     const byCode = await db
-      .prepare(`SELECT teacher_id FROM teachers WHERE employee_code = ?`)
+      .prepare(`SELECT teacher_id, staff_category FROM teachers WHERE employee_code = ?`)
       .bind(employeeCode)
-      .first<{ teacher_id: string }>();
+      .first<{ teacher_id: string; staff_category: "TEACHING" | "NON_TEACHING" }>();
 
     if (byCode?.teacher_id) {
+      const staffCategory = requestedStaffCategory ?? byCode.staff_category;
       await db
         .prepare(
           `UPDATE teachers SET
              name=?, school_id=?, designation=?, subject=?, seniority_rank=?, joining_date=?,
-             home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, updated_at=?
+             home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, staff_category=?, updated_at=?
            WHERE teacher_id=?`,
         )
         .bind(
@@ -2692,6 +2706,7 @@ export async function upsertTeachers(
           active,
           quality,
           teacherCode,
+          staffCategory,
           now,
           byCode.teacher_id,
         )
@@ -2702,15 +2717,16 @@ export async function upsertTeachers(
 
     if (requestedId) {
       const byId = await db
-        .prepare(`SELECT teacher_id FROM teachers WHERE teacher_id = ?`)
+        .prepare(`SELECT teacher_id, staff_category FROM teachers WHERE teacher_id = ?`)
         .bind(requestedId)
-        .first<{ teacher_id: string }>();
+        .first<{ teacher_id: string; staff_category: "TEACHING" | "NON_TEACHING" }>();
       if (byId) {
+        const staffCategory = requestedStaffCategory ?? byId.staff_category;
         await db
           .prepare(
             `UPDATE teachers SET
                employee_code=?, name=?, school_id=?, designation=?, subject=?, seniority_rank=?, joining_date=?,
-               home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, updated_at=?
+               home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, staff_category=?, updated_at=?
              WHERE teacher_id=?`,
           )
           .bind(
@@ -2726,6 +2742,7 @@ export async function upsertTeachers(
             active,
             quality,
             teacherCode,
+            staffCategory,
             now,
             requestedId,
           )
@@ -2736,8 +2753,8 @@ export async function upsertTeachers(
       await db
         .prepare(
           `INSERT INTO teachers
-            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, teacher_code, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, teacher_code, staff_category, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           requestedId,
@@ -2753,6 +2770,7 @@ export async function upsertTeachers(
           active,
           quality,
           teacherCode,
+          requestedStaffCategory ?? "TEACHING",
           now,
           now,
         )

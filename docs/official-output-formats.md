@@ -18,10 +18,23 @@ copied into application seeds.
 Columns: S.No, Centre No., Name of the Centre, Chief Superintendent (name,
 designation, school, mobile), Departmental Officer (same details).
 
+For each timetable session marked for centre duty, the planner creates one Chief
+and one Departmental Officer. It creates a second Departmental Officer only
+when the centre's entered student strength is above 500. It also creates two
+separate Office Staff duties per centre. Office Staff are kept out of teaching
+and hall-invigilation selection; the official print layout for those two roles
+has not yet been supplied.
+
 ## Custodian duty details
 
 Columns: S.No, Name of Custodian Point, Custodian I, Contact Number, Custodian
 II, Contact Number, No. of Exam Centres, No. of Routes; includes a total row.
+
+The current planning count is one custodian for every ten active schools. This
+is a staffing estimate, not a fabricated custodian-point allocation: the final
+number may vary when eligible people are unavailable. Custodian points, routes
+and the eligible-person list are still needed before names can be allotted to
+this released layout.
 
 ## Liaison Officer duty details
 
@@ -38,8 +51,8 @@ cells are visually grouped.
 
 ## Data not yet modelled
 
-Custodian points, collection points, route numbers and liaison assignments are
-separate operational data. They must be entered/imported before the corresponding
-released forms can be generated. The existing Theory reports now use the
-Chief/Departmental Officer centre-list structure; other three forms are not
-fabricated until this source data exists.
+Custodian points, collection points, route numbers, liaison assignments and the
+official Office Staff report layout are separate operational data. They must be
+entered/imported before the corresponding released forms can be generated. The
+existing Theory reports now use the Chief/Departmental Officer centre-list
+structure; the other forms are not fabricated until this source data exists.

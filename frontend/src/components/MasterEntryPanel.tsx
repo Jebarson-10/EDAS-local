@@ -10,7 +10,17 @@ import {
 type EntryKind = ManualMasterRecord["kind"];
 type OfflinePlace = { id: string; name: string; address: string | null; place: string | null; kind: string; latitude: number; longitude: number };
 
-const designations = ["PRINCIPAL", "HM", "SENIOR_PG", "PG", "OTHER"];
+const designations = [
+  "PRINCIPAL",
+  "HM",
+  "SENIOR_PG",
+  "PG",
+  "BT",
+  "SGT",
+  "SPECIAL_TEACHER",
+  "OTHER",
+];
+type StaffCategory = "TEACHING" | "NON_TEACHING";
 
 const inputClass = "mt-1 block w-full rounded border border-[var(--color-line)] bg-white px-2 py-1.5 text-sm";
 
@@ -32,6 +42,7 @@ export function MasterEntryPanel({
   const [teacherCode, setTeacherCode] = useState("");
   const [name, setName] = useState("");
   const [schoolId, setSchoolId] = useState("");
+  const [staffCategory, setStaffCategory] = useState<StaffCategory>("TEACHING");
   const [designation, setDesignation] = useState("PG");
   const [subject, setSubject] = useState("");
   const [seniority, setSeniority] = useState("");
@@ -51,11 +62,12 @@ export function MasterEntryPanel({
   );
   const selectedSchool = dataset.schools.find((school) => school.schoolId === schoolId);
   const canWrite = role !== "VIEWER";
+  const isTeachingStaff = staffCategory === "TEACHING";
   const coords = () => ({ latitude: Number(latitude), longitude: Number(longitude) });
 
   function reset() {
     setEditingId("");
-    setCode(""); setTeacherCode(""); setName(""); setSchoolId(""); setDesignation("PG");
+    setCode(""); setTeacherCode(""); setName(""); setSchoolId(""); setStaffCategory("TEACHING"); setDesignation("PG");
     setSubject(""); setSeniority(""); setJoiningDate(""); setLatitude("");
     setLongitude(""); setCapacity("");
   }
@@ -67,7 +79,7 @@ export function MasterEntryPanel({
       if (s) { setName(s.schoolName); setCode(s.schoolCode); setBlockId(s.blockId); setLatitude(String(s.latitude)); setLongitude(String(s.longitude)); setCapacity(String(dataset.centres.find((c) => c.centreCode === s.schoolCode)?.capacity ?? "")); }
     } else {
       const t = dataset.teachers.find((t) => t.teacherId === id);
-      if (t) { setName(t.name); setSchoolId(t.schoolId); setBlockId(dataset.schools.find((s) => s.schoolId === t.schoolId)?.blockId ?? ""); setDesignation(t.designation); setSubject(t.subject ?? ""); setSeniority(String(t.seniorityRank ?? "")); setJoiningDate(t.joiningDate ?? ""); setLatitude(String(t.homeLatitude ?? "")); setLongitude(String(t.homeLongitude ?? "")); setTeacherCode(t.teacherCode ?? ""); }
+      if (t) { setName(t.name); setSchoolId(t.schoolId); setBlockId(dataset.schools.find((s) => s.schoolId === t.schoolId)?.blockId ?? ""); setStaffCategory(t.staffCategory === "NON_TEACHING" ? "NON_TEACHING" : "TEACHING"); setDesignation(t.designation); setSubject(t.subject ?? ""); setSeniority(String(t.seniorityRank ?? "")); setJoiningDate(t.joiningDate ?? ""); setLatitude(String(t.homeLatitude ?? "")); setLongitude(String(t.homeLongitude ?? "")); setTeacherCode(t.teacherCode ?? ""); }
     }
   }
 
@@ -97,7 +109,7 @@ export function MasterEntryPanel({
       ]);
       if (!teachers || !schools || !centres || !relationships) throw new Error("Saved, but the list could not refresh. Reopen this page before making another change.");
       setDataset({ ...previous,
-        teachers: teachers.teachers.map((t) => ({ teacherId:t.teacher_id, employeeCode:t.employee_code, teacherCode:t.teacher_code ?? null, name:t.name, schoolId:t.school_id, designation:t.designation, subject:t.subject ?? null, seniorityRank:t.seniority_rank ?? null, joiningDate:t.joining_date ?? null, homeLatitude:t.home_latitude ?? null, homeLongitude:t.home_longitude ?? null, isActive:t.is_active !== 0, dataQuality:"Imported" as const })),
+        teachers: teachers.teachers.map((t) => ({ teacherId:t.teacher_id, employeeCode:t.employee_code, teacherCode:t.teacher_code ?? null, name:t.name, schoolId:t.school_id, designation:t.designation, subject:t.subject ?? null, seniorityRank:t.seniority_rank ?? null, joiningDate:t.joining_date ?? null, homeLatitude:t.home_latitude ?? null, homeLongitude:t.home_longitude ?? null, isActive:t.is_active !== 0, dataQuality:"Imported" as const, staffCategory:t.staff_category === "NON_TEACHING" ? "NON_TEACHING" as const : "TEACHING" as const })),
         schools: schools.schools.map((s) => ({ schoolId:s.school_id, schoolCode:s.school_code, schoolName:s.school_name, blockId:s.block_id, latitude:s.latitude ?? NaN, longitude:s.longitude ?? NaN, active:s.active !== 0 })),
         centres: centres.centres.map((c) => ({ centreId:c.centre_id, centreCode:c.centre_code, centreName:c.centre_name, blockId:c.block_id ?? "", latitude:c.latitude ?? NaN, longitude:c.longitude ?? NaN, capacity:c.capacity ?? undefined, active:c.active !== 0 })),
         relationships: relationships.relationships.map((r) => ({ centreId:String(r.centre_id), schoolId:String(r.school_id), relationshipType:r.relationship_type === "CLUBBED" ? "CLUBBED" as const : "HOST" as const, effectiveFrom:String(r.effective_from), effectiveTo:r.effective_to })),
@@ -128,14 +140,17 @@ export function MasterEntryPanel({
       record = { kind, centreCode: code.trim(), centreName: name.trim(), blockId, capacity: numericCapacity, ...location };
     } else {
       const numericRank = Number(seniority);
-      if (!schoolId || !subject || !seniority.trim() || !Number.isInteger(numericRank) || numericRank < 0) {
-        return setMessage("Select a school and subject, and enter a whole-number seniority rank.");
+      if (!schoolId) return setMessage("Select a school.");
+      if (!designation.trim()) return setMessage("Enter the post or designation.");
+      if (isTeachingStaff && (!subject || !seniority.trim() || !Number.isInteger(numericRank) || numericRank < 0)) {
+        return setMessage("Select a subject and enter a whole-number seniority rank for teaching staff.");
       }
       record = {
-        kind, teacherId: editingId || undefined, name: name.trim(), schoolId, designation,
-        subject, seniorityRank: numericRank, joiningDate: joiningDate || null,
+        kind, teacherId: editingId || undefined, name: name.trim(), schoolId, designation: designation.trim(),
+        subject: isTeachingStaff ? subject : null, seniorityRank: isTeachingStaff ? numericRank : null, joiningDate: joiningDate || null,
         homeLatitude: location.latitude, homeLongitude: location.longitude,
         teacherCode: teacherCode.trim() || undefined,
+        staffCategory,
       };
     }
     setSaving(true);
@@ -163,16 +178,18 @@ export function MasterEntryPanel({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {(kind === "school" || kind === "teacher") && <label className="text-sm sm:col-span-2">Add new or choose to edit<select className={inputClass} value={editingId} onChange={(e) => edit(e.target.value)}><option value="">Add new {kind}</option>{kind === "school" ? dataset.schools.map((s) => <option key={s.schoolId} value={s.schoolId}>{s.schoolName} — {dataset.blocks.find((b) => b.blockId === s.blockId)?.blockName}</option>) : dataset.teachers.map((t) => <option key={t.teacherId} value={t.teacherId}>{t.name} — {dataset.schools.find((s) => s.schoolId === t.schoolId)?.schoolName} — {t.subject} {t.joiningDate}</option>)}</select></label>}
+        {(kind === "school" || kind === "teacher") && <label className="text-sm sm:col-span-2">Add new or choose to edit<select className={inputClass} value={editingId} onChange={(e) => edit(e.target.value)}><option value="">Add new {kind}</option>{kind === "school" ? dataset.schools.map((s) => <option key={s.schoolId} value={s.schoolId}>{s.schoolName} — {dataset.blocks.find((b) => b.blockId === s.blockId)?.blockName}</option>) : dataset.teachers.map((t) => <option key={t.teacherId} value={t.teacherId}>{t.name} — {dataset.schools.find((s) => s.schoolId === t.schoolId)?.schoolName} — {t.staffCategory === "NON_TEACHING" ? t.designation : t.subject ?? "No subject"} {t.joiningDate ?? ""}</option>)}</select></label>}
         {kind !== "block" && <div className="sm:col-span-2 lg:col-span-4 rounded border border-[var(--color-line)] bg-white p-2"><label className="text-sm">Find a school or address<input className={inputClass} value={lookup} onChange={(e) => setLookup(e.target.value)} placeholder="School name, locality, or address" /></label><button type="button" className="mt-2 rounded border border-[var(--color-brand)] px-2 py-1 text-sm text-[var(--color-brand)]" onClick={() => void findCoordinates()}>Find location</button>{matches.length > 0 && <div className="mt-2 space-y-1">{matches.map((place) => <button key={place.id} type="button" className="block w-full rounded bg-[var(--color-sky-wash)] px-2 py-1 text-left text-xs" onClick={() => { setLatitude(String(place.latitude)); setLongitude(String(place.longitude)); setMessage(`Location found: ${place.name}. Verify before saving.`); }}>{place.name}{place.place ? ` · ${place.place}` : ""} — {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}</button>)}</div>}<p className="mt-1 text-xs text-[var(--color-ink-muted)]">Offline OpenStreetMap suggestion only. Select and verify the location before saving.</p></div>}
         {kind !== "block" && <label className="text-sm">Block<select className={inputClass} value={blockId} onChange={(e) => { setBlockId(e.target.value); setSchoolId(""); }} required><option value="">Select block</option>{dataset.blocks.map((block) => <option key={block.blockId} value={block.blockId}>{block.blockCode} · {block.blockName}</option>)}</select></label>}
         {kind !== "teacher" && <label className="text-sm">{kind === "block" ? "Block code" : "Centre code (optional)"}<input className={inputClass} value={code} onChange={(e) => setCode(e.target.value)} required={kind === "block"} /></label>}
         <label className="text-sm">{kind === "block" ? "Block name" : kind === "school" ? "School name" : kind === "centre" ? "Centre name" : "Teacher name"}<input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required /></label>
         {kind === "teacher" && <label className="text-sm">Teacher code<input className={inputClass} value={teacherCode} onChange={(e) => setTeacherCode(e.target.value)} placeholder="EMIS / govt. code (optional)" /></label>}
         {kind === "teacher" && <label className="text-sm">School<select className={inputClass} value={schoolId} onChange={(e) => { setSchoolId(e.target.value); const school = dataset.schools.find((x) => x.schoolId === e.target.value); if (school) setBlockId(school.blockId); }} required disabled={!blockId}><option value="">Select school</option>{filteredSchools.map((school) => <option key={school.schoolId} value={school.schoolId}>{school.schoolName}{school.schoolCode ? ` · ${school.schoolCode}` : ""}</option>)}</select>{selectedSchool ? <span className="text-xs text-[var(--color-ink-muted)]">School in {dataset.blocks.find((b) => b.blockId === selectedSchool.blockId)?.blockName}.</span> : null}</label>}
-        {kind === "teacher" && <label className="text-sm">Designation<select className={inputClass} value={designation} onChange={(e) => setDesignation(e.target.value)}>{designations.map((item) => <option key={item} value={item}>{{PRINCIPAL:"Principal",HM:"Headmaster",SENIOR_PG:"Senior PG teacher",PG:"PG teacher",OTHER:"Other"}[item]}</option>)}</select></label>}
-        {kind === "teacher" && <label className="text-sm">Subject<select className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} required><option value="">Select subject</option>{(dataset.subjects ?? []).filter((item) => item.active).map((item) => <option key={item.subjectId} value={item.code}>{item.code} · {item.name}</option>)}</select></label>}
-        {kind === "teacher" && <label className="text-sm">Seniority rank<input className={inputClass} type="number" min="0" value={seniority} onChange={(e) => setSeniority(e.target.value)} required /></label>}
+        {kind === "teacher" && <label className="text-sm">Staff group<select className={inputClass} value={staffCategory} onChange={(e) => { const next = e.target.value as StaffCategory; setStaffCategory(next); setSubject(""); setSeniority(""); if (next === "NON_TEACHING" && designations.includes(designation)) setDesignation("OFFICE_STAFF"); if (next === "TEACHING" && !designations.includes(designation)) setDesignation("PG"); }}><option value="TEACHING">Teaching staff</option><option value="NON_TEACHING">Office staff</option></select></label>}
+        {kind === "teacher" && isTeachingStaff && <label className="text-sm">Designation<select className={inputClass} value={designation} onChange={(e) => setDesignation(e.target.value)}>{designations.map((item) => <option key={item} value={item}>{{PRINCIPAL:"Principal",HM:"Headmaster",SENIOR_PG:"Senior PG teacher",PG:"PG teacher",BT:"BT teacher",SGT:"SGT teacher",SPECIAL_TEACHER:"Special teacher",OTHER:"Other"}[item]}</option>)}</select></label>}
+        {kind === "teacher" && !isTeachingStaff && <label className="text-sm">Post or designation<input className={inputClass} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="For example: Junior Assistant" required /></label>}
+        {kind === "teacher" && isTeachingStaff && <label className="text-sm">Subject<select className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} required><option value="">Select subject</option>{(dataset.subjects ?? []).filter((item) => item.active).map((item) => <option key={item.subjectId} value={item.code}>{item.code} · {item.name}</option>)}</select></label>}
+        {kind === "teacher" && isTeachingStaff && <label className="text-sm">Seniority rank<input className={inputClass} type="number" min="0" value={seniority} onChange={(e) => setSeniority(e.target.value)} required /></label>}
         {kind === "teacher" && <label className="text-sm">Joining date<input className={inputClass} type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} /></label>}
         {kind === "school" && code.trim() && <label className="text-sm">Students at this centre<input className={inputClass} type="number" min="1" value={capacity} onChange={(e) => setCapacity(e.target.value)} /></label>}
         {kind !== "block" && <label className="text-sm">{kind === "teacher" ? "Home latitude" : "Latitude"}<input className={inputClass} type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value)} required /></label>}

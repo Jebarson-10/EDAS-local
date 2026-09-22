@@ -151,6 +151,97 @@ describe("theory allocation", () => {
     )).toBe(true);
   });
 
+  it("reuses staff only on a later session and gives an unused eligible PG the next turn first", () => {
+    const dataset = baseDataset({
+      teachers: [
+        teacher({
+          teacherId: "t2",
+          employeeCode: "E002",
+          name: "First PG",
+          schoolId: "s2",
+          designation: "PG",
+          seniorityRank: 1,
+        }),
+        teacher({
+          teacherId: "t3",
+          employeeCode: "E003",
+          name: "Second PG",
+          schoolId: "s3",
+          designation: "PG",
+          seniorityRank: 2,
+        }),
+      ],
+    });
+    const requirements: TheoryRequirement[] = [
+      {
+        requirementKey: "c1-department-first",
+        centreId: "c1",
+        roleCode: "DEPARTMENT_OFFICER",
+        examDate: "2027-03-10",
+        sessionCode: "MORNING",
+        preferredDesignations: ["PG"],
+        fallbackDesignations: [],
+      },
+      {
+        requirementKey: "c1-department-second",
+        centreId: "c1",
+        roleCode: "DEPARTMENT_OFFICER",
+        examDate: "2027-03-11",
+        sessionCode: "MORNING",
+        preferredDesignations: ["PG"],
+        fallbackDesignations: [],
+      },
+      {
+        requirementKey: "c1-department-third",
+        centreId: "c1",
+        roleCode: "DEPARTMENT_OFFICER",
+        examDate: "2027-03-12",
+        sessionCode: "MORNING",
+        preferredDesignations: ["PG"],
+        fallbackDesignations: [],
+      },
+    ];
+    const result = allocateTheory(requirements, dataset, rules);
+    expect(result.feasible).toBe(true);
+    expect(result.assignments.map((assignment) => assignment.teacherId)).toEqual([
+      "t2",
+      "t3",
+      "t2",
+    ]);
+    expect(
+      result.assignments[2]?.decisionTrace.reasons.some(
+        (reason) => reason.ruleCode === "INFO-CURRENT-RUN-REUSE",
+      ),
+    ).toBe(true);
+  });
+
+  it("never reuses a theory-duty person in the same date and session", () => {
+    const dataset = baseDataset({
+      teachers: [
+        teacher({
+          teacherId: "t2",
+          employeeCode: "E002",
+          name: "Only PG",
+          schoolId: "s2",
+          designation: "PG",
+          seniorityRank: 1,
+        }),
+      ],
+    });
+    const requirements: TheoryRequirement[] = ["one", "two"].map((suffix) => ({
+      requirementKey: `c1-department-${suffix}`,
+      centreId: "c1",
+      roleCode: "DEPARTMENT_OFFICER",
+      examDate: "2027-03-10",
+      sessionCode: "MORNING",
+      preferredDesignations: ["PG"],
+      fallbackDesignations: [],
+    }));
+    const result = allocateTheory(requirements, dataset, rules);
+    expect(result.assignments).toHaveLength(1);
+    expect(result.shortages).toHaveLength(1);
+  });
+
   it("excludes repeat centre from history without current excel", () => {
     const dataset = baseDataset({
       history: [
@@ -306,6 +397,25 @@ describe("theory allocation", () => {
       dataset,
       rules,
     );
+    expect(result.feasible).toBe(false);
+  });
+
+  it("applies the repeat-centre rule to office and custodian history", () => {
+    const dataset = baseDataset({
+      teachers: [
+        teacher({ teacherId: "t1", employeeCode: "E001", name: "Own HM", schoolId: "s1", designation: "HM" }),
+        teacher({ teacherId: "t2", employeeCode: "E002", name: "Custodian HM", schoolId: "s2", designation: "HM" }),
+        teacher({ teacherId: "t3", employeeCode: "E003", name: "Office HM", schoolId: "s3", designation: "HM" }),
+      ],
+      history: [
+        { teacherId: "t2", centreId: "c1", dutyTypeCode: "CUSTODIAN", examDate: "2026-03-10", sessionCode: "MORNING", academicYear: "2026" },
+        { teacherId: "t3", centreId: "c1", dutyTypeCode: "OFFICE_STAFF", examDate: "2025-03-10", sessionCode: "MORNING", academicYear: "2025" },
+      ],
+    });
+    const result = allocateTheory([{
+      requirementKey: "c1-chief", centreId: "c1", roleCode: "CHIEF_EXAMINATION",
+      examDate: "2027-03-10", sessionCode: "MORNING", preferredDesignations: ["HM"], fallbackDesignations: [],
+    }], dataset, rules);
     expect(result.feasible).toBe(false);
   });
 });

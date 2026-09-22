@@ -11,7 +11,7 @@ import type {
 } from "@exam-duty/shared";
 import { haversineKm, roundKm } from "@exam-duty/shared";
 
-export const ALGORITHM_VERSION = "theory-1.1.0";
+export const ALGORITHM_VERSION = "theory-1.2.0";
 
 export interface TheoryRequirement {
   requirementKey: string;
@@ -23,6 +23,8 @@ export interface TheoryRequirement {
   preferredDesignations: string[];
   /** Explicit fallback designations when preferred pool short — shown, never silent */
   fallbackDesignations: string[];
+  /** Keeps teaching and non-teaching duty pools separate. */
+  staffCategory?: "TEACHING" | "NON_TEACHING";
 }
 
 export interface TheoryDataset {
@@ -161,8 +163,12 @@ function centresInLookback(
       h.dutyTypeCode.includes("THEORY") ||
       h.dutyTypeCode === "CHIEF_EXAMINATION" ||
       h.dutyTypeCode === "DEPARTMENT_OFFICER" ||
+      h.dutyTypeCode === "OFFICE_STAFF" ||
+      h.dutyTypeCode === "CUSTODIAN" ||
       h.roleCode === "CHIEF_EXAMINATION" ||
-      h.roleCode === "DEPARTMENT_OFFICER";
+      h.roleCode === "DEPARTMENT_OFFICER" ||
+      h.roleCode === "OFFICE_STAFF" ||
+      h.roleCode === "CUSTODIAN";
     if (modulePrefix === "THEORY" && !isTheory) continue;
     const hy = academicYearNumber(h.academicYear);
     if (Number.isNaN(cy) || Number.isNaN(hy)) continue;
@@ -207,6 +213,17 @@ export function evaluateTheoryCandidate(
   const hardReasons: DecisionReason[] = [];
   const softNotes: DecisionReason[] = [];
   const school = schoolById.get(teacher.schoolId);
+
+  if (
+    requirement.staffCategory &&
+    (teacher.staffCategory ?? "TEACHING") !== requirement.staffCategory
+  ) {
+    hardReasons.push({
+      ruleCode: "RULE-THEORY-STAFF-CATEGORY",
+      severity: "ERROR",
+      message: `This duty requires ${requirement.staffCategory.toLowerCase().replace("_", " ")} staff`,
+    });
+  }
 
   if (!teacher.isActive) {
     hardReasons.push({
@@ -365,7 +382,7 @@ export function evaluateTheoryCandidate(
     designationBand === "preferred"
       ? requirement.preferredDesignations
       : requirement.fallbackDesignations;
-  if (!band.includes(teacher.designation)) {
+  if (band.length > 0 && !band.includes(teacher.designation)) {
     hardReasons.push({
       ruleCode: "RULE-THEORY-ROLE",
       severity: "ERROR",
@@ -389,13 +406,19 @@ export function evaluateTheoryCandidate(
     Number.isFinite(minDist) ? minDist / Math.max(rules.maximum_distance_km, 1) : 10;
   const seniority =
     teacher.seniorityRank == null ? 9999 : teacher.seniorityRank;
+  const seniorPgDuty =
+    requirement.roleCode === "DEPARTMENT_OFFICER" ||
+    (designationBand === "fallback" &&
+      requirement.fallbackDesignations.some((designation) =>
+        ["SENIOR_PG", "PG"].includes(designation),
+      ));
   const score =
     weights.recent_duty * recentPenalty +
     weights.repeated_duty * Math.min(repeatedPenalty, 5) +
     weights.distance * distancePenalty +
     weights.workload * 0 +
     weights.role_balance * (designationBand === "fallback" ? 2 : 0) +
-    seniority * 0.0001;
+    seniority * (seniorPgDuty ? 1 : 0.0001);
 
   softNotes.push({
     ruleCode: "INFO-FAIRNESS",
@@ -426,7 +449,10 @@ export function allocateTheory(
   const schoolById = new Map(dataset.schools.map((s) => [s.schoolId, s]));
   const centreById = new Map(dataset.centres.map((c) => [c.centreId, c]));
   const occupied = new Set<string>();
-  const assignedTeachers = new Set<string>();
+  // One person cannot hold two duties in the same date/session. They may be
+  // used again on another date/session when necessary; the per-run count is a
+  // soft fairness penalty so people with no current-run duty are preferred.
+  const assignmentCountByTeacher = new Map<string, number>();
   const assignments: TheoryAssignment[] = [];
   const shortages: TheoryAllocationResult["shortages"] = [];
   let matrixSize = 0;
@@ -557,21 +583,33 @@ export function allocateTheory(
       continue;
     }
 
-    const pick = (list: CandidateEvaluation[], blockFirst: boolean) => {
-      const eligible = list.filter((c) => {
-        if (assignedTeachers.has(c.teacherId)) return false;
-        if (
-          hasSessionConflict(
-            c.teacherId,
+    const eligibleNow = (list: CandidateEvaluation[]) =>
+      list.filter(
+        (candidate) =>
+          !hasSessionConflict(
+            candidate.teacherId,
             req.examDate,
             req.sessionCode,
             dataset.calendar,
             occupied,
-          )
-        )
-          return false;
-        return true;
-      });
+          ),
+      );
+    const rankForCurrentRun = (list: CandidateEvaluation[]) =>
+      [...list]
+        .map((candidate) => ({
+          ...candidate,
+          score:
+            candidate.score +
+            rules.scoring_weights.workload *
+              (assignmentCountByTeacher.get(candidate.teacherId) ?? 0),
+        }))
+        .sort((left, right) =>
+          left.score !== right.score
+            ? left.score - right.score
+            : left.employeeCode.localeCompare(right.employeeCode),
+        );
+    const pick = (list: CandidateEvaluation[], blockFirst: boolean) => {
+      const eligible = eligibleNow(list);
       // Senior PG fallback is block-first; the district pool is considered
       // only when that block cannot satisfy the requirement. Within either
       // pool the existing deterministic seniority/fairness ordering remains.
@@ -582,16 +620,20 @@ export function allocateTheory(
           );
           return teacher ? schoolById.get(teacher.schoolId)?.blockId : undefined;
         };
-        return (
-          eligible.find(
-            (candidate) => candidateBlockId(candidate) === centre.blockId,
-          ) ?? eligible[0]
+        const blockCandidates = eligible.filter(
+          (candidate) => candidateBlockId(candidate) === centre.blockId,
         );
+        return rankForCurrentRun(
+          blockCandidates.length > 0 ? blockCandidates : eligible,
+        )[0];
       }
-      return eligible[0];
+      return rankForCurrentRun(eligible)[0];
     };
 
-    let chosen = pick(pool.preferred, false);
+    // Department Officers are senior-PG duties, so the confirmed block-first
+    // then district-wide rule applies even though PG is their preferred band.
+    const preferredBlockFirst = req.roleCode === "DEPARTMENT_OFFICER";
+    let chosen = pick(pool.preferred, preferredBlockFirst);
     let usedFallback = false;
     let fallbackMeta:
       | {
@@ -601,9 +643,7 @@ export function allocateTheory(
         }
       | undefined;
 
-    const preferredRemaining = pool.preferred.filter(
-      (c) => !assignedTeachers.has(c.teacherId),
-    ).length;
+    const preferredRemaining = eligibleNow(pool.preferred).length;
 
     if (!chosen && req.fallbackDesignations.length > 0) {
       chosen = pick(pool.fallback, true);
@@ -619,7 +659,7 @@ export function allocateTheory(
           required: 1,
           eligible:
             preferredRemaining +
-            pool.fallback.filter((c) => !assignedTeachers.has(c.teacherId)).length,
+            eligibleNow(pool.fallback).length,
           shortage: 1,
           exclusionTallies: { ...pool.preferredTallies, ...pool.fallbackTallies },
           message: "NO FEASIBLE ALLOCATION",
@@ -647,7 +687,7 @@ export function allocateTheory(
     const reasons = [...chosen.hardReasons, ...chosen.softNotes];
     const selectedSchool = schoolById.get(teacher.schoolId);
     if (
-      usedFallback &&
+      (preferredBlockFirst || usedFallback) &&
       rules.seniority_mode === "block_then_district" &&
       selectedSchool?.blockId !== centre.blockId
     ) {
@@ -671,6 +711,14 @@ export function allocateTheory(
       severity: "INFO",
       message: "Selected because lowest eligible fairness score with deterministic tie-break",
     });
+    const priorAssignmentsInRun = assignmentCountByTeacher.get(teacher.teacherId) ?? 0;
+    if (priorAssignmentsInRun > 0) {
+      reasons.push({
+        ruleCode: "INFO-CURRENT-RUN-REUSE",
+        severity: "WARNING",
+        message: `Teacher has ${priorAssignmentsInRun} earlier duty assignment(s) in this run; current-run workload preference was applied.`,
+      });
+    }
 
     assignments.push({
       requirementKey: req.requirementKey,
@@ -692,7 +740,10 @@ export function allocateTheory(
       },
     });
 
-    assignedTeachers.add(teacher.teacherId);
+    assignmentCountByTeacher.set(
+      teacher.teacherId,
+      priorAssignmentsInRun + 1,
+    );
     occupied.add(`${teacher.teacherId}|${req.examDate}|${req.sessionCode}`);
   }
 

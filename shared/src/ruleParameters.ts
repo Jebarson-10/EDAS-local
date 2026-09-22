@@ -109,6 +109,20 @@ export function applyStoredRuleParameters(
           ok = true;
         }
         break;
+      case "department_officer_second_threshold":
+      case "office_staff_per_centre":
+      case "custodian_schools_per_custodian":
+        if (
+          typeof parsed === "number" &&
+          Number.isInteger(parsed) &&
+          (key === "custodian_schools_per_custodian"
+            ? parsed > 0
+            : parsed >= 0)
+        ) {
+          next[key] = parsed;
+          ok = true;
+        }
+        break;
       case "distance_policy":
         if (
           typeof parsed === "string" &&

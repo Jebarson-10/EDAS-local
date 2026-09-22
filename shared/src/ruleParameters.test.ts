@@ -88,6 +88,30 @@ describe("applyStoredRuleParameters", () => {
     expect(out.applied).toEqual(["maximum_distance_km"]);
   });
 
+  it("reads the centre staffing rule values", () => {
+    const out = applyStoredRuleParameters([
+      { param_key: "department_officer_second_threshold", param_value: "500", value_type: "number" },
+      { param_key: "office_staff_per_centre", param_value: "2", value_type: "number" },
+      { param_key: "custodian_schools_per_custodian", param_value: "10", value_type: "number" },
+    ]);
+    expect(out.parameters.department_officer_second_threshold).toBe(500);
+    expect(out.parameters.office_staff_per_centre).toBe(2);
+    expect(out.parameters.custodian_schools_per_custodian).toBe(10);
+  });
+
+  it("keeps safe staffing defaults when a stored count is invalid", () => {
+    const out = applyStoredRuleParameters([
+      { param_key: "office_staff_per_centre", param_value: "-1", value_type: "number" },
+      { param_key: "custodian_schools_per_custodian", param_value: "0", value_type: "number" },
+    ]);
+    expect(out.invalid).toEqual([
+      "office_staff_per_centre",
+      "custodian_schools_per_custodian",
+    ]);
+    expect(out.parameters.office_staff_per_centre).toBe(2);
+    expect(out.parameters.custodian_schools_per_custodian).toBe(10);
+  });
+
   it("ignores unknown keys and keeps defaults for invalid values", () => {
     const out = applyStoredRuleParameters([
       {

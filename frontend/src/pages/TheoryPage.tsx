@@ -20,6 +20,8 @@ import {
 import AllocationWorker from "../workers/allocation.worker.ts?worker";
 import {
   assertMutable,
+  buildCentreStaffingRequirements,
+  calculateCustodianRequirementCount,
   catalogUsableForGenerate,
   firstUnusableGenerateCatalogLabel,
   latestRunForModuleInCycle,
@@ -156,26 +158,29 @@ export function TheoryPage() {
     examDate,
   ]);
 
-  const requirements: TheoryRequirement[] = useMemo(() => {
-    if (!dataset) return [];
-    return chiefSessions.flatMap((slot) => dataset.centres.filter((c) =>
-      c.active && (!slot.schoolId || dataset.relationships.some((relationship) =>
-        relationship.centreId === c.centreId && relationship.schoolId === slot.schoolId &&
-        relationship.effectiveFrom <= slot.examDate &&
-        (!relationship.effectiveTo || relationship.effectiveTo >= slot.examDate),
-      )),
-    ).map((c) => ({
-      requirementKey: `${c.centreId}-CHIEF-${slot.examDate}-${slot.sessionCode}`,
-      centreId: c.centreId,
-      roleCode: "CHIEF_EXAMINATION",
-      examDate: slot.examDate,
-      sessionCode: slot.sessionCode,
-      preferredDesignations: rules.chief_preferred_designations.includes("HM")
-        ? ["HM", "PRINCIPAL"]
-        : rules.chief_preferred_designations,
-      fallbackDesignations: rules.chief_fallback_designations,
-    })));
-  }, [dataset, rules, chiefSessions]);
+  const staffingPlan = useMemo(
+    () =>
+      dataset
+        ? buildCentreStaffingRequirements({
+            timetable,
+            centres: dataset.centres,
+            relationships: dataset.relationships,
+            rules,
+          })
+        : {
+            requirements: [],
+            missingStudentStrengthCentreIds: [],
+            centreSessions: 0,
+          },
+    [dataset, rules, timetable],
+  );
+  const requirements: TheoryRequirement[] = staffingPlan.requirements;
+  const custodianRequirementCount = dataset
+    ? calculateCustodianRequirementCount(
+        dataset.schools.filter((school) => school.active).length,
+        rules.custodian_schools_per_custodian,
+      )
+    : 0;
 
   async function generate() {
     if (!dataset || !canGenerate || !theoryDataset) return;
@@ -186,6 +191,23 @@ export function TheoryPage() {
     const dateProblem = timetableDateProblem(chiefSessions);
     if (dateProblem) {
       setProgress(dateProblem);
+      return;
+    }
+    if (staffingPlan.missingStudentStrengthCentreIds.length > 0) {
+      const names = staffingPlan.missingStudentStrengthCentreIds
+        .map(
+          (centreId) =>
+            dataset.centres.find((centre) => centre.centreId === centreId)
+              ?.centreName ?? centreId,
+        )
+        .join(", ");
+      setProgress(
+        `Add student count for every selected centre before allotment: ${names}`,
+      );
+      return;
+    }
+    if (requirements.length === 0) {
+      setProgress("No centre duties were created from the selected timetable.");
       return;
     }
     const gate = assertMutable(examCycle.status, "generate allocation");
@@ -464,11 +486,14 @@ export function TheoryPage() {
       theoryDataset,
       rules,
     );
-    const reason = overrideReason.trim();
-    const centreId = overrideReq.split("-")[0] ?? "";
     const old = latest.result.assignments.find(
       (a) => a.requirementKey === overrideReq,
     );
+    const reason = overrideReason.trim();
+    // Requirement keys contain a centre, date and session. Use the recorded
+    // assignment instead of splitting the display key, because both centre
+    // codes and ISO dates may contain hyphens.
+    const centreId = old?.centreId ?? "";
     overrideBusyRef.current = true;
     setOverrideBusy(true);
     void import("../lib/api")
@@ -519,8 +544,8 @@ export function TheoryPage() {
     <Bento>
       <Tile span={6}>
         <TileHeader
-          title="Theory examination duty"
-          hint="Assigns theory duties using saved teachers, schools, timetable and previous duties."
+          title="Theory centre duties"
+          hint="Allots chief examiner, departmental officer and office staff from the saved staff list, timetable and previous duties."
         />
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -554,6 +579,14 @@ export function TheoryPage() {
             </span>
           )}
         </div>
+        {chiefSessions.length > 0 && (
+          <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
+            Planned for {staffingPlan.centreSessions} centre session(s):{" "}
+            {requirements.filter((item) => item.roleCode === "CHIEF_EXAMINATION").length} chief examiner, {" "}
+            {requirements.filter((item) => item.roleCode === "DEPARTMENT_OFFICER").length} departmental officer, and {" "}
+            {requirements.filter((item) => item.roleCode === "OFFICE_STAFF").length} office-staff duty slot(s). Custodian starting plan: {custodianRequirementCount} for {dataset.schools.filter((school) => school.active).length} active school(s), at one custodian per {rules.custodian_schools_per_custodian} schools. The final count can change when eligible people are unavailable. Custodian points still need to be entered before named custodian allotment can begin.
+          </p>
+        )}
         {!cyclesReady ? (
           <p
             className="mt-2 text-sm text-[var(--color-ink-muted)]"
@@ -685,7 +718,7 @@ export function TheoryPage() {
           <div className="mt-4">
             <EmptyState
               title="No theory run in this session"
-              body="Generating builds a versioned allocation run from master data, published history, exemptions and the cycle's stored rule version, then hands it to the independent validator."
+              body="Generate creates a saved duty list from your staff, centres, timetable, previous duties and exemptions. It checks the list before it can be used."
             />
           </div>
         )}

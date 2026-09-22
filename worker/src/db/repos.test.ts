@@ -1085,6 +1085,75 @@ describe("transactional restore", () => {
     expect(t1Updated?.teacher_code).toBe("TC-EMIS-UPDATED");
   });
 
+  it("preserves staff group and joining date through import updates and backup restore", async () => {
+    await transactionalRestore(
+      db,
+      {
+        schools: [
+          {
+            schoolId: "s1",
+            schoolCode: "S1",
+            schoolName: "School",
+            blockId: "b1",
+            active: true,
+          },
+        ],
+        centres: [],
+        teachers: [],
+      },
+      { adminConfirmed: true, includeHistory: true },
+    );
+    await upsertTeachers(db, [
+      {
+        teacherId: "t_office",
+        employeeCode: "OFF-1",
+        name: "Office Staff",
+        schoolId: "s1",
+        designation: "Junior Assistant",
+        joiningDate: "2012-06-15",
+        staffCategory: "NON_TEACHING",
+        isActive: true,
+      },
+    ]);
+    await upsertTeachers(db, [
+      {
+        teacherId: "t_office",
+        employeeCode: "OFF-1",
+        name: "Office Staff Updated",
+        schoolId: "s1",
+        designation: "Junior Assistant",
+        joiningDate: "2012-06-15",
+        isActive: true,
+      },
+    ]);
+    let row = (await listTeachers(db) as Array<{
+      employee_code: string;
+      joining_date: string | null;
+      staff_category: string;
+    }>).find((teacher) => teacher.employee_code === "OFF-1");
+    expect(row).toMatchObject({
+      joining_date: "2012-06-15",
+      staff_category: "NON_TEACHING",
+    });
+
+    const { buildCanonicalBackup } = await import("./repos.js");
+    const snapshot = await buildCanonicalBackup(db);
+    const restored = await transactionalRestore(db, snapshot, {
+      adminConfirmed: true,
+      includeHistory: true,
+    });
+    expect(restored.ok).toBe(true);
+    row = (await listTeachers(db) as Array<{
+      employee_code: string;
+      joining_date: string | null;
+      staff_category: string;
+    }>).find((teacher) => teacher.employee_code === "OFF-1");
+    expect(row).toMatchObject({
+      joining_date: "2012-06-15",
+      staff_category: "NON_TEACHING",
+    });
+  });
+
   it("canonical restore wipes leftover subjects and rule_parameters", async () => {
     const { buildCanonicalBackup, listRuleParameters } = await import(
       "./repos.js"
@@ -4918,7 +4987,7 @@ describe("exam cycle transitions + rule version activate", () => {
     expect(created.ok).toBe(true);
     const seedParams = await listRuleParameters(db, "rv-2027-1");
     const cloneParams = await listRuleParameters(db, "rv_test_clone");
-    expect(seedParams.length).toBe(18);
+    expect(seedParams.length).toBe(21);
     expect(cloneParams).toHaveLength(seedParams.length);
     const seedKeys = seedParams
       .map((p) => (p as { param_key: string }).param_key)

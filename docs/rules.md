@@ -93,6 +93,12 @@ soft workload penalty. A teacher is never reused in the same date/session, but
 may be considered again on another date/session after eligible colleagues have
 been preferred. This prevents an artificial shortage across a multi-day exam.
 
+Theory centre duties follow the same rule. A Chief, Department Officer or
+Office Staff member cannot hold two duties in the same date/session. On a
+later date/session, the allocator keeps the person available but adds the
+current-run workload preference before its deterministic tie-break. A recorded
+shortage is used instead of forcing an ineligible assignment.
+
 ## Fairness score (deterministic)
 
 Concept:

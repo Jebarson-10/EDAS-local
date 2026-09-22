@@ -106,6 +106,15 @@ function demoDemands(
   return [];
 }
 
+/** A practical examiner must teach the same subject as the batch. */
+function teachesPracticalSubject(
+  subject: string | null | undefined,
+  batchSubject: string,
+): boolean {
+  if (!subject?.trim()) return false;
+  return normalizeSubject(subject).code === normalizeSubject(batchSubject).code;
+}
+
 export function PracticalPage() {
   const {
     dataset,
@@ -304,14 +313,22 @@ export function PracticalPage() {
         availableDates: dates,
         asOfDate: dates[0]!,
         academicYear: examCycle.academicYear,
-        internalEligible: (t, schoolId) =>
-          t.schoolId === schoolId && t.isActive,
-        externalEligible: (t, schoolId) =>
-          t.schoolId !== schoolId && t.isActive,
+        internalEligible: (t, schoolId, subjectId) =>
+          t.schoolId === schoolId &&
+          t.isActive &&
+          (t.staffCategory ?? "TEACHING") === "TEACHING" &&
+          teachesPracticalSubject(t.subject, subjectId),
+        externalEligible: (t, schoolId, subjectId) =>
+          t.schoolId !== schoolId &&
+          t.isActive &&
+          (t.staffCategory ?? "TEACHING") === "TEACHING" &&
+          teachesPracticalSubject(t.subject, subjectId),
       },
       rules,
     );
-    const validation = validatePracticalAllocation(result, rules);
+    const validation = validatePracticalAllocation(result, rules, {
+      teachers: dataset.teachers,
+    });
     const runId = `run_${crypto.randomUUID()}`;
     void import("../lib/api")
       .then(async ({ persistRun, persistPracticalBatchesApi }) => {

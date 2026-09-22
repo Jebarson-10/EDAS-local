@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { latestRunForModuleInCycle } from "@exam-duty/shared";
+import { formatDutyRole, latestRunForModuleInCycle } from "@exam-duty/shared";
 import { useApp, isTheoryRun } from "../state/AppContext";
 import { Badge, Bento, EmptyState, Tile, TileHeader } from "../components/ui";
 import type { HallResult, PracticalResult } from "@exam-duty/allocation-engine";
@@ -130,17 +130,15 @@ export function ReportsPage() {
       const rows = latest.result.assignments.map((a) => {
         const t = teacherById.get(a.teacherId);
         return {
-          Teacher: t?.name ?? a.teacherId,
-          EmployeeCode: a.employeeCode,
-          TeacherCode: t?.teacherCode ?? "",
+          Teacher: t?.name ?? "Selected teacher",
           School: t
-            ? (schoolById.get(t.schoolId)?.schoolName ?? t.schoolId)
+            ? (schoolById.get(t.schoolId)?.schoolName ?? "")
             : "",
-          DutyType: "THEORY",
+          Duty: "Theory examination",
           Centre: a.centreId,
           Date: a.examDate,
           Session: a.sessionCode,
-          Role: a.roleCode,
+          "Duty role": formatDutyRole(a.roleCode),
           Subject: "",
         };
       });
@@ -168,6 +166,9 @@ export function ReportsPage() {
     if (!startBusy("exception")) return;
     try {
       const { buildExceptionWorkbook } = await import("@exam-duty/shared");
+      const teacherNameById = new Map(
+        (dataset?.teachers ?? []).map((teacher) => [teacher.teacherId, teacher.name]),
+      );
       const rows = [
         ...latest.result.shortages.map((s) => ({
           Kind: "SHORTAGE",
@@ -180,7 +181,7 @@ export function ReportsPage() {
           .map((a) => ({
             Kind: "FALLBACK",
             Key: a.requirementKey,
-            Message: `${a.employeeCode} used fallback band`,
+            Message: `${teacherNameById.get(a.teacherId) ?? "Selected teacher"} was chosen using the fallback eligibility group for ${formatDutyRole(a.roleCode)}.`,
             Severity: "WARN",
           })),
       ];
@@ -214,15 +215,13 @@ export function ReportsPage() {
     const teacherRows = latest.result.assignments.map((a) => {
       const t = teacherById.get(a.teacherId);
       return {
-        Teacher: t?.name ?? a.teacherId,
-        EmployeeCode: a.employeeCode,
-        TeacherCode: t?.teacherCode ?? "",
-        School: t ? (schoolById.get(t.schoolId)?.schoolName ?? t.schoolId) : "",
-        DutyType: "THEORY",
+        Teacher: t?.name ?? "Selected teacher",
+        School: t ? (schoolById.get(t.schoolId)?.schoolName ?? "") : "",
+        Duty: "Theory examination",
         Centre: a.centreId,
         Date: a.examDate,
         Session: a.sessionCode,
-        Role: a.roleCode,
+        "Duty role": formatDutyRole(a.roleCode),
         Subject: "",
       };
     });
@@ -237,14 +236,14 @@ export function ReportsPage() {
       ([schoolId, assignments]) => {
         const school = schoolById.get(schoolId);
         return {
-          School: school?.schoolName ?? schoolId,
+          School: school?.schoolName ?? "School not found",
           Centre: [...new Set(assignments.map((a) => a.centreId))].join(", "),
           Teachers: String(new Set(assignments.map((a) => a.teacherId)).size),
           Date: [...new Set(assignments.map((a) => a.examDate))].join(", "),
           Session: [...new Set(assignments.map((a) => a.sessionCode))].join(
             ", ",
           ),
-          Duty: "THEORY",
+          Duty: "Theory examination",
         };
       },
     );
@@ -258,7 +257,7 @@ export function ReportsPage() {
       ([centreId, assignments]) => ({
         Centre: centreId,
         Teachers: String(new Set(assignments.map((a) => a.teacherId)).size),
-        Roles: [...new Set(assignments.map((a) => a.roleCode))].join(", "),
+        Roles: [...new Set(assignments.map((a) => formatDutyRole(a.roleCode)))].join(", "),
         Dates: [...new Set(assignments.map((a) => a.examDate))].join(", "),
         Sessions: [...new Set(assignments.map((a) => a.sessionCode))].join(
           ", ",
@@ -305,9 +304,7 @@ export function ReportsPage() {
           generatedAt: new Date().toISOString(),
         },
         latest.result.assignments.map((a) => ({
-          employeeCode: a.employeeCode,
-          teacherCode: teacherById.get(a.teacherId)?.teacherCode ?? "",
-          name: teacherById.get(a.teacherId)?.name ?? a.teacherId,
+          name: teacherById.get(a.teacherId)?.name ?? "Selected teacher",
           centre: a.centreId,
           date: a.examDate,
           session: a.sessionCode,
@@ -380,28 +377,27 @@ export function ReportsPage() {
     if (!startBusy("hall")) return;
     try {
       const teacherById = new Map(dataset.teachers.map((t) => [t.teacherId, t]));
+      const schoolById = new Map(dataset.schools.map((s) => [s.schoolId, s]));
       const rows = [
         [
-          "centreId",
-          "role",
-          "slot",
-          "teacherId",
-          "employeeCode",
-          "teacherCode",
-          "examDate",
-          "session",
-          "score",
+          "Centre",
+          "Duty",
+          "Duty number",
+          "Teacher",
+          "School",
+          "Date",
+          "Session",
         ],
         ...hallResult.assignments.map((a) => [
           a.centreId,
-          a.roleCode,
+          formatDutyRole(a.roleCode),
           String(a.slotIndex),
-          a.teacherId,
-          a.employeeCode,
-          teacherById.get(a.teacherId)?.teacherCode ?? "",
+          teacherById.get(a.teacherId)?.name ?? "Selected teacher",
+          teacherById.get(a.teacherId)
+            ? (schoolById.get(teacherById.get(a.teacherId)!.schoolId)?.schoolName ?? "")
+            : "",
           a.examDate,
           a.sessionCode,
-          String(a.score),
         ]),
       ];
       downloadCsv(`hall-${hall?.runId ?? "run"}.csv`, rows);

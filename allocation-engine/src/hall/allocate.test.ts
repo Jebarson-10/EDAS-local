@@ -59,4 +59,24 @@ describe("hall allocation", () => {
     expect(result.feasible).toBe(true);
     expect(result.assignments.map((assignment) => assignment.teacherId)).toEqual(["t1", "t2"]);
   });
+
+  it("does not use non-teaching office staff as hall invigilators", () => {
+    const officeStaff = {
+      ...teacher("office", "O1", 1),
+      staffCategory: "NON_TEACHING" as const,
+    };
+    const teachingStaff = teacher("teacher", "T1", 2);
+    const result = allocateHall(
+      [{ centreId: "centre", totalStudents: 20, examDate: "2027-03-01", sessionCode: "MORNING" }],
+      {
+        teachers: [officeStaff, teachingStaff],
+        schools: [{ schoolId: "outside", schoolCode: "OUT", schoolName: "Outside school", blockId: "b1", latitude: 11.34, longitude: 77.72, active: true }],
+        centres: [{ centreId: "centre", centreCode: "C1", centreName: "Centre", blockId: "b1", latitude: 11.34, longitude: 77.72, active: true }],
+        exemptions: [], history: [], calendar: [], academicYear: "2027", asOfDate: "2027-03-01",
+        centreSchoolIds: new Map([["centre", new Set()]]),
+      },
+      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0 },
+    );
+    expect(result.assignments.map((assignment) => assignment.teacherId)).toEqual(["teacher"]);
+  });
 });

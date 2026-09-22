@@ -19,11 +19,10 @@ export function ImportPage() {
     examCycle,
   } = useApp();
   const [text, setText] = useState("");
-  const [useEmployeeCodes, setUseEmployeeCodes] = useState(false);
   const uploadDetails = useMemo(() => {
-    try { const rows = JSON.parse(text); return Array.isArray(rows) ? prepareTeacherUpload(rows, useEmployeeCodes) : null; }
+    try { const rows = JSON.parse(text); return Array.isArray(rows) ? prepareTeacherUpload(rows) : null; }
     catch { return null; }
-  }, [text, useEmployeeCodes]);
+  }, [text]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [lastImportId, setLastImportId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +80,6 @@ export function ImportPage() {
     setError(null);
     setMessage(null);
     setText("");
-    setUseEmployeeCodes(false);
     setLastImportId(null);
     setUploadBusy(true);
     const run = (async (): Promise<string | null> => {
@@ -110,15 +108,16 @@ export function ImportPage() {
         if (gen !== uploadGenRef.current) return null;
         if (up?.importId) {
           setLastImportId(up.importId);
-          setMessage(
-            importUploadOfficerMessage(
+          const baseMessage = importUploadOfficerMessage(
               {
                 importId: up.importId,
                 fileHash: up.fileHash,
                 stored: up.stored,
               },
               parsed.rows.length,
-            ),
+            );
+          setMessage(
+            `${baseMessage}${parsed.format === "official-staff-workbook" ? " Official staff workbook recognised; all supported staff tabs were read together." : ""}${parsed.notes?.length ? ` ${parsed.notes[0]}` : ""}`,
           );
           return up.importId;
         }
@@ -146,7 +145,6 @@ export function ImportPage() {
     <div className="space-y-4">
       <ColumnImportPanel onTeachers={(rows) => {
         clearArchivedImport();
-        setUseEmployeeCodes(false);
         setText(rows.length ? JSON.stringify(rows) : "");
         setError(null); setMessage(null);
       }} />
@@ -168,7 +166,7 @@ export function ImportPage() {
 
         <div className="flex flex-wrap gap-2 mb-3 items-center">
           <label className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm cursor-pointer">
-            Upload older teacher template .xlsx
+            Upload teacher workbook .xlsx
             <input
               type="file"
               accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -188,8 +186,7 @@ export function ImportPage() {
         </div>
 
         {uploadDetails && <div className="mb-3 space-y-2 text-sm">
-          <p>School names are matched to your saved school list, even under an older “schoolCode” heading. Headmaster and PG assistant spellings are recognised.</p>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={useEmployeeCodes} onChange={(e) => setUseEmployeeCodes(e.target.checked)} disabled={busy || uploadBusy} />Use employee codes from this file for matching (leave off for serial numbers)</label>
+          <p>School names are matched to your saved school list, even under an older “schoolCode” heading. The official HM, PG, BT, SGT, SPL and NON TEACHING workbook is read across all tabs; office staff stay separate from teaching staff.</p>
           {uploadDetails.notes.length > 0 && <details><summary className="cursor-pointer">Missing details to check before allotment</summary><ul className="mt-2 list-disc pl-5">{uploadDetails.notes.map((note) => <li key={note}>{note}</li>)}</ul></details>}
         </div>}
         <div className="mt-3 flex flex-wrap gap-2 items-center">

@@ -26,7 +26,7 @@ describe("imports without employee codes", () => {
     expect(normalizeImportedDesignation("HEADMASTER")).toBe("HM");
     expect(normalizeImportedDesignation("PG ASST")).toBe("PG");
     expect(normalizeImportedDesignation("HEAD MASTER I/C")).toBe("HEAD MASTER I/C");
-    expect(prepareTeacherUpload([{designation:"HEADMASTER I/C"}]).notes.some((n)=>n.includes("Confirm these designations"))).toBe(true);
+    expect(prepareTeacherUpload([{designation:"HEADMASTER I/C"}]).notes.some((n)=>n.includes("other teaching post name"))).toBe(true);
   });
   it("does not guess missing or ambiguous schools from a name under schoolCode", () => {
     const row = {name:"Teacher",schoolCode:"Ordinary school",schoolName:null,designation:"PG"};

@@ -616,6 +616,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
               isActive: t.is_active !== 0,
               dataQuality: dq,
               blockId: prior?.blockId,
+              staffCategory:
+                t.staff_category === "NON_TEACHING"
+                  ? "NON_TEACHING"
+                  : (prior?.staffCategory ?? "TEACHING"),
             };
           });
           const teachers = pickAuthoritativeList(

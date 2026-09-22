@@ -30,6 +30,14 @@ choices must be corrected. For generic `Name` headings, first select whether the
 file contains teachers, schools/centres, or blocks. For workbooks with multiple
 sheets, select and import each sheet separately.
 
+The **Upload teacher workbook** action in Teacher review also recognises the
+official multi-sheet staff return: `HM`, `PG`, `BT`, `BT NON`, `SGT`, `SPL` and
+`NON TEACHING`. It reads those sheets together, keeps office staff separate from
+teaching staff, and uses the saved school name to link each person. Add schools,
+blocks and their coordinates first. The source workbook's school code is not
+used as a centre code, because it may identify a school that is not an exam
+centre in this app.
+
 New schools need a block and coordinates. New blocks need both their name and
 code. Existing schools are matched by centre code or school name (and block
 where supplied). Blank cells keep saved details unchanged. New schools without
@@ -52,7 +60,11 @@ teacher-wise outputs.
 
 - **Theory:** prevents own/clubbed-school and recent-centre conflicts; uses a
   straight-line 10 km home-or-current-school radius; chooses HM/Principal first
-  and Senior PG fallback block-first, then district-wide.
+  and Senior PG fallback block-first, then district-wide. Each marked centre
+  session also plans one Chief, one Departmental Officer (two only when student
+  strength is above 500), and two office-staff duties. The official `PG` roster
+  is treated as the Senior PG candidate pool and is ordered by appointment date
+  when seniority is needed.
 - **Practical:** creates balanced 50-student batches, supports distinct
   subjects in parallel, records internal/external examiners and retains annual
   role-switch history.
@@ -61,9 +73,12 @@ teacher-wise outputs.
 - **Fairness:** recent theory, practical and hall duties are a soft preference;
   a shortage is reported rather than hidden or force-assigned.
 
-The remaining official inputs that are deliberately not guessed are the
-Department Officer staffing table by student strength and the formal report
-sign-off layout. See [`docs/open-questions.md`](docs/open-questions.md).
+Custodian planning currently shows the required count of one custodian for
+every ten active schools. A real custodian allocation waits for the office to
+provide custodian points, routes and which people are eligible; availability may
+make the final count vary. The remaining official inputs that are deliberately
+not guessed are those custodian details and the formal report sign-off layout.
+See [`docs/open-questions.md`](docs/open-questions.md).
 
 **Local slice is frozen.** This HEAD is the in-repo product: deterministic engines, validators, admin UI, local SQLite API, and gated UAT. Do not hunt more inventable honesty bugs unless a named defect is reported. Cloudflare D1/R2, Access/IdP, staging UAT, open-question answers, and production promote stay on the client checklist — [`docs/client-inputs-checklist.md`](docs/client-inputs-checklist.md). Those items cannot be invented; filling `REPLACE_ME` or inventing officers is not progress.
 
@@ -259,13 +274,13 @@ The test suite covers rule parameters, history, deterministic theory/practical/h
 allocation, independent validation, authorization and SQLite persistence.
 # Schools, teachers and app updates
 
-Teacher import also accepts older templates containing school names under `schoolCode`. Matching is exact against saved school names (case and repeated spaces are ignored); it never invents a school, block, location or centre code. Employee-code columns are ignored by default, so serial numbers do not become teacher identities. Enable **Use employee codes from this file** only for genuine existing codes. Common Headmaster and PG Assistant spellings are normalised; acting/in-charge posts are kept as written for confirmation. Missing subjects, seniority and home locations are listed before allotment. The original workbook is not changed.
+Teacher import also accepts older templates containing school names under `schoolCode`. Matching is exact against saved school names (case and repeated spaces are ignored); it never invents a school, block, location or centre code. Employee-code columns are ignored, so serial numbers do not become teacher identities. Common Headmaster and PG Assistant spellings are normalised; acting/in-charge posts are kept as written for confirmation. Missing subjects, seniority and home locations are listed before allotment. The original workbook is not changed.
 
 - Add blocks, then schools, then teachers in **Schools & teachers**.
 - **Centre code is the school code.** Leave it blank for a school that is not an exam centre. A coded school automatically creates its centre and host-school link. Names, locations and blocks stay in sync.
 - To stop using a school as a centre, select the school for editing and clear its centre code. The centre becomes inactive; earlier duty records remain available. Enter actual student counts for hall allotment.
 - Employee codes are not required. Select a teacher by name to edit them. The app keeps private identifiers so identical names do not overwrite each other.
-- The teacher Excel template uses **School name** and optional **Centre code**, with no employee-code column. Add the schools first. Imports match a teacher's name and school; duplicate names at the same school must be entered or edited individually. For a transfer or name change, edit the existing teacher rather than importing them as a new person. Older files containing employee codes remain supported.
+- The teacher Excel template uses **School name**, optional **Centre code**, and **Staff group** (Teaching or Office staff), with no employee-code column. Add the schools first. Imports match a teacher's name and school; duplicate names at the same school must be entered or edited individually. For a transfer or name change, edit the existing teacher rather than importing them as a new person. Older files may still contain employee-code columns; those values are ignored.
 - The **Activity log** records changes, imported files, teacher replacements and downloaded reports. **Help & guide** explains each section. Developer diagnostics and sample-data entry controls are not shown.
 - Every push to `main` runs tests and builds a Windows installer. A successful release includes the installer, `latest.yml`, a block map and SHA-256 checksum. Installed apps check for a newer release when opened and ask before downloading and restarting to install it. A failed build does not replace the previous release.
 

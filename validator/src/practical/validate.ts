@@ -1,16 +1,41 @@
-import type { RuleParameters, ValidationStatus } from "@exam-duty/shared";
+import {
+  normalizeSubject,
+  type RuleParameters,
+  type Teacher,
+  type ValidationStatus,
+} from "@exam-duty/shared";
 import type { PracticalResult } from "@exam-duty/allocation-engine";
 import { detectSessionConflicts } from "../conflict/engine.js";
 import type { ValidationIssue, ValidationResult } from "../theory/validate.js";
 
+export interface PracticalValidationDataset {
+  /** The saved roster makes staff-group validation possible. */
+  teachers?: Teacher[];
+}
+
+function teachesScheduledSubject(
+  teacher: Teacher,
+  subjectId: string,
+): boolean {
+  if (!teacher.subject?.trim()) return false;
+  return (
+    normalizeSubject(teacher.subject).code === normalizeSubject(subjectId).code
+  );
+}
+
 export function validatePracticalAllocation(
   result: PracticalResult,
   rules: RuleParameters,
+  dataset: PracticalValidationDataset = {},
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
   let errors = 0;
   let warnings = 0;
   let valid = 0;
+  const teacherById = new Map(
+    (dataset.teachers ?? []).map((teacher) => [teacher.teacherId, teacher]),
+  );
+  const hasRoster = dataset.teachers !== undefined;
 
   if (!result.feasible) {
     errors += 1;
@@ -24,8 +49,10 @@ export function validatePracticalAllocation(
   // Completion window: all dates for a school within sorted unique date span
   const bySchool = new Map<string, string[]>();
   for (const s of result.schedules) {
+    let scheduleValid = true;
     if (!s.internalExaminerId || !s.externalExaminerId) {
       errors += 1;
+      scheduleValid = false;
       issues.push({
         ruleCode: "RULE-PRACTICAL-ROLES",
         severity: "ERROR",
@@ -36,6 +63,7 @@ export function validatePracticalAllocation(
     }
     if (s.internalExaminerId === s.externalExaminerId) {
       errors += 1;
+      scheduleValid = false;
       issues.push({
         ruleCode: "RULE-PRACTICAL-SAME",
         severity: "ERROR",
@@ -43,7 +71,54 @@ export function validatePracticalAllocation(
         teacherId: s.internalExaminerId,
         duty: s.batchKey,
       });
-    } else {
+    }
+
+    if (hasRoster) {
+      const staffSlots: Array<{
+        teacherId: string;
+        role: "Internal" | "External";
+      }> = [
+        { teacherId: s.internalExaminerId, role: "Internal" },
+        { teacherId: s.externalExaminerId, role: "External" },
+      ];
+      for (const slot of staffSlots) {
+        const teacher = teacherById.get(slot.teacherId);
+        if (!teacher) {
+          errors += 1;
+          scheduleValid = false;
+          issues.push({
+            ruleCode: "RULE-PRACTICAL-STAFF",
+            severity: "ERROR",
+            message: `${slot.role} examiner is not in the saved staff list`,
+            teacherId: slot.teacherId,
+            duty: s.batchKey,
+          });
+        } else if ((teacher.staffCategory ?? "TEACHING") !== "TEACHING") {
+          errors += 1;
+          scheduleValid = false;
+          issues.push({
+            ruleCode: "RULE-PRACTICAL-STAFF-CATEGORY",
+            severity: "ERROR",
+            message: `${slot.role} examiner must be teaching staff`,
+            teacherId: slot.teacherId,
+            duty: s.batchKey,
+          });
+        } else if (!teachesScheduledSubject(teacher, s.subjectId)) {
+          errors += 1;
+          scheduleValid = false;
+          issues.push({
+            ruleCode: "RULE-PRACTICAL-SUBJECT",
+            severity: "ERROR",
+            message: `${slot.role} examiner must be recorded for the batch subject`,
+            teacherId: slot.teacherId,
+            duty: s.batchKey,
+            details: { subjectId: s.subjectId, teacherSubject: teacher.subject ?? null },
+          });
+        }
+      }
+    }
+
+    if (scheduleValid) {
       valid += 1;
     }
     const dates = bySchool.get(s.schoolId) ?? [];

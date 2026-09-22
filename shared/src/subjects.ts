@@ -13,10 +13,21 @@ const SUBJECT_CODE_ALIASES: Record<string, string> = {
   ZOOLOGY: "BIO",
   COMPUTER: "CS",
   "COMPUTER SCIENCE": "CS",
+  "COMPUTER APPLICATIONS": "CS",
   CS: "CS",
   PHY: "PHY",
   CHE: "CHE",
   BIO: "BIO",
+  MATHEMATICS: "MAT",
+  MATHS: "MAT",
+  MATH: "MAT",
+  MAT: "MAT",
+  TAMIL: "TAM",
+  TAM: "TAM",
+  ENGLISH: "ENG",
+  ENG: "ENG",
+  VOCATIONAL: "VOC",
+  VOC: "VOC",
 };
 
 export interface NormalizedSubject {
@@ -27,6 +38,12 @@ export interface NormalizedSubject {
 }
 
 export function normalizeSubject(subjectCode: string): NormalizedSubject {
-  const name = subjectCode.trim().toUpperCase().replace(/\s+/g, " ");
+  // Imports commonly use either spaces, underscores or hyphens. Treat those
+  // separators alike before resolving the established subject aliases.
+  const name = subjectCode
+    .trim()
+    .toUpperCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
   return { name, code: SUBJECT_CODE_ALIASES[name] ?? name.slice(0, 16) };
 }

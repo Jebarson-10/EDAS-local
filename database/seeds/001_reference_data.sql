@@ -1,8 +1,10 @@
 -- Seed: synthetic reference data only — no real government PII
 
-INSERT INTO duty_types (duty_type_id, code, name, module) VALUES
+INSERT OR IGNORE INTO duty_types (duty_type_id, code, name, module) VALUES
   ('dt-theory-chief', 'CHIEF_EXAMINATION', 'Chief of Examination', 'THEORY'),
   ('dt-theory-dept', 'DEPARTMENT_OFFICER', 'Department Officer', 'THEORY'),
+  ('dt-theory-office', 'OFFICE_STAFF', 'Office Staff', 'THEORY'),
+  ('dt-custodian', 'CUSTODIAN', 'Custodian', 'THEORY'),
   ('dt-theory-inv', 'THEORY_INVIGILATOR', 'Theory Invigilator', 'THEORY'),
   ('dt-prac-int', 'PRACTICAL_INTERNAL', 'Practical Internal Examiner', 'PRACTICAL'),
   ('dt-prac-ext', 'PRACTICAL_EXTERNAL', 'Practical External Examiner', 'PRACTICAL'),
@@ -48,7 +50,10 @@ INSERT INTO rule_parameters (id, rule_version_id, param_key, param_value, value_
   ('rp-15', 'rv-2027-1', 'scoring_weights', '{"recent_duty":5,"repeated_duty":3,"distance":1,"workload":2,"role_balance":1}', 'json'),
   ('rp-16', 'rv-2027-1', 'role_switch_mode', '"soft"', 'string'),
   ('rp-17', 'rv-2027-1', 'hall_designation_allowlist', '[]', 'json'),
-  ('rp-18', 'rv-2027-1', 'missing_coordinates_policy', '"INELIGIBLE"', 'string');
+  ('rp-18', 'rv-2027-1', 'missing_coordinates_policy', '"INELIGIBLE"', 'string'),
+  ('rp-19', 'rv-2027-1', 'department_officer_second_threshold', '500', 'number'),
+  ('rp-20', 'rv-2027-1', 'office_staff_per_centre', '2', 'number'),
+  ('rp-21', 'rv-2027-1', 'custodian_schools_per_custodian', '10', 'number');
 
 INSERT INTO permissions (permission_id, code, description) VALUES
   ('p-master-read', 'master.read', 'Read master data'),

@@ -17,13 +17,18 @@ export function prepareTeacherUpload(rawRows: unknown[], useEmployeeCodes = fals
     return row;
   });
   const notes: string[] = [];
-  const missing = (key: string) => rows.filter((r) => r[key] == null || String(r[key]).trim() === "").length;
-  if (missing("subject")) notes.push(`${missing("subject")} teachers have no subject. Add it where required for their duty.`);
-  if (missing("seniorityRank")) notes.push(`${missing("seniorityRank")} teachers have no seniority rank. Add ranks before seniority-based allotment.`);
+  const teachingRows = rows.filter(
+    (row) => row.staffCategory !== "NON_TEACHING",
+  );
+  const missing = (key: string, source = teachingRows) =>
+    source.filter((row) => row[key] == null || String(row[key]).trim() === "")
+      .length;
+  if (missing("subject")) notes.push(`${missing("subject")} teaching staff have no subject. Add it before practical allotment if needed.`);
+  if (missing("seniorityRank")) notes.push(`${missing("seniorityRank")} teaching staff have no seniority rank. Add ranks before seniority-based allotment.`);
   const locations = rows.filter((r) => r.homeLatitude == null || r.homeLongitude == null).length;
   if (locations) notes.push(`${locations} teachers have no complete home location. Add missing locations before distance checks.`);
-  const unconfirmed = [...new Set(rows.map((r) => String(r.designation)).filter((d) => d && !["HM","PRINCIPAL","PG","SENIOR_PG","OTHER"].includes(d)))];
-  if (unconfirmed.length) notes.push(`Confirm these designations in Schools & teachers: ${unconfirmed.join(", ")}. They are kept as written, not treated as regular headmasters or PG teachers.`);
+  const unconfirmed = [...new Set(teachingRows.map((r) => String(r.designation)).filter((d) => d && !["HM","PRINCIPAL","PG","SENIOR_PG","OTHER"].includes(d)))];
+  if (unconfirmed.length) notes.push(`${unconfirmed.length} other teaching post name(s) were kept as written. Review them in Schools & teachers if they should receive a special duty.`);
   return { rows, notes };
 }
 
@@ -69,6 +74,10 @@ const HEADER_MAP: Record<string, keyof TeacherImportRow | "ignore"> = {
   isactive: "isActive",
   is_active: "isActive",
   active: "isActive",
+  staffcategory: "staffCategory",
+  "staff category": "staffCategory",
+  staffgroup: "staffCategory",
+  "staff group": "staffCategory",
 };
 
 function normalizeHeader(h: unknown): string {
@@ -93,6 +102,12 @@ function coerceCell(key: keyof TeacherImportRow, value: unknown): unknown {
     const s = String(value).trim().toLowerCase();
     if (["1", "true", "yes", "y", "active"].includes(s)) return true;
     if (["0", "false", "no", "n", "inactive"].includes(s)) return false;
+    return value;
+  }
+  if (key === "staffCategory") {
+    const compact = String(value).trim().toLowerCase().replace(/[\s_-]+/g, "");
+    if (["nonteaching", "nonteacher", "officestaff", "office"].includes(compact)) return "NON_TEACHING";
+    if (["teaching", "teacher", "teachers"].includes(compact)) return "TEACHING";
     return value;
   }
   if (key === "joiningDate" && value instanceof Date) return value.toISOString().slice(0, 10);

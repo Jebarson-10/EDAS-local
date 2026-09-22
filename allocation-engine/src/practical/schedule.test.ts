@@ -17,6 +17,48 @@ const teacher = (
 });
 
 describe("practical scheduling", () => {
+  it("never uses office staff as practical internal or external examiners", () => {
+    const officeInternal: Teacher = {
+      ...teacher("office-internal", "A-OFFICE", "host"),
+      staffCategory: "NON_TEACHING",
+      designation: "Junior Assistant",
+    };
+    const officeExternal: Teacher = {
+      ...teacher("office-external", "B-OFFICE", "outside"),
+      staffCategory: "NON_TEACHING",
+      designation: "Record Clerk",
+    };
+    const result = schedulePractical(
+      [{ schoolId: "host", subjectId: "bio", studentCount: 40 }],
+      {
+        teachers: [
+          officeInternal,
+          officeExternal,
+          teacher("teaching-internal", "Z-INTERNAL", "host"),
+          teacher("teaching-external", "Z-EXTERNAL", "outside"),
+        ],
+        exemptions: [],
+        calendar: [],
+        pairHistory: [],
+        availableDates: ["2027-03-01"],
+        asOfDate: "2027-03-01",
+        academicYear: "2027",
+        // These callbacks intentionally only check school. The scheduler must
+        // still enforce staff group independently of a caller's callback.
+        internalEligible: (candidate, schoolId) => candidate.schoolId === schoolId,
+        externalEligible: (candidate, schoolId) => candidate.schoolId !== schoolId,
+      },
+      DEFAULT_RULE_PARAMETERS,
+    );
+
+    expect(result.feasible).toBe(true);
+    expect(result.schedules).toHaveLength(1);
+    expect(result.schedules[0]).toMatchObject({
+      internalExaminerId: "teaching-internal",
+      externalExaminerId: "teaching-external",
+    });
+  });
+
   it("runs different subject groups in parallel while keeping each subject's batches sequential", () => {
     const result = schedulePractical(
       [
