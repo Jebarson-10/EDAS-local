@@ -264,22 +264,28 @@ export async function buildTeachersTemplateWorkbook(
 /** A blank copy of the seven-tab CEO staff return layout used by OVER ALL.xlsx. */
 export async function buildOfficialStaffTemplateWorkbook(): Promise<ArrayBuffer> {
   const wb = new ExcelJS.Workbook();
-  const layouts: Array<{ name: string; title: string; headers: string[] }> = [
-    { name: "HM", title: "HEADMASTER & INCHARGE HM DETAILS", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "HEADMASTER NAME", "DESIGNATION", "MAJOR SUBJECT", "DATE OF APPOINTMENT IN HM POST", "RESIDENTIAL UNION/BLOCK"] },
-    { name: "PG", title: "PG TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "11,12TH HANDLING SUBJECT", "DATE OF APPOINTMENT AS PG ASST", "RESIDENTIAL UNION/BLOCK"] },
-    { name: "BT", title: "BT TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "10TH HANDLING SUBJECT", "DATE OF APPOINTMENT AS BT ASST", "RESIDENTIAL UNION/BLOCK"] },
-    { name: "BT NON", title: "BT TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "ADDITIONAL HANDLING SUBJECTS", "DATE OF APPOINTMENT AS BT ASST", "RESIDENTIAL UNION/BLOCK"] },
-    { name: "SGT", title: "SGT TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "HANDLING SUBJECTS", "DATE OF APPOINTMENT AS SGT", "RESIDENTIAL UNION/BLOCK"] },
-    { name: "SPL", title: "SPECIAL TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "HANDLING SUBJECTS", "DATE OF APPOINTMENT", "RESIDENTIAL UNION/BLOCK"] },
-    { name: "NON TEACHING", title: "NON-TEACHING STAFF LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "NAME OF THE EMPLOYEE", "DESIGNATION", "DATE OF APPOINTMENT", "RESIDENTIAL UNION/BLOCK"] },
+  const shared = ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TYPE (GOVT/AIDED)", "TEACHERS NAME (INITIAL AT END)", "SEX M/F", "DESIGNATION", "MOBILE NO", "QUALIFICATION"];
+  const dates = (appointment: string) => [appointment, appointment, appointment, "DATE OF RETIREMENT", "DATE OF RETIREMENT", "DATE OF RETIREMENT"];
+  const dateParts = ["DD", "MM", "YYYY", "DD", "MM", "YYYY"];
+  const commonEnd = ["RESIDENTIAL UNION/BLOCK", "PREVIOUS EXAM DUTY", "PREVIOUS CAMP DUTY", "HEALTH / LEAVE / REMARKS", "BLOCK"];
+  const layouts: Array<{ name: string; title: string; headers: string[]; subheaders: string[] }> = [
+    { name: "HM", title: "HEADMASTER & INCHARGE HM DETAILS", headers: [...shared.slice(0, 4), "HEADMASTER NAME (INITIAL AT END)", shared[5]!, shared[7]!, shared[8]!, "MAJOR SUBJECT", ...dates("DATE OF APPOINTMENT IN HM POST"), ...commonEnd], subheaders: [...Array(9).fill(""), ...dateParts, ...Array(5).fill("")] },
+    { name: "PG", title: "PG TEACHERS LIST", headers: [...shared, "MAJOR SUBJECT", "11,12TH HANDLING SUBJECT", "ADDITIONAL HANDLING SUBJECTS", ...dates("DATE OF APPOINTMENT AS PG ASST"), ...commonEnd], subheaders: [...Array(12).fill(""), ...dateParts, ...Array(5).fill("")] },
+    { name: "BT", title: "BT (10TH HANDLING) TEACHERS LIST", headers: [...shared, "MAJOR SUBJECT", "10TH HANDLING SUBJECT", "MEDIUM (TAMIL/ENGLISH/BOTH)", ...dates("DATE OF APPOINTMENT AS BT ASST"), ...commonEnd], subheaders: [...Array(12).fill(""), ...dateParts, ...Array(5).fill("")] },
+    { name: "BT NON", title: "BT (10TH NON HANDLING) TEACHERS LIST", headers: [...shared, "MAJOR SUBJECT", "ADDITIONAL HANDLING SUBJECTS", "", ...dates("DATE OF APPOINTMENT AS BT ASST"), ...commonEnd], subheaders: [...Array(12).fill(""), ...dateParts, ...Array(5).fill("")] },
+    { name: "SGT", title: "SGT TEACHERS LIST", headers: [...shared, "MAJOR SUBJECT", "HANDLING SUBJECTS", ...dates("DATE OF APPOINTMENT AS SGT"), ...commonEnd], subheaders: [...Array(11).fill(""), ...dateParts, ...Array(5).fill("")] },
+    { name: "SPL", title: "SPECIAL TEACHERS LIST", headers: [...shared, "", "", ...dates("DATE OF APPOINTMENT AS SPECIAL TEACHER"), ...commonEnd], subheaders: [...Array(11).fill(""), ...dateParts, ...Array(5).fill("")] },
+    { name: "NON TEACHING", title: "NON TEACHING STAFF LIST", headers: [...shared.slice(0, 4), "NAME OF THE EMPLOYEE (INITIAL AT END)", ...shared.slice(5), ...dates("DATE OF APPOINTMENT IN PRESENT DESIGNATION"), "RESIDENTIAL UNION/BLOCK", "LAST SSLC / HSC EXAMINATION DUTY", "HEALTH / LEAVE / REMARKS", "BLOCK"], subheaders: [...Array(9).fill(""), ...dateParts, ...Array(4).fill("")] },
   ];
   for (const layout of layouts) {
     const sheet = wb.addWorksheet(layout.name);
     sheet.addRow([layout.title]);
     sheet.addRow(layout.headers);
+    sheet.addRow(layout.subheaders);
     sheet.getRow(1).font = { bold: true };
     sheet.getRow(2).font = { bold: true };
-    sheet.views = [{ state: "frozen", ySplit: 2 }];
+    sheet.getRow(3).font = { bold: true };
+    sheet.views = [{ state: "frozen", ySplit: 3 }];
     layout.headers.forEach((header, index) => {
       sheet.getColumn(index + 1).width = Math.max(14, Math.min(32, header.length + 3));
     });

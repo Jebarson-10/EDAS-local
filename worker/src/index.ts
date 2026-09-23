@@ -61,6 +61,7 @@ import {
   upsertExemption,
   upsertTeachers,
   upsertMasterRecord,
+  importOfficialSchoolMasterData,
   type BackupPayload,
 } from "./db/repos";
 import type { DbClient } from "./db/client";
@@ -82,6 +83,7 @@ import {
   importFileRowCount,
   manualOverrideBodySchema,
   manualMasterRecordBodySchema,
+  officialMasterImportBodySchema,
   parseBody,
   parseImportRowCountHeader,
   practicalBatchesBodySchema,
@@ -795,6 +797,28 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
         },
         503,
       );
+    }
+  }
+
+  if (url.pathname === "/api/imports/official-school-master" && request.method === "POST") {
+    const denied = requirePerm(auth, "master.write");
+    if (denied) return denied;
+    const parsed = parseBody(officialMasterImportBodySchema, await request.json());
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    try {
+      const result = await importOfficialSchoolMasterData(db, parsed.data.schools);
+      await insertAudit(db, {
+        auditId: crypto.randomUUID(),
+        userId: auth!.userId,
+        action: "IMPORT",
+        entity: "official_school_master",
+        entityId: crypto.randomUUID(),
+        newValue: JSON.stringify({ createdBlocks: result.createdBlocks, createdSchools: result.createdSchools, matchedSchools: result.matchedSchools }),
+        reason: "Official staff workbook school import",
+      });
+      return json({ ok: true, ...result });
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : String(e) }, 503);
     }
   }
 

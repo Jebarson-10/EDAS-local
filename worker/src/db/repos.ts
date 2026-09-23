@@ -1653,8 +1653,8 @@ export async function transactionalRestore(
       db
         .prepare(
           `INSERT INTO teachers
-            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, teacher_code, staff_category, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, teacher_code, staff_category, official_details_json, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(teacher_id) DO UPDATE SET
              employee_code=excluded.employee_code,
              name=excluded.name,
@@ -1669,6 +1669,7 @@ export async function transactionalRestore(
              data_quality=excluded.data_quality,
              teacher_code=excluded.teacher_code,
              staff_category=excluded.staff_category,
+             official_details_json=excluded.official_details_json,
              updated_at=excluded.updated_at`,
         )
         .bind(
@@ -1686,6 +1687,9 @@ export async function transactionalRestore(
           t.dataQuality ?? t.data_quality ?? "Imported",
           t.teacherCode ?? t.teacher_code ?? null,
           t.staffCategory ?? t.staff_category ?? "TEACHING",
+          typeof (t.officialDetails ?? t.official_details) === "string"
+            ? (t.officialDetails ?? t.official_details)
+            : JSON.stringify(t.officialDetails ?? t.official_details ?? null),
           now,
           now,
         ),
@@ -2318,7 +2322,7 @@ export async function listTeachers(db: DbClient, limit = 10000) {
   const rs = await db
     .prepare(
       `SELECT teacher_id, employee_code, teacher_code, name, school_id, designation, subject, seniority_rank, joining_date,
-              home_latitude, home_longitude, is_active, data_quality, staff_category
+              home_latitude, home_longitude, is_active, data_quality, staff_category, official_details_json
        FROM teachers ORDER BY employee_code LIMIT ?`,
     )
     .bind(limit)
@@ -2329,12 +2333,76 @@ export async function listTeachers(db: DbClient, limit = 10000) {
 export async function listSchools(db: DbClient, limit = 5000) {
   const rs = await db
     .prepare(
-      `SELECT school_id, CASE WHEN substr(school_code, 1, 9) = '__school_' THEN '' ELSE school_code END AS school_code, school_name, block_id, latitude, longitude, active, data_quality
+      `SELECT school_id, CASE WHEN substr(school_code, 1, 9) = '__school_' THEN '' ELSE school_code END AS school_code, school_name, source_school_code, block_id, latitude, longitude, active, data_quality
        FROM schools ORDER BY school_code LIMIT ?`,
     )
     .bind(limit)
     .all();
   return rs.results;
+}
+
+/**
+ * Creates the blocks and ordinary schools named in the CEO staff return.
+ * The source school code is stored separately: it must never become a centre
+ * code. Coordinates remain blank until the officer supplies or finds them.
+ */
+export async function importOfficialSchoolMasterData(
+  db: DbClient,
+  rows: Array<{ schoolName: string; sourceSchoolCode?: string | null; blockCode?: string | null }>,
+): Promise<{ createdBlocks: number; createdSchools: number; matchedSchools: number; skippedNoBlock: string[]; missingLocations: string[] }> {
+  const normal = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleUpperCase();
+  const existingBlocks = await listBlocks(db, 10_000) as Array<{ block_id: string; block_code: string; block_name: string }>;
+  const existingSchools = await listSchools(db, 20_000) as Array<{ school_id: string; school_name: string; source_school_code?: string | null; latitude?: number | null; longitude?: number | null }>;
+  const blocks = new Map(existingBlocks.map((item) => [normal(item.block_code), item]));
+  const schoolsBySource = new Map(existingSchools.filter((item) => item.source_school_code).map((item) => [normal(String(item.source_school_code)), item]));
+  const schoolsByName = new Map(existingSchools.map((item) => [normal(item.school_name), item]));
+  const statements: DbStatement[] = [];
+  const skippedNoBlock = new Set<string>();
+  const missingLocations = new Set<string>();
+  let createdBlocks = 0;
+  let createdSchools = 0;
+  let matchedSchools = 0;
+  const now = new Date().toISOString();
+
+  for (const raw of rows) {
+    const schoolName = raw.schoolName.trim().replace(/\s+/g, " ");
+    const blockCode = raw.blockCode?.trim().replace(/\s+/g, " ") ?? "";
+    if (!schoolName) continue;
+    if (!blockCode) {
+      skippedNoBlock.add(schoolName);
+      continue;
+    }
+    const blockKey = normal(blockCode);
+    let block = blocks.get(blockKey);
+    if (!block) {
+      const blockId = `blk_${crypto.randomUUID()}`;
+      block = { block_id: blockId, block_code: blockCode, block_name: blockCode };
+      blocks.set(blockKey, block);
+      statements.push(db.prepare(`INSERT INTO blocks (block_id, block_code, block_name, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)`)
+        .bind(blockId, blockCode, blockCode, now, now));
+      createdBlocks += 1;
+    }
+    const sourceKey = raw.sourceSchoolCode?.trim() ? normal(raw.sourceSchoolCode) : "";
+    const existing = (sourceKey ? schoolsBySource.get(sourceKey) : undefined) ?? schoolsByName.get(normal(schoolName));
+    if (existing) {
+      matchedSchools += 1;
+      if (existing.latitude == null || existing.longitude == null) missingLocations.add(schoolName);
+      continue;
+    }
+    const schoolId = `sch_${crypto.randomUUID()}`;
+    const internalCode = `__school_${schoolId}`;
+    statements.push(db.prepare(`INSERT INTO schools
+      (school_id, school_code, source_school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, NULL, NULL, 1, 'Imported', ?, ?)`)
+      .bind(schoolId, internalCode, raw.sourceSchoolCode?.trim() || null, schoolName, block.block_id, now, now));
+    const added = { school_id: schoolId, school_name: schoolName, source_school_code: raw.sourceSchoolCode?.trim() || null, latitude: null, longitude: null };
+    schoolsByName.set(normal(schoolName), added);
+    if (sourceKey) schoolsBySource.set(sourceKey, added);
+    missingLocations.add(schoolName);
+    createdSchools += 1;
+  }
+  await runAtomic(db, statements);
+  return { createdBlocks, createdSchools, matchedSchools, skippedNoBlock: [...skippedNoBlock].sort(), missingLocations: [...missingLocations].sort() };
 }
 
 export async function listCentres(db: DbClient, limit = 5000) {
@@ -2692,6 +2760,12 @@ export async function upsertTeachers(
     const active = t.isActive === false || t.is_active === 0 ? 0 : 1;
     const quality = t.dataQuality ?? t.data_quality ?? "Imported";
     const teacherCode = t.teacherCode ?? t.teacher_code ?? null;
+    const suppliedOfficialDetails = t.officialDetails ?? t.official_details;
+    const officialDetails = suppliedOfficialDetails === undefined
+      ? undefined
+      : typeof suppliedOfficialDetails === "string"
+        ? suppliedOfficialDetails
+        : JSON.stringify(suppliedOfficialDetails);
     const requestedStaffCategory =
       t.staffCategory === "NON_TEACHING" || t.staff_category === "NON_TEACHING"
         ? "NON_TEACHING"
@@ -2700,9 +2774,9 @@ export async function upsertTeachers(
           : undefined;
 
     const byCode = await db
-      .prepare(`SELECT teacher_id, staff_category FROM teachers WHERE employee_code = ?`)
+      .prepare(`SELECT teacher_id, staff_category, official_details_json FROM teachers WHERE employee_code = ?`)
       .bind(employeeCode)
-      .first<{ teacher_id: string; staff_category: "TEACHING" | "NON_TEACHING" }>();
+      .first<{ teacher_id: string; staff_category: "TEACHING" | "NON_TEACHING"; official_details_json: string | null }>();
 
     if (byCode?.teacher_id) {
       const staffCategory = requestedStaffCategory ?? byCode.staff_category;
@@ -2710,7 +2784,7 @@ export async function upsertTeachers(
         .prepare(
           `UPDATE teachers SET
              name=?, school_id=?, designation=?, subject=?, seniority_rank=?, joining_date=?,
-             home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, staff_category=?, updated_at=?
+             home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, staff_category=?, official_details_json=?, updated_at=?
            WHERE teacher_id=?`,
         )
         .bind(
@@ -2726,6 +2800,7 @@ export async function upsertTeachers(
           quality,
           teacherCode,
           staffCategory,
+          officialDetails ?? byCode.official_details_json,
           now,
           byCode.teacher_id,
         )
@@ -2736,16 +2811,16 @@ export async function upsertTeachers(
 
     if (requestedId) {
       const byId = await db
-        .prepare(`SELECT teacher_id, staff_category FROM teachers WHERE teacher_id = ?`)
+        .prepare(`SELECT teacher_id, staff_category, official_details_json FROM teachers WHERE teacher_id = ?`)
         .bind(requestedId)
-        .first<{ teacher_id: string; staff_category: "TEACHING" | "NON_TEACHING" }>();
+        .first<{ teacher_id: string; staff_category: "TEACHING" | "NON_TEACHING"; official_details_json: string | null }>();
       if (byId) {
         const staffCategory = requestedStaffCategory ?? byId.staff_category;
         await db
           .prepare(
             `UPDATE teachers SET
                employee_code=?, name=?, school_id=?, designation=?, subject=?, seniority_rank=?, joining_date=?,
-               home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, staff_category=?, updated_at=?
+               home_latitude=?, home_longitude=?, is_active=?, data_quality=?, teacher_code=?, staff_category=?, official_details_json=?, updated_at=?
              WHERE teacher_id=?`,
           )
           .bind(
@@ -2762,6 +2837,7 @@ export async function upsertTeachers(
             quality,
             teacherCode,
             staffCategory,
+            officialDetails ?? byId.official_details_json,
             now,
             requestedId,
           )
@@ -2772,8 +2848,8 @@ export async function upsertTeachers(
       await db
         .prepare(
           `INSERT INTO teachers
-            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, teacher_code, staff_category, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (teacher_id, employee_code, name, school_id, designation, subject, seniority_rank, joining_date, home_latitude, home_longitude, is_active, data_quality, teacher_code, staff_category, official_details_json, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           requestedId,
@@ -2790,6 +2866,7 @@ export async function upsertTeachers(
           quality,
           teacherCode,
           requestedStaffCategory ?? "TEACHING",
+          officialDetails ?? null,
           now,
           now,
         )

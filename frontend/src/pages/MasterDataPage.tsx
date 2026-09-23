@@ -121,6 +121,7 @@ export function MasterDataPage() {
                 <Th>Designation</Th>
                 <Th>School</Th>
                 <Th>Last duty</Th>
+                <Th>Imported details</Th>
               </tr>
             </thead>
             <tbody>
@@ -134,6 +135,7 @@ export function MasterDataPage() {
                   <Td>{t.designation}</Td>
                   <Td>{dataset.schools.find((s) => s.schoolId === t.schoolId)?.schoolName ?? "School not found"}</Td>
                   <Td>{lastDutyByTeacher.get(t.teacherId) ?? "No recorded duty"}</Td>
+                  <Td>{t.officialDetails && Object.keys(t.officialDetails).length ? <details><summary className="cursor-pointer">View</summary><dl className="mt-1 space-y-1 text-xs">{Object.entries(t.officialDetails).map(([label, value]) => <div key={label}><dt className="inline text-[var(--color-ink-muted)]">{label}: </dt><dd className="inline">{value}</dd></div>)}</dl></details> : "—"}</Td>
                 </tr>
               ))}
             </tbody>

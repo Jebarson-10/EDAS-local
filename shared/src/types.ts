@@ -127,6 +127,8 @@ export interface Teacher {
   blockId?: string;
   /** Keeps non-teaching office staff out of teaching-duty pools. */
   staffCategory?: "TEACHING" | "NON_TEACHING";
+  /** Extra information from the CEO staff return, kept for review. */
+  officialDetails?: Record<string, string> | null;
 }
 
 export interface School {

@@ -72,6 +72,37 @@ describe("official staff workbook import", () => {
     );
   });
 
+  it("keeps the complete official row and skips the form's second header row", () => {
+    const parsed = parseOfficialStaffWorkbook([
+      {
+        name: "PG",
+        lines: [
+          ["PG TEACHERS LIST"],
+          ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TYPE (GOVT/AIDED)", "TEACHERS NAME", "SEX M/F", "DESIGNATION", "MOBILE NO", "QUALIFICATION", "MAJOR SUBJECT", "11,12TH HANDLING SUBJECT", "ADDITIONAL HANDLING SUBJECTS", "DATE OF APPOINTMENT AS PG ASST", "DATE OF APPOINTMENT AS PG ASST", "DATE OF APPOINTMENT AS PG ASST", "DATE OF RETIREMENT", "DATE OF RETIREMENT", "DATE OF RETIREMENT", "RESIDENTIAL UNION/BLOCK", "PREVIOUS EXAM DUTY", "PREVIOUS CAMP DUTY", "HEALTH / LEAVE / REMARKS", "BLOCK"],
+          ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "", "TEACHERS NAME", "", "", "", "", "", "", "", "DD", "MM", "YYYY", "DD", "MM", "YYYY"],
+          [1, "220TEST0001", "Example School", "GOVT", "P. Teacher", "F", "PG ASST", "9876543210", "M.Sc., B.Ed.", "CHEMISTRY", "PHYSICS", "CHEMISTRY", 15, 6, 2010, 31, 5, 2035, "ERODE", "CHIEF", "CE", "NO", "ERODE"],
+        ],
+      },
+    ]);
+
+    expect(parsed.rows).toHaveLength(1);
+    expect(parsed.rows[0]).toEqual(expect.objectContaining({
+      name: "P. Teacher",
+      schoolCode: "",
+      sourceSchoolCode: "220TEST0001",
+      subject: "PHYSICS",
+      joiningDate: "2010-06-15",
+      officialDetails: expect.objectContaining({
+        "School type": "GOVT",
+        "Mobile number": "9876543210",
+        "Qualification": "M.Sc., B.Ed.",
+        "Retirement date": "2035-05-31",
+        "Previous exam duty": "CHIEF",
+        "Reporting block": "ERODE",
+      }),
+    }));
+  });
+
   it("derives PG seniority from appointment date rather than the sheet serial number", () => {
     const parsed = parseOfficialStaffWorkbook([
       {

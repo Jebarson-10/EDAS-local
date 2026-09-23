@@ -175,6 +175,7 @@ export function applyTeacherImport(
         isActive: payload.isActive ?? true,
         dataQuality: "Imported",
         staffCategory: payload.staffCategory ?? "TEACHING",
+        officialDetails: payload.officialDetails ?? null,
       });
       schoolHistory.push({
         id: createId("tsh"),
@@ -254,6 +255,7 @@ export function applyTeacherImport(
         payload.homeLongitude ?? existing.homeLongitude ?? null;
       existing.isActive = payload.isActive ?? existing.isActive;
       existing.staffCategory = payload.staffCategory ?? existing.staffCategory ?? "TEACHING";
+      existing.officialDetails = payload.officialDetails ?? existing.officialDetails ?? null;
       existing.dataQuality = "Imported";
       byCode.set(payload.employeeCode, existing);
       appliedUpdated += 1;

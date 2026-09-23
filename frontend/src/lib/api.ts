@@ -578,6 +578,7 @@ export async function fetchMasterTeachers(role: ApiRole) {
         is_active?: number;
         data_quality?: string;
         staff_category?: "TEACHING" | "NON_TEACHING";
+        official_details_json?: string | null;
       }>;
     };
   } catch {
@@ -658,6 +659,7 @@ export async function fetchMasterSchools(role: ApiRole) {
         school_id: string;
         school_code: string;
         school_name: string;
+        source_school_code?: string | null;
         block_id: string;
         latitude?: number | null;
         longitude?: number | null;
@@ -918,6 +920,30 @@ export async function setExamCycleWindowApi(
       ok?: boolean;
       startDate?: string | null;
       endDate?: string | null;
+      error?: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function importOfficialSchoolMasterData(
+  role: ApiRole,
+  schools: Array<{ schoolName: string; sourceSchoolCode?: string | null; blockCode?: string | null }>,
+) {
+  try {
+    const res = await fetch(`${API_BASE}/api/imports/official-school-master`, {
+      method: "POST",
+      headers: headers(role),
+      body: JSON.stringify({ schools }),
+    });
+    return (await res.json()) as {
+      ok?: boolean;
+      createdBlocks?: number;
+      createdSchools?: number;
+      matchedSchools?: number;
+      skippedNoBlock?: string[];
+      missingLocations?: string[];
       error?: string;
     };
   } catch {

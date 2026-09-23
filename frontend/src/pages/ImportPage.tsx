@@ -9,6 +9,7 @@ import {
 import { useApp } from "../state/AppContext";
 import { Panel } from "../components/ui";
 import { ColumnImportPanel } from "../components/ColumnImportPanel";
+import type { DemoDataset } from "../data/demoStore";
 
 export function ImportPage() {
   const {
@@ -17,6 +18,7 @@ export function ImportPage() {
     role,
     applyImportPreview,
     examCycle,
+    setDataset,
   } = useApp();
   const [text, setText] = useState("");
   const uploadDetails = useMemo(() => {
@@ -74,6 +76,7 @@ export function ImportPage() {
   }, [text, dataset, uploadDetails]);
 
   if (!dataset) return <Panel title="Imports">Loading…</Panel>;
+  const currentDataset: DemoDataset = dataset;
 
   async function onExcelFile(file: File) {
     const gen = ++uploadGenRef.current;
@@ -95,6 +98,32 @@ export function ImportPage() {
           return null;
         }
         if (gen !== uploadGenRef.current) return null;
+        let officialMasterMessage = "";
+        if (parsed.format === "official-staff-workbook") {
+          const bySchool = new Map<string, { schoolName: string; sourceSchoolCode?: string | null; blockCode?: string | null }>();
+          for (const row of parsed.rows) {
+            const record = row as { schoolName?: unknown; sourceSchoolCode?: unknown; officialDetails?: Record<string, unknown> };
+            const schoolName = String(record.schoolName ?? "").trim();
+            if (!schoolName) continue;
+            const key = schoolName.replace(/\s+/g, " ").toLocaleUpperCase();
+            if (!bySchool.has(key)) bySchool.set(key, {
+              schoolName,
+              sourceSchoolCode: record.sourceSchoolCode == null ? null : String(record.sourceSchoolCode),
+              blockCode: record.officialDetails?.["Reporting block"] == null ? null : String(record.officialDetails["Reporting block"]),
+            });
+          }
+          const { importOfficialSchoolMasterData, fetchMasterBlocks, fetchMasterSchools } = await import("../lib/api");
+          const master = await importOfficialSchoolMasterData(role, [...bySchool.values()]);
+          if (!master?.ok) throw new Error(master?.error ?? "Could not create the schools from this official workbook.");
+          const [blocks, schools] = await Promise.all([fetchMasterBlocks(role), fetchMasterSchools(role)]);
+          if (!blocks || !schools) throw new Error("Schools were saved but the list could not refresh. Reopen the app, then upload the workbook again.");
+          setDataset({
+            ...currentDataset,
+            blocks: blocks.blocks.map((block) => ({ blockId: block.block_id, blockCode: block.block_code, blockName: block.block_name })),
+            schools: schools.schools.map((school) => ({ schoolId: school.school_id, schoolCode: school.school_code, schoolName: school.school_name, blockId: school.block_id, latitude: school.latitude ?? Number.NaN, longitude: school.longitude ?? Number.NaN, active: school.active !== 0 })),
+          });
+          officialMasterMessage = ` Created ${master.createdBlocks ?? 0} blocks and ${master.createdSchools ?? 0} schools; matched ${master.matchedSchools ?? 0} existing schools.${master.missingLocations?.length ? ` ${master.missingLocations.length} school locations still need to be added.` : ""}${master.skippedNoBlock?.length ? ` ${master.skippedNoBlock.length} schools had no block and were not created.` : ""}`;
+        }
         setFileName(file.name);
         setText(JSON.stringify(parsed.rows, null, 2));
         logAudit(
@@ -117,7 +146,7 @@ export function ImportPage() {
               parsed.rows.length,
             );
           setMessage(
-            `${baseMessage}${parsed.format === "official-staff-workbook" ? " Official staff workbook recognised; all supported staff tabs were read together." : ""}${parsed.notes?.length ? ` ${parsed.notes[0]}` : ""}`,
+            `${baseMessage}${parsed.format === "official-staff-workbook" ? " Official staff workbook recognised; all supported staff tabs were read together." : ""}${officialMasterMessage}${parsed.notes?.length ? ` ${parsed.notes[0]}` : ""}`,
           );
           return up.importId;
         }
@@ -206,7 +235,7 @@ export function ImportPage() {
         </div>
 
         {uploadDetails && <div className="mb-3 space-y-2 text-sm">
-          <p>School names are matched to your saved school list. The official HM, PG, BT, BT NON, SGT, SPL and NON TEACHING workbook is read across all tabs. PG uses the 11/12 handling-subject column and BT uses the 10th handling-subject column. Office staff stay separate from teaching staff.</p>
+          <p>The official HM, PG, BT, BT NON, SGT, SPL and NON TEACHING sheets are read together. The file’s School Code is kept as a school reference; it does not create an exam centre. School name is used to match your saved school list. The app keeps the post, subject, dates, contact, qualification, past-duty and remarks fields. PG uses the 11/12 handling subject and BT uses the 10th handling subject. Office staff stay separate from teaching staff.</p>
           {uploadDetails.notes.length > 0 && <details><summary className="cursor-pointer">Missing details to check before allotment</summary><ul className="mt-2 list-disc pl-5">{uploadDetails.notes.map((note) => <li key={note}>{note}</li>)}</ul></details>}
         </div>}
         <div className="mt-3 flex flex-wrap gap-2 items-center">

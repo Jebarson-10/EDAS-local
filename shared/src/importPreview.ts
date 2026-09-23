@@ -23,6 +23,7 @@ export interface ExistingTeacherRef {
   homeLatitude?: number | null;
   homeLongitude?: number | null;
   staffCategory?: "TEACHING" | "NON_TEACHING";
+  officialDetails?: Record<string, string> | null;
 }
 
 export interface ImportPreviewRow {
@@ -65,7 +66,7 @@ export function previewTeacherImport(
     const rowNumber = idx + 1;
     const input = raw && typeof raw === "object" ? { ...raw } as Record<string, unknown> : {};
     try {
-      for (const field of ["employeeCode","teacherCode","name","schoolCode","schoolName","designation","subject","seniorityRank","homeLatitude","homeLongitude","joiningDate","isActive","staffCategory"]) {
+      for (const field of ["employeeCode","teacherCode","name","schoolCode","schoolName","designation","subject","seniorityRank","homeLatitude","homeLongitude","joiningDate","isActive","staffCategory","sourceSchoolCode"]) {
         if (input[field] != null) input[field] = normalizeImportValue(field,input[field]);
       }
     } catch (e) {
@@ -145,12 +146,14 @@ export function previewTeacherImport(
         (cur.staffCategory ?? "TEACHING") !== row.staffCategory) ||
       (["subject", "seniorityRank", "joiningDate", "homeLatitude", "homeLongitude", "teacherCode"] as const)
         .some((key) => row[key] !== undefined && (cur[key] ?? null) !== (row[key] ?? null));
+    const officialDetailsChanged = row.officialDetails !== undefined &&
+      JSON.stringify(cur.officialDetails ?? null) !== JSON.stringify(row.officialDetails ?? null);
     rows.push({
       rowNumber,
-      status: changed ? "UPDATED" : "UNCHANGED",
+      status: changed || officialDetailsChanged ? "UPDATED" : "UNCHANGED",
       employeeCode: row.employeeCode,
       payload: row,
-      message: changed ? "Fields differ from current master" : undefined,
+      message: changed || officialDetailsChanged ? "Fields differ from current master" : undefined,
     });
   });
 

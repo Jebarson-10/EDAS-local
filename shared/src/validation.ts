@@ -17,9 +17,19 @@ export const teacherImportRowSchema = z.object({
   homeLongitude: z.number().min(-180).max(180).optional().nullable(),
   isActive: z.boolean().optional().default(true),
   staffCategory: z.enum(["TEACHING", "NON_TEACHING"]).optional(),
+  sourceSchoolCode: z.string().max(64).optional().nullable(),
+  officialDetails: z.record(z.string(), z.string()).optional().nullable(),
 });
 
 export type TeacherImportRow = z.infer<typeof teacherImportRowSchema>;
+
+export const officialMasterImportBodySchema = z.object({
+  schools: z.array(z.object({
+    schoolName: z.string().min(1).max(200),
+    sourceSchoolCode: z.string().trim().max(64).optional().nullable(),
+    blockCode: z.string().trim().max(64).optional().nullable(),
+  })).max(10_000),
+});
 
 export function validateCoordinates(
   lat: number | null | undefined,

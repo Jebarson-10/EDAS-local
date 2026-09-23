@@ -626,6 +626,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 t.staff_category === "NON_TEACHING"
                   ? "NON_TEACHING"
                   : (prior?.staffCategory ?? "TEACHING"),
+              officialDetails: (() => {
+                if (typeof t.official_details_json !== "string") return prior?.officialDetails ?? null;
+                try {
+                  const parsed = JSON.parse(t.official_details_json);
+                  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+                } catch {
+                  return prior?.officialDetails ?? null;
+                }
+              })(),
             };
           });
           const teachers = pickAuthoritativeList(

@@ -104,6 +104,13 @@ function headerRowIndex(lines: unknown[][]): number {
   });
 }
 
+function isFormInstructionRow(name: string, schoolName: string, schoolCode: string | undefined): boolean {
+  const joined = `${name} ${schoolName} ${schoolCode ?? ""}`.toUpperCase();
+  return !schoolCode ||
+    /^\d+$/.test(name) ||
+    /S\.?(NO|NUMBER)|TEACHERS? NAME|HEADMASTER NAME|NAME OF THE EMPLOYEE|NAME OF THE SCHOOL|SCHOOL CODE/.test(joined);
+}
+
 function designationForSheet(
   sheetName: string,
   supplied: string | undefined,
@@ -145,6 +152,7 @@ export function parseOfficialStaffWorkbook(
     const firstIndex = (names: string[]) =>
       headers.findIndex((item) => names.includes(item));
     const schoolNameIndex = firstIndex(["NAMEOFTHESCHOOL"]);
+    const schoolCodeIndex = firstIndex(["SCHOOLCODE"]);
     const nameIndex = headers.findIndex((item) =>
       ["HEADMASTERNAME", "TEACHERSNAME", "NAMEOFTHEEMPLOYEE"].some(
         (nameHeading) => item.startsWith(nameHeading),
@@ -165,13 +173,29 @@ export function parseOfficialStaffWorkbook(
     const appointmentIndex = headers.findIndex((item) =>
       item.startsWith("DATEOFAPPOINTMENT"),
     );
+    const retirementIndex = headers.findIndex((item) => item.startsWith("DATEOFRETIREMENT"));
+    const schoolTypeIndex = headers.findIndex((item) => item.startsWith("TYPE"));
+    const sexIndex = headers.findIndex((item) => item.startsWith("SEX"));
+    const mobileIndex = headers.findIndex((item) => item.startsWith("MOBILENO"));
+    const qualificationIndex = firstIndex(["QUALIFICATION"]);
+    const residentialIndex = headers.findIndex((item) => item.startsWith("RESIDENTIALUNION"));
+    const previousExamIndex = headers.findIndex((item) =>
+      item.startsWith("PREVIOUSEXAMDUTY") || item.startsWith("LASTSSLCHSCEXAMINATIONDUTY"),
+    );
+    const previousCampIndex = headers.findIndex((item) => item.startsWith("PREVIOUSCAMPDUTY"));
+    const exceptionIndex = headers.findIndex((item) =>
+      item.startsWith("IFEMPOLYEEISPHYSICALLY") || item.startsWith("REMARKS"),
+    );
+    const blockIndex = firstIndex(["BLOCK"]);
+    const additionalSubjectIndex = headers.findIndex((item) => item.startsWith("ADDITIONALHANDLINGSUBJECT"));
 
     let added = 0;
     for (let index = headerIndex + 1; index < sheet.lines.length; index += 1) {
       const source = sheet.lines[index] ?? [];
       const name = textAt(source, nameIndex);
       const schoolName = textAt(source, schoolNameIndex);
-      if (!name || !schoolName || isNumberOnly(name)) continue;
+      const sourceSchoolCode = textAt(source, schoolCodeIndex);
+      if (!name || !schoolName || isNumberOnly(name) || isFormInstructionRow(name, schoolName, sourceSchoolCode)) continue;
       const designation = designationForSheet(
         sheetName,
         textAt(source, designationIndex),
@@ -185,10 +209,34 @@ export function parseOfficialStaffWorkbook(
       // use a major subject only when no handling-subject field exists.
       const subject =
         textAt(source, handlingSubjectIndex >= 0 ? handlingSubjectIndex : undefined) ??
+        textAt(source, additionalSubjectIndex >= 0 ? additionalSubjectIndex : undefined) ??
         textAt(source, subjectIndexes.length === 1 ? subjectIndexes[0] : majorSubjectIndex);
+      const details = Object.fromEntries(
+        [
+          ["Source sheet", sheet.name],
+          ["School reference code", sourceSchoolCode],
+          ["School type", textAt(source, schoolTypeIndex)],
+          ["Sex", textAt(source, sexIndex)],
+          ["Mobile number", textAt(source, mobileIndex)],
+          ["Qualification", textAt(source, qualificationIndex)],
+          ["Major subject", textAt(source, majorSubjectIndex)],
+          ["Handling subject", textAt(source, handlingSubjectIndex >= 0 ? handlingSubjectIndex : undefined)],
+          ["Additional handling subjects", textAt(source, additionalSubjectIndex >= 0 ? additionalSubjectIndex : undefined)],
+          ["Retirement date", retirementIndex >= 0 ? dateAt(source, [retirementIndex]) : undefined],
+          ["Residential union/block", textAt(source, residentialIndex)],
+          ["Previous exam duty", textAt(source, previousExamIndex)],
+          ["Previous camp duty", textAt(source, previousCampIndex)],
+          ["Health, leave or remarks", textAt(source, exceptionIndex)],
+          ["Reporting block", textAt(source, blockIndex)],
+        ].filter((entry): entry is [string, string] => Boolean(entry[1])),
+      );
       rows.push({
         name,
         schoolName,
+        // This official code identifies the school, not the examination centre.
+        // Keep centre code blank so an ordinary school is never made a centre.
+        schoolCode: "",
+        ...(sourceSchoolCode ? { sourceSchoolCode } : {}),
         designation,
         ...(subject ? { subject } : {}),
         ...(appointmentIndex >= 0
@@ -197,6 +245,7 @@ export function parseOfficialStaffWorkbook(
         isActive: true,
         staffCategory:
           sheetName === "NON TEACHING" ? "NON_TEACHING" : "TEACHING",
+        ...(Object.keys(details).length ? { officialDetails: details } : {}),
       });
       added += 1;
     }
