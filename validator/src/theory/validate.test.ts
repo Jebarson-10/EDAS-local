@@ -589,6 +589,7 @@ describe("practical validator", () => {
         availableDates: ["2027-03-01"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
+        standard: "12",
         internalEligible: (t, schoolId) => t.schoolId === schoolId,
         externalEligible: (t, schoolId) => t.schoolId !== schoolId,
       },

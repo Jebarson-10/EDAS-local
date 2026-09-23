@@ -65,6 +65,7 @@ export async function upsertExamCycle(
     examCycleId: string;
     name: string;
     academicYear: string;
+    standard?: string | null;
     status: string;
     ruleVersionId: string;
     createdBy: string;
@@ -77,10 +78,11 @@ export async function upsertExamCycle(
   await db
     .prepare(
       `INSERT INTO exam_cycles
-        (exam_cycle_id, name, academic_year, status, rule_version_id, created_at, created_by, start_date, end_date, amended_from_id, amendment_reason)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (exam_cycle_id, name, academic_year, standard, status, rule_version_id, created_at, created_by, start_date, end_date, amended_from_id, amendment_reason)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(exam_cycle_id) DO UPDATE SET
          name=excluded.name,
+         standard=COALESCE(excluded.standard, exam_cycles.standard),
          status=excluded.status,
          rule_version_id=excluded.rule_version_id,
          start_date=COALESCE(excluded.start_date, exam_cycles.start_date),
@@ -92,6 +94,7 @@ export async function upsertExamCycle(
       cycle.examCycleId,
       cycle.name,
       cycle.academicYear,
+      cycle.standard ?? null,
       cycle.status,
       cycle.ruleVersionId,
       new Date().toISOString(),
@@ -108,6 +111,7 @@ export type BootstrapExamCycle = {
   examCycleId: string;
   name: string;
   academicYear: string;
+  standard?: string | null;
   status: string;
   ruleVersionId: string;
   createdBy: string;
@@ -585,6 +589,19 @@ export async function persistAllocationRun(
 
   await runAtomic(db, statements);
   return { reasonCount: reasonRows.length };
+}
+
+/** Standard is mutable only before allocation so practical eligibility stays auditable. */
+export async function setExamCycleStandard(
+  db: DbClient,
+  examCycleId: string,
+  standard: "10" | "12",
+): Promise<{ ok: true } | { ok: false; error: string; conflict?: true }> {
+  const mutable = await assertExamCycleMutable(db, examCycleId, "set examination standard");
+  if (!mutable.ok) return mutable;
+  await db.prepare(`UPDATE exam_cycles SET standard = ? WHERE exam_cycle_id = ?`)
+    .bind(standard, examCycleId).run();
+  return { ok: true };
 }
 
 export type PublishRunResult =
@@ -2576,6 +2593,7 @@ export async function createExamCycle(
     examCycleId: string;
     name: string;
     academicYear: string;
+    standard?: string | null;
     ruleVersionId: string;
     createdBy: string;
     status?: string;
@@ -2628,6 +2646,7 @@ export async function createExamCycle(
       examCycleId: input.examCycleId,
       name: input.name,
       academicYear: input.academicYear,
+      standard: input.standard,
       status,
       ruleVersionId: input.ruleVersionId,
       createdBy: input.createdBy,

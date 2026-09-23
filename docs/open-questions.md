@@ -244,6 +244,8 @@ configuration screens have received the remaining formal inputs.
 | Exemptions | The administrator decides physical-disability/other manual exemptions and records them. |
 | Practical batches | Determine batch count from student strength, target 50 students, and split remainders equally. Different subjects may run in parallel where distinct examiner pairs are available. |
 | Practical examiner eligibility | Use the teacher's current school. Where two teachers cover one subject, rotate internal/external roles each year when they remain eligible. |
+| Practical examiner post | Standard 10 uses BT Assistants and Standard 12 uses PG Assistants. Both must match the recorded handling subject. |
+| Special teachers | SPL teachers are available for hall invigilation only. |
 | Fairness | Include other recent duties. It remains a preference: a teacher may be selected when a shortage remains after other eligible teachers have been considered. |
 
 ## Still required before a final official allocation

@@ -174,15 +174,23 @@ export async function buildCompleteAllotmentWorkbook(
   );
   add(
     "Centre-wise",
-    ["Centre", "Teachers", "Roles", "Dates", "Sessions", "Standby"],
-    centreRows.map((row) => ({
-      ...row,
-      Roles: String(rowValue(row, "Roles"))
-        .split(",")
-        .map((role) => formatDutyRole(role))
-        .filter(Boolean)
-        .join(", "),
-    })),
+    ["Centre", "Movement", "Teacher", "Teacher school", "Duty role", "Duty centre", "Date", "Session"],
+    [...centreRows]
+      .map((row) => ({
+        Centre: rowValue(row, "Centre"),
+        Movement: rowValue(row, "Movement"),
+        Teacher: rowValue(row, "Teacher"),
+        "Teacher school": rowValue(row, "Teacher school"),
+        "Duty role": formatDutyRole(String(rowValue(row, "Duty role", "Role"))),
+        "Duty centre": rowValue(row, "Duty centre"),
+        Date: rowValue(row, "Date"),
+        Session: rowValue(row, "Session"),
+      }))
+      .sort((left, right) =>
+        `${left.Centre}|${left.Movement}|${left.Date}|${left.Session}|${left.Teacher}`.localeCompare(
+          `${right.Centre}|${right.Movement}|${right.Date}|${right.Session}|${right.Teacher}`,
+        ),
+      ),
   );
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
 }
@@ -249,6 +257,32 @@ export async function buildTeachersTemplateWorkbook(
   sheet.addRow(headers.map((h) => labels[h] ?? h));
   for (const r of rows) {
     sheet.addRow(headers.map((h) => r[h] ?? ""));
+  }
+  return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
+}
+
+/** A blank copy of the seven-tab CEO staff return layout used by OVER ALL.xlsx. */
+export async function buildOfficialStaffTemplateWorkbook(): Promise<ArrayBuffer> {
+  const wb = new ExcelJS.Workbook();
+  const layouts: Array<{ name: string; title: string; headers: string[] }> = [
+    { name: "HM", title: "HEADMASTER & INCHARGE HM DETAILS", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "HEADMASTER NAME", "DESIGNATION", "MAJOR SUBJECT", "DATE OF APPOINTMENT IN HM POST", "RESIDENTIAL UNION/BLOCK"] },
+    { name: "PG", title: "PG TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "11,12TH HANDLING SUBJECT", "DATE OF APPOINTMENT AS PG ASST", "RESIDENTIAL UNION/BLOCK"] },
+    { name: "BT", title: "BT TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "10TH HANDLING SUBJECT", "DATE OF APPOINTMENT AS BT ASST", "RESIDENTIAL UNION/BLOCK"] },
+    { name: "BT NON", title: "BT TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "ADDITIONAL HANDLING SUBJECTS", "DATE OF APPOINTMENT AS BT ASST", "RESIDENTIAL UNION/BLOCK"] },
+    { name: "SGT", title: "SGT TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "HANDLING SUBJECTS", "DATE OF APPOINTMENT AS SGT", "RESIDENTIAL UNION/BLOCK"] },
+    { name: "SPL", title: "SPECIAL TEACHERS LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "DESIGNATION", "MAJOR SUBJECT", "HANDLING SUBJECTS", "DATE OF APPOINTMENT", "RESIDENTIAL UNION/BLOCK"] },
+    { name: "NON TEACHING", title: "NON-TEACHING STAFF LIST", headers: ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "NAME OF THE EMPLOYEE", "DESIGNATION", "DATE OF APPOINTMENT", "RESIDENTIAL UNION/BLOCK"] },
+  ];
+  for (const layout of layouts) {
+    const sheet = wb.addWorksheet(layout.name);
+    sheet.addRow([layout.title]);
+    sheet.addRow(layout.headers);
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(2).font = { bold: true };
+    sheet.views = [{ state: "frozen", ySplit: 2 }];
+    layout.headers.forEach((header, index) => {
+      sheet.getColumn(index + 1).width = Math.max(14, Math.min(32, header.length + 3));
+    });
   }
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
 }

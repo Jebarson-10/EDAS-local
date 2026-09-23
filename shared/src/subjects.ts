@@ -47,3 +47,21 @@ export function normalizeSubject(subjectCode: string): NormalizedSubject {
     .replace(/\s+/g, " ");
   return { name, code: SUBJECT_CODE_ALIASES[name] ?? name.slice(0, 16) };
 }
+
+/**
+ * Official returns can list more than one handling subject in the same cell
+ * (for example, "Maths, Statistics"). A practical duty may use any listed
+ * handling subject, but never a merely similar spelling.
+ */
+export function teachesSubject(
+  recordedSubjects: string | null | undefined,
+  requiredSubject: string,
+): boolean {
+  if (!recordedSubjects?.trim() || !requiredSubject.trim()) return false;
+  const required = normalizeSubject(requiredSubject).code;
+  return recordedSubjects
+    .split(/[,&/;()]+|\bAND\b/i)
+    .map((subject) => subject.trim())
+    .filter(Boolean)
+    .some((subject) => normalizeSubject(subject).code === required);
+}

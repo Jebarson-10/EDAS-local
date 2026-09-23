@@ -212,6 +212,7 @@ export function ReportsPage() {
         await import("@exam-duty/shared");
     const schoolById = new Map(dataset.schools.map((s) => [s.schoolId, s]));
     const teacherById = new Map(dataset.teachers.map((t) => [t.teacherId, t]));
+    const centreById = new Map(dataset.centres.map((centre) => [centre.centreId, centre]));
     const teacherRows = latest.result.assignments.map((a) => {
       const t = teacherById.get(a.teacherId);
       return {
@@ -247,26 +248,51 @@ export function ReportsPage() {
         };
       },
     );
-    const byCentre = new Map<string, typeof latest.result.assignments>();
+    const centreRows: Array<Record<string, string>> = [];
+    const centreRowKeys = new Set<string>();
+    const addCentreRow = (row: Record<string, string>) => {
+      const key = Object.values(row).join("|");
+      if (centreRowKeys.has(key)) return;
+      centreRowKeys.add(key);
+      centreRows.push(row);
+    };
     for (const a of latest.result.assignments) {
-      const list = byCentre.get(a.centreId) ?? [];
-      list.push(a);
-      byCentre.set(a.centreId, list);
+      const teacher = teacherById.get(a.teacherId);
+      const teacherSchool = teacher
+        ? schoolById.get(teacher.schoolId)?.schoolName ?? "School not found"
+        : "School not found";
+      const dutyCentre = centreById.get(a.centreId)?.centreName ?? a.centreId;
+      const base = {
+        Teacher: teacher?.name ?? "Selected teacher",
+        "Teacher school": teacherSchool,
+        "Duty role": formatDutyRole(a.roleCode),
+        "Duty centre": dutyCentre,
+        Date: a.examDate,
+        Session: a.sessionCode,
+      };
+      addCentreRow({
+        Centre: dutyCentre,
+        Movement: "Coming to this centre",
+        ...base,
+      });
+
+      if (!teacher) continue;
+      for (const relationship of dataset.relationships) {
+        if (
+          relationship.schoolId !== teacher.schoolId ||
+          relationship.centreId === a.centreId ||
+          relationship.effectiveFrom > a.examDate ||
+          (relationship.effectiveTo && relationship.effectiveTo < a.examDate)
+        ) continue;
+        const homeCentre = centreById.get(relationship.centreId)?.centreName;
+        if (!homeCentre) continue;
+        addCentreRow({
+          Centre: homeCentre,
+          Movement: "Going out from this centre",
+          ...base,
+        });
+      }
     }
-    const centreRows = [...byCentre.entries()].map(
-      ([centreId, assignments]) => ({
-        Centre: centreId,
-        Teachers: String(new Set(assignments.map((a) => a.teacherId)).size),
-        Roles: [...new Set(assignments.map((a) => formatDutyRole(a.roleCode)))].join(", "),
-        Dates: [...new Set(assignments.map((a) => a.examDate))].join(", "),
-        Sessions: [...new Set(assignments.map((a) => a.sessionCode))].join(
-          ", ",
-        ),
-        Standby: String(
-          assignments.filter((a) => a.roleCode.includes("STANDBY")).length,
-        ),
-      }),
-    );
     const buf = await buildCompleteAllotmentWorkbook(
       { ...metaBase, title: "Complete allotment" },
       teacherRows,

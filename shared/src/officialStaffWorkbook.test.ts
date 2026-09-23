@@ -90,6 +90,33 @@ describe("official staff workbook import", () => {
     ]);
   });
 
+  it("uses the standard-specific handling subject from the PG and BT forms", () => {
+    const parsed = parseOfficialStaffWorkbook([
+      {
+        name: "PG",
+        lines: [
+          ["HSC STAFF LIST"],
+          ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "MAJOR SUBJECT", "11,12TH HANDLING SUBJECT"],
+          [1, "1001", "Example School", "PG Teacher", "CHEMISTRY", "PHYSICS"],
+        ],
+      },
+      {
+        name: "BT",
+        lines: [
+          ["SSLC STAFF LIST"],
+          ["S.NO", "SCHOOL CODE", "NAME OF THE SCHOOL", "TEACHERS NAME", "MAJOR SUBJECT", "10TH HANDLING SUBJECT"],
+          [1, "1002", "Other School", "BT Teacher", "HISTORY", "TAMIL"],
+        ],
+      },
+    ]);
+    expect(parsed.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "PG Teacher", designation: "PG", subject: "PHYSICS" }),
+        expect.objectContaining({ name: "BT Teacher", designation: "BT", subject: "TAMIL" }),
+      ]),
+    );
+  });
+
   it("reads rich-text headings produced by the official workbook", () => {
     const parsed = parseOfficialStaffWorkbook([
       {

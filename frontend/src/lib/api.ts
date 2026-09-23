@@ -347,6 +347,7 @@ export async function fetchExamCycles(role: ApiRole) {
         exam_cycle_id: string;
         name?: string;
         academic_year?: string;
+        standard?: string | null;
         status?: string;
         rule_version_id?: string;
         start_date?: string | null;
@@ -759,6 +760,7 @@ export async function createExamCycleApi(
     examCycleId: string;
     name: string;
     academicYear: string;
+    standard?: string;
     ruleVersionId: string;
     status?: string;
     startDate?: string;
@@ -918,6 +920,22 @@ export async function setExamCycleWindowApi(
       endDate?: string | null;
       error?: string;
     };
+  } catch {
+    return null;
+  }
+}
+
+export async function setExamCycleStandardApi(
+  role: ApiRole,
+  examCycleId: string,
+  standard: "10" | "12",
+) {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/exam-cycles/${encodeURIComponent(examCycleId)}/standard`,
+      { method: "POST", headers: headers(role), body: JSON.stringify({ standard }) },
+    );
+    return (await res.json()) as { ok?: boolean; standard?: string; error?: string };
   } catch {
     return null;
   }

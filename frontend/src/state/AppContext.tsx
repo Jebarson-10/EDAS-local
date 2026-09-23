@@ -111,6 +111,7 @@ export interface ExamCycleState {
   examCycleId: string;
   name: string;
   academicYear: string;
+  standard: string;
   status: ExamCycleStatus;
   ruleVersionId: string;
   ruleVersionLabel: string;
@@ -185,6 +186,9 @@ interface AppState {
     startDate: string | null,
     endDate: string | null,
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  setExamStandard: (
+    standard: "10" | "12",
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   timetable: ExamTimetableEntry[];
   timetableState: "loading" | "ready" | "failed";
   saveTimetable: (
@@ -221,6 +225,7 @@ const INITIAL_CYCLE: ExamCycleState = {
   examCycleId: "ec_2027_hsc",
   name: "New 12th Standard Examination",
   academicYear: "2027",
+  standard: "12",
   status: "OPEN",
   ruleVersionId: "rv-2027-1",
   ruleVersionLabel: "2027.1",
@@ -369,6 +374,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             examCycleId: cycleId,
             name: String(preferred.name ?? prev.name),
             academicYear: String(preferred.academic_year ?? prev.academicYear),
+            standard: String(preferred.standard ?? prev.standard),
             status:
               (preferred.status as ExamCycleState["status"]) ?? prev.status,
             ruleVersionId: cycleRuleVersionId,
@@ -1265,6 +1271,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [examCycle.examCycleId, role, logAudit],
   );
 
+  const setExamStandard = useCallback(
+    async (standard: "10" | "12") => {
+      if (role !== "ADMIN" && role !== "OFFICER") {
+        return { ok: false as const, error: "Insufficient role" };
+      }
+      const { setExamCycleStandardApi } = await import("../lib/api");
+      const api = await setExamCycleStandardApi(role, examCycle.examCycleId, standard);
+      if (!api?.ok) return { ok: false as const, error: api?.error ?? "Could not save the examination standard" };
+      setExamCycle((cycle) => ({ ...cycle, standard }));
+      logAudit("UPDATE", `Examination standard set to ${standard}`);
+      return { ok: true as const };
+    },
+    [examCycle.examCycleId, role, logAudit],
+  );
+
   const saveTimetable = useCallback(
     async (entries: ExamTimetableEntry[]) => {
       if (role !== "ADMIN" && role !== "OFFICER") {
@@ -1559,6 +1580,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           examCycleId: newId,
           name: `${INITIAL_CYCLE.name} — amendment`,
           academicYear: examCycle.academicYear,
+          standard: examCycle.standard,
           ruleVersionId: examCycle.ruleVersionId,
           status: "DRAFT",
           startDate: examCycle.startDate ?? undefined,
@@ -1575,6 +1597,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           examCycleId: amd.newCycleId,
           name: `${INITIAL_CYCLE.name} — amendment`,
           academicYear: examCycle.academicYear,
+          standard: examCycle.standard,
           status: "DRAFT",
           ruleVersionId: examCycle.ruleVersionId,
           ruleVersionLabel: examCycle.ruleVersionLabel,
@@ -1630,6 +1653,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyImportPreview,
       transitionExamCycle,
       setExamWindow,
+      setExamStandard,
       timetable,
       timetableState,
       saveTimetable,
@@ -1662,6 +1686,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyImportPreview,
       transitionExamCycle,
       setExamWindow,
+      setExamStandard,
       timetable,
       timetableState,
       saveTimetable,

@@ -1,5 +1,5 @@
 import {
-  normalizeSubject,
+  teachesSubject,
   type RuleParameters,
   type Teacher,
   type ValidationStatus,
@@ -11,6 +11,8 @@ import type { ValidationIssue, ValidationResult } from "../theory/validate.js";
 export interface PracticalValidationDataset {
   /** The saved roster makes staff-group validation possible. */
   teachers?: Teacher[];
+  /** Public practical examiner post: BT for 10, PG for 12. */
+  standard?: string;
 }
 
 function teachesScheduledSubject(
@@ -18,9 +20,21 @@ function teachesScheduledSubject(
   subjectId: string,
 ): boolean {
   if (!teacher.subject?.trim()) return false;
-  return (
-    normalizeSubject(teacher.subject).code === normalizeSubject(subjectId).code
-  );
+  return teachesSubject(teacher.subject, subjectId);
+}
+
+function requiredDesignation(standard: string | undefined): "BT" | "PG" | undefined {
+  const value = String(standard ?? "").trim().toUpperCase();
+  if (/(^|\D)10(?:TH)?(\D|$)|SSLC/.test(value)) return "BT";
+  if (/(^|\D)12(?:TH)?(\D|$)|HSC|HIGHER SECONDARY/.test(value)) return "PG";
+  return undefined;
+}
+
+function normalizedDesignation(designation: string): string {
+  const compact = designation.toUpperCase().replace(/[\s._'’-]+/g, "");
+  if (["BT", "BTASST", "BTASSISTANT", "BTTEACHER"].includes(compact)) return "BT";
+  if (["PG", "PGASST", "PGASSISTANT", "PGTEACHER"].includes(compact)) return "PG";
+  return compact;
 }
 
 export function validatePracticalAllocation(
@@ -36,6 +50,7 @@ export function validatePracticalAllocation(
     (dataset.teachers ?? []).map((teacher) => [teacher.teacherId, teacher]),
   );
   const hasRoster = dataset.teachers !== undefined;
+  const expectedDesignation = requiredDesignation(dataset.standard);
 
   if (!result.feasible) {
     errors += 1;
@@ -100,6 +115,18 @@ export function validatePracticalAllocation(
             ruleCode: "RULE-PRACTICAL-STAFF-CATEGORY",
             severity: "ERROR",
             message: `${slot.role} examiner must be teaching staff`,
+            teacherId: slot.teacherId,
+            duty: s.batchKey,
+          });
+        } else if (!expectedDesignation || normalizedDesignation(teacher.designation) !== expectedDesignation) {
+          errors += 1;
+          scheduleValid = false;
+          issues.push({
+            ruleCode: "RULE-PRACTICAL-DESIGNATION",
+            severity: "ERROR",
+            message: expectedDesignation
+              ? `${slot.role} examiner must be a ${expectedDesignation} Assistant for this examination standard`
+              : "Examination standard must be 10 or 12 for practical examiner validation",
             teacherId: slot.teacherId,
             duty: s.batchKey,
           });

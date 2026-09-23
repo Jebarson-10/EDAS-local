@@ -225,6 +225,14 @@ export function evaluateTheoryCandidate(
     });
   }
 
+  if (["SPECIAL_TEACHER", "SPL", "SPECIAL TEACHER"].includes(teacher.designation.toUpperCase())) {
+    hardReasons.push({
+      ruleCode: "RULE-THEORY-SPECIAL-TEACHER",
+      severity: "ERROR",
+      message: "Special teachers are reserved for hall invigilation only",
+    });
+  }
+
   if (!teacher.isActive) {
     hardReasons.push({
       ruleCode: "RULE-THEORY-INACTIVE",

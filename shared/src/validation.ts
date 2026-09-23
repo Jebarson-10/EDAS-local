@@ -444,6 +444,7 @@ export const createExamCycleBodySchema = z.object({
   examCycleId: z.string().min(1),
   name: z.string().min(1).max(200),
   academicYear: z.string().min(1).max(32),
+  standard: z.string().min(1).max(32).optional(),
   ruleVersionId: z.string().min(1),
   status: z.enum(["DRAFT", "OPEN"]).optional(),
   startDate: isoDate.optional(),
@@ -456,6 +457,10 @@ export const createExamCycleBodySchema = z.object({
 export const examCycleWindowBodySchema = z.object({
   startDate: isoDate.nullable(),
   endDate: isoDate.nullable(),
+});
+
+export const examCycleStandardBodySchema = z.object({
+  standard: z.enum(["10", "12"]),
 });
 
 /** Full timetable replacement is deliberate and audited by the API route. */

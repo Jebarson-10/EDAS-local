@@ -108,6 +108,9 @@ function designationForSheet(
   sheetName: string,
   supplied: string | undefined,
 ): string | undefined {
+  // The SPL form represents the special-teacher pool. Its individual post
+  // names vary, but this pool is confirmed for hall invigilation only.
+  if (sheetName === "SPL") return "SPECIAL_TEACHER";
   const normalised = supplied ? normalizeImportedDesignation(supplied) : "";
   if (normalised) return normalised;
   if (sheetName === "HM") return "HM";
@@ -151,6 +154,14 @@ export function parseOfficialStaffWorkbook(
     const subjectIndexes = headers
       .map((item, index) => (item.includes("SUBJECT") ? index : -1))
       .filter((index) => index >= 0);
+    const handlingSubjectIndex = headers.findIndex((item) =>
+      sheetName === "PG"
+        ? item.includes("1112THHANDLINGSUBJECT")
+        : sheetName === "BT"
+          ? item.includes("10THHANDLINGSUBJECT")
+          : item === "HANDLINGSUBJECTS",
+    );
+    const majorSubjectIndex = firstIndex(["MAJORSUBJECT"]);
     const appointmentIndex = headers.findIndex((item) =>
       item.startsWith("DATEOFAPPOINTMENT"),
     );
@@ -169,13 +180,12 @@ export function parseOfficialStaffWorkbook(
         warnings.push(`${sheet.name}, row ${index + 1}: no staff post was found.`);
         continue;
       }
-      // Some official sheets contain both major and handling subject. Choosing
-      // one would change practical eligibility, so only import a subject where
-      // the source supplies one unambiguous subject column.
+      // FORM-02 and FORM-03 explicitly state the subject actually handled at
+      // the relevant standard. That field is authoritative for practical duty;
+      // use a major subject only when no handling-subject field exists.
       const subject =
-        subjectIndexes.length === 1
-          ? textAt(source, subjectIndexes[0])
-          : undefined;
+        textAt(source, handlingSubjectIndex >= 0 ? handlingSubjectIndex : undefined) ??
+        textAt(source, subjectIndexes.length === 1 ? subjectIndexes[0] : majorSubjectIndex);
       rows.push({
         name,
         schoolName,
@@ -193,7 +203,7 @@ export function parseOfficialStaffWorkbook(
     if (added === 0) {
       warnings.push(`${sheet.name}: no staff rows were found below the headings.`);
     }
-    if (subjectIndexes.length > 1) {
+    if (subjectIndexes.length > 1 && handlingSubjectIndex < 0) {
       warnings.push(
         `${sheet.name}: major and handling subject were left blank for review; choose the practical subject manually.`,
       );

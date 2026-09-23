@@ -141,6 +141,19 @@ export function ImportPage() {
     await run;
   }
 
+  async function downloadOfficialTemplate() {
+    const { buildOfficialStaffTemplateWorkbook } = await import("@exam-duty/shared");
+    const buffer = await buildOfficialStaffTemplateWorkbook();
+    const url = URL.createObjectURL(new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "EDAS-official-staff-return-template.xlsx";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-4">
       <ColumnImportPanel onTeachers={(rows) => {
@@ -178,6 +191,13 @@ export function ImportPage() {
               }}
             />
           </label>
+          <button
+            type="button"
+            onClick={() => void downloadOfficialTemplate()}
+            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm"
+          >
+            Download official staff template
+          </button>
           {fileName && (
             <span className="text-xs text-[var(--color-ink-muted)]">
               Loaded: {fileName}
@@ -186,7 +206,7 @@ export function ImportPage() {
         </div>
 
         {uploadDetails && <div className="mb-3 space-y-2 text-sm">
-          <p>School names are matched to your saved school list, even under an older “schoolCode” heading. The official HM, PG, BT, SGT, SPL and NON TEACHING workbook is read across all tabs; office staff stay separate from teaching staff.</p>
+          <p>School names are matched to your saved school list. The official HM, PG, BT, BT NON, SGT, SPL and NON TEACHING workbook is read across all tabs. PG uses the 11/12 handling-subject column and BT uses the 10th handling-subject column. Office staff stay separate from teaching staff.</p>
           {uploadDetails.notes.length > 0 && <details><summary className="cursor-pointer">Missing details to check before allotment</summary><ul className="mt-2 list-disc pl-5">{uploadDetails.notes.map((note) => <li key={note}>{note}</li>)}</ul></details>}
         </div>}
         <div className="mt-3 flex flex-wrap gap-2 items-center">

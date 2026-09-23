@@ -272,6 +272,7 @@ async function main() {
     examCycleId: "ec_2027_hsc",
     name: "New 12th Standard Examination",
     academicYear: "2027",
+    standard: "12",
     status: "OPEN",
     ruleVersionId: "rv-2027-1",
     createdBy: "system",

@@ -65,6 +65,9 @@ teacher-wise outputs.
   strength is above 500), and two office-staff duties. The official `PG` roster
   is treated as the Senior PG candidate pool and is ordered by appointment date
   when seniority is needed.
+- **Practical:** Standard 10 uses BT Assistants and Standard 12 uses PG
+  Assistants. Each examiner must match the recorded handling subject. SPL
+  teachers are reserved for hall invigilation only.
 - **Practical:** creates balanced 50-student batches, supports distinct
   subjects in parallel, records internal/external examiners and retains annual
   role-switch history.

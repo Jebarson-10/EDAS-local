@@ -55,6 +55,7 @@ import {
   updateCentreCapacities,
   updateExamCycleStatus,
   setExamCycleWindow,
+  setExamCycleStandard,
   replaceExamTimetable,
   updateSourceImportStatus,
   upsertExemption,
@@ -71,6 +72,7 @@ import {
   clubbingApplyBodySchema,
   createExamCycleBodySchema,
   examCycleWindowBodySchema,
+  examCycleStandardBodySchema,
   examTimetableBodySchema,
   createRuleVersionBodySchema,
   examCycleStatusBodySchema,
@@ -693,6 +695,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       examCycleId: parsed.data.examCycleId,
       name: parsed.data.name,
       academicYear: parsed.data.academicYear,
+      standard: parsed.data.standard,
       ruleVersionId: parsed.data.ruleVersionId,
       createdBy: auth!.userId,
       status: parsed.data.status,
@@ -793,6 +796,25 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
         503,
       );
     }
+  }
+
+  if (
+    url.pathname.match(/^\/api\/exam-cycles\/[^/]+\/standard$/) &&
+    request.method === "POST"
+  ) {
+    const denied = requirePerm(auth, "allocation.approve");
+    if (denied) return denied;
+    const cycleId = url.pathname.split("/")[3]!;
+    const parsed = parseBody(examCycleStandardBodySchema, await request.json());
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const updated = await setExamCycleStandard(db, cycleId, parsed.data.standard);
+    if (!updated.ok) return json(updated, mutationConflictStatus(updated));
+    await insertAudit(db, {
+      auditId: crypto.randomUUID(), userId: auth!.userId, action: "UPDATE",
+      entity: "exam_cycle", entityId: cycleId, newValue: parsed.data.standard,
+      reason: "Set examination standard",
+    });
+    return json({ ok: true, standard: parsed.data.standard });
   }
 
   // Hosted changes are written directly to D1 by each API operation. This

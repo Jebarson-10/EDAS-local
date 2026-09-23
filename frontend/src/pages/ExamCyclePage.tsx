@@ -25,6 +25,7 @@ export function ExamCyclePage() {
     examCycle,
     transitionExamCycle,
     setExamWindow,
+    setExamStandard,
     publishLatestTheoryRun,
     createAmendment,
     timetable,
@@ -41,8 +42,11 @@ export function ExamCyclePage() {
     () => examWindowDraftInputs(examCycle).start,
   );
   const [end, setEnd] = useState(() => examWindowDraftInputs(examCycle).end);
+  const [standard, setStandard] = useState<"10" | "12">(
+    examCycle.standard === "10" ? "10" : "12",
+  );
   const [busyKind, setBusyKind] = useState<
-    null | "status" | "publish" | "amend" | "window" | "timetable"
+    null | "status" | "publish" | "amend" | "window" | "standard" | "timetable"
   >(null);
   const [timetableDraft, setTimetableDraft] = useState<ExamTimetableEntry[]>([]);
   const [timetableFileBusy, setTimetableFileBusy] = useState(false);
@@ -58,8 +62,12 @@ export function ExamCyclePage() {
     setStart(draft.start);
     setEnd(draft.end);
   }, [examCycle.examCycleId, examCycle.startDate, examCycle.endDate]);
+  useEffect(() => {
+    setStandard(examCycle.standard === "10" ? "10" : "12");
+  }, [examCycle.examCycleId, examCycle.standard]);
   useEffect(() => setTimetableDraft(timetable), [timetable]);
   const canManage = role === "ADMIN" || role === "OFFICER";
+  const standardEditable = examCycle.status === "DRAFT" || examCycle.status === "OPEN";
   const latestPicked = latestRunForModuleInCycle(
     runs,
     "THEORY",
@@ -131,6 +139,34 @@ export function ExamCyclePage() {
           Rule {examCycle.ruleVersionLabel} · {examCycle.examCycleId}
           {examCycle.amendedFromId ? ` (from ${examCycle.amendedFromId})` : ""}
         </p>
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          <label>
+            Examination standard{" "}
+            <select
+              value={standard}
+              disabled={!canManage || busy || !standardEditable}
+              className="rounded border border-[var(--color-line)] bg-white px-2 py-1"
+              onChange={(event) => setStandard(event.target.value as "10" | "12")}
+            >
+              <option value="10">10th standard</option>
+              <option value="12">12th standard</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={!canManage || busy || standard === examCycle.standard || !standardEditable}
+            className="rounded border border-[var(--color-line)] px-3 py-1 disabled:opacity-40"
+            onClick={() => {
+              if (!startBusy("standard")) return;
+              void setExamStandard(standard).then((result) => {
+                if (!result.ok) setErr(result.error);
+                else { setMsg(`Examination standard set to ${standard}`); setErr(null); }
+              }).finally(stopBusy);
+            }}
+          >
+            {busyKind === "standard" ? "Saving…" : "Save standard"}
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2">
           {NEXT[examCycle.status] &&
             examCycle.status !== "APPROVED" &&

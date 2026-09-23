@@ -10,7 +10,24 @@ import type {
 // 1.2 schedules different subjects in parallel.  A subject's own batches
 // still remain in morning/afternoon order, which models the 50 + 50 pattern
 // without incorrectly treating all subjects in one school as one queue.
-export const PRACTICAL_ALGORITHM_VERSION = "practical-1.2.0";
+export const PRACTICAL_ALGORITHM_VERSION = "practical-1.3.0";
+
+/** The confirmed examiner post rule for public practical examinations. */
+export function requiredPracticalDesignation(
+  standard: string | null | undefined,
+): "BT" | "PG" | undefined {
+  const value = String(standard ?? "").trim().toUpperCase();
+  if (/(^|\D)10(?:TH)?(\D|$)|SSLC/.test(value)) return "BT";
+  if (/(^|\D)12(?:TH)?(\D|$)|HSC|HIGHER SECONDARY/.test(value)) return "PG";
+  return undefined;
+}
+
+function normalizedExaminerDesignation(designation: string): string {
+  const compact = designation.toUpperCase().replace(/[\s._'’-]+/g, "");
+  if (["BT", "BTASST", "BTASSISTANT", "BTTEACHER"].includes(compact)) return "BT";
+  if (["PG", "PGASST", "PGASSISTANT", "PGTEACHER"].includes(compact)) return "PG";
+  return compact;
+}
 
 export interface PracticalSchoolDemand {
   schoolId: string;
@@ -26,6 +43,8 @@ export interface PracticalDataset {
   availableDates: string[];
   asOfDate: string;
   academicYear: string;
+  /** `10` uses BT Assistants; `12` uses PG Assistants. */
+  standard: string;
   /** Teachers eligible as internal for a school (typically same school) */
   internalEligible: (teacher: Teacher, schoolId: string, subjectId: string) => boolean;
   /** Teachers eligible as external */
@@ -101,6 +120,11 @@ function isTeachingStaff(teacher: Teacher): boolean {
   return (teacher.staffCategory ?? "TEACHING") === "TEACHING";
 }
 
+function matchesPracticalDesignation(teacher: Teacher, standard: string): boolean {
+  const required = requiredPracticalDesignation(standard);
+  return Boolean(required && normalizedExaminerDesignation(teacher.designation) === required);
+}
+
 function sessionsForDates(dates: string[]): { date: string; session: SessionCode }[] {
   const out: { date: string; session: SessionCode }[] = [];
   for (const d of [...dates].sort()) {
@@ -134,6 +158,16 @@ export function schedulePractical(
   rules: RuleParameters,
 ): PracticalResult {
   const batches: PracticalBatch[] = [];
+  const requiredDesignation = requiredPracticalDesignation(dataset.standard);
+  if (!requiredDesignation) {
+    return {
+      algorithmVersion: PRACTICAL_ALGORITHM_VERSION,
+      batches,
+      schedules: [],
+      feasible: false,
+      message: "Set the examination standard to 10 or 12 before creating practical duties.",
+    };
+  }
   for (const d of demands) {
     const sizes = balanceBatches(d.studentCount, rules.practical_batch_size);
     sizes.forEach((size, idx) => {
@@ -223,6 +257,7 @@ export function schedulePractical(
           (t) =>
             t.isActive &&
             isTeachingStaff(t) &&
+            matchesPracticalDesignation(t, dataset.standard) &&
             !dataset.exemptions.some(
               (e) => e.teacherId === t.teacherId && exemptionActive(e, dataset.asOfDate),
             ) &&
@@ -236,6 +271,7 @@ export function schedulePractical(
           (t) =>
             t.isActive &&
             isTeachingStaff(t) &&
+            matchesPracticalDesignation(t, dataset.standard) &&
             !dataset.exemptions.some(
               (e) => e.teacherId === t.teacherId && exemptionActive(e, dataset.asOfDate),
             ) &&

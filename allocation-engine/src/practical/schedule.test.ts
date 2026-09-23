@@ -43,6 +43,7 @@ describe("practical scheduling", () => {
         availableDates: ["2027-03-01"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
+        standard: "12",
         // These callbacks intentionally only check school. The scheduler must
         // still enforce staff group independently of a caller's callback.
         internalEligible: (candidate, schoolId) => candidate.schoolId === schoolId,
@@ -77,6 +78,7 @@ describe("practical scheduling", () => {
         availableDates: ["2027-03-01", "2027-03-02"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
+        standard: "12",
         internalEligible: (candidate, schoolId, subjectId) =>
           candidate.teacherId === `i-${subjectId}` && candidate.schoolId === schoolId,
         externalEligible: (candidate, _schoolId, subjectId) =>
@@ -95,5 +97,22 @@ describe("practical scheduling", () => {
     expect(new Set(secondBatches.map((item) => `${item.examDate}|${item.sessionCode}`))).toEqual(
       new Set(["2027-03-01|AFTERNOON"]),
     );
+  });
+
+  it("uses BT assistants for standard 10 and PG assistants for standard 12", () => {
+    const pg = teacher("pg", "PG", "host");
+    const bt = { ...teacher("bt", "BT", "host"), designation: "BT ASST" };
+    const outsideBt = { ...teacher("outside-bt", "BT2", "outside"), designation: "BT" };
+    const result = schedulePractical(
+      [{ schoolId: "host", subjectId: "bio", studentCount: 20 }],
+      {
+        teachers: [pg, bt, outsideBt], exemptions: [], calendar: [], pairHistory: [],
+        availableDates: ["2027-03-01"], asOfDate: "2027-03-01", academicYear: "2027", standard: "10",
+        internalEligible: (candidate, schoolId) => candidate.schoolId === schoolId,
+        externalEligible: (candidate, schoolId) => candidate.schoolId !== schoolId,
+      },
+      DEFAULT_RULE_PARAMETERS,
+    );
+    expect(result.schedules[0]).toMatchObject({ internalExaminerId: "bt", externalExaminerId: "outside-bt" });
   });
 });

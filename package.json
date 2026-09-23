@@ -1,7 +1,7 @@
 {
   "name": "exam-duty-allotment",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.22",
   "description": "Erode Examination Duty Allotment System — offline desktop app for theory, practical and hall duty allotment",
   "author": "Erode CEO Office",
   "main": "desktop/main.cjs",

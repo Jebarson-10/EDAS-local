@@ -16,6 +16,7 @@ import {
   normalizeSubject,
   practicalDecisionTraceFromSchedule,
   shouldApplySessionAfterApi,
+  teachesSubject,
   type ExaminerPairHistory,
   type HydrateOutcome,
 } from "@exam-duty/shared";
@@ -112,7 +113,7 @@ function teachesPracticalSubject(
   batchSubject: string,
 ): boolean {
   if (!subject?.trim()) return false;
-  return normalizeSubject(subject).code === normalizeSubject(batchSubject).code;
+  return teachesSubject(subject, batchSubject);
 }
 
 export function PracticalPage() {
@@ -313,6 +314,7 @@ export function PracticalPage() {
         availableDates: dates,
         asOfDate: dates[0]!,
         academicYear: examCycle.academicYear,
+        standard: examCycle.standard ?? "",
         internalEligible: (t, schoolId, subjectId) =>
           t.schoolId === schoolId &&
           t.isActive &&
@@ -328,6 +330,7 @@ export function PracticalPage() {
     );
     const validation = validatePracticalAllocation(result, rules, {
       teachers: dataset.teachers,
+      standard: examCycle.standard ?? "",
     });
     const runId = `run_${crypto.randomUUID()}`;
     void import("../lib/api")

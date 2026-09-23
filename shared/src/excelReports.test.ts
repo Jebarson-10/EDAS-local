@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import ExcelJS from "exceljs";
 import {
   buildCompleteAllotmentWorkbook,
+  buildOfficialStaffTemplateWorkbook,
   buildTeacherWiseWorkbook,
   formatDutyRole,
   type WorkbookMeta,
@@ -85,11 +86,13 @@ describe("user-facing duty reports", () => {
       [
         {
           Centre: "Centre A",
-          Teachers: "2",
-          Roles: "CHIEF_EXAMINATION, DEPARTMENT_OFFICER, OFFICE_STAFF",
-          Dates: "2027-03-01",
-          Sessions: "MORNING",
-          Standby: "0",
+          Movement: "Coming to this centre",
+          Teacher: "Test Teacher",
+          "Teacher school": "Test School",
+          "Duty role": "OFFICE_STAFF",
+          "Duty centre": "Centre A",
+          Date: "2027-03-01",
+          Session: "MORNING",
         },
       ],
     );
@@ -103,8 +106,29 @@ describe("user-facing duty reports", () => {
     expect(teacherValues).not.toContain("INTERNAL-EMPLOYEE-CODE");
     expect(teacherValues).not.toContain("INTERNAL-TEACHER-CODE");
     expect(teacherValues).toContain("Office staff");
-    expect(centreValues).toContain(
-      "Chief examiner, Departmental officer, Office staff",
+    expect(centreValues).toContain("Office staff");
+  });
+
+  it("keeps the centre-wise list sorted with incoming and outgoing staff", async () => {
+    const workbook = await buildCompleteAllotmentWorkbook(meta, [], [], [
+      { Centre: "Centre B", Movement: "Coming to this centre", Teacher: "Teacher B", "Teacher school": "School B", "Duty role": "DEPARTMENT_OFFICER", "Duty centre": "Centre B", Date: "2027-03-02", Session: "MORNING" },
+      { Centre: "Centre A", Movement: "Going out from this centre", Teacher: "Teacher A", "Teacher school": "School A", "Duty role": "CHIEF_EXAMINATION", "Duty centre": "Centre B", Date: "2027-03-01", Session: "MORNING" },
+    ]);
+    const workbookData = new ExcelJS.Workbook();
+    await workbookData.xlsx.load(workbook);
+    const sheet = workbookData.getWorksheet("Centre-wise")!;
+    expect(sheet.getRow(2).getCell(1).value).toBe("Centre A");
+    expect(sheet.getRow(2).getCell(5).value).toBe("Chief examiner");
+  });
+
+  it("creates the seven official staff-return sheets", async () => {
+    const buffer = await buildOfficialStaffTemplateWorkbook();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual(
+      ["HM", "PG", "BT", "BT NON", "SGT", "SPL", "NON TEACHING"],
     );
+    expect(workbook.getWorksheet("PG")?.getRow(2).values).toContain("11,12TH HANDLING SUBJECT");
+    expect(workbook.getWorksheet("BT")?.getRow(2).values).toContain("10TH HANDLING SUBJECT");
   });
 });

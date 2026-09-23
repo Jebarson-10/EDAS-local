@@ -127,6 +127,12 @@ Weights live in the rule version. Prefer deterministic tie-breakers (e.g. employ
 
 Every batch stores explicit `internal_examiner_id` and `external_examiner_id`.
 
+For practical examinations, the saved examination standard is a hard rule:
+Standard 10 uses BT Assistants and Standard 12 uses PG Assistants. Both the
+internal and external examiner must be recorded for the batch's handling
+subject. Special teachers are reserved for hall invigilation and cannot be
+selected for Chief, Departmental Officer, office, or practical examiner duty.
+
 ### Examiner pair annual switch
 
 If A+B paired previously with A=Internal, B=External, then next applicable cycle prefer A=External, B=Internal when both remain eligible. Detected from historical assignments.

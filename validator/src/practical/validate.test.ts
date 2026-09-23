@@ -45,6 +45,7 @@ describe("practical validator", () => {
         availableDates: ["2027-03-01", "2027-03-02", "2027-03-03"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
+        standard: "12",
         internalEligible: (t, schoolId) => t.schoolId === schoolId,
         externalEligible: (t, schoolId) => t.schoolId !== schoolId,
       },
@@ -77,6 +78,7 @@ describe("practical validator", () => {
         availableDates: ["2027-03-01"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
+        standard: "12",
         internalEligible: (t, schoolId) => t.schoolId === schoolId,
         externalEligible: (t, schoolId) => t.schoolId !== schoolId,
       },
@@ -121,6 +123,7 @@ describe("practical validator", () => {
     };
 
     const validation = validatePracticalAllocation(result, rules, {
+      standard: "12",
       teachers: [
         {
           teacherId: "office",
@@ -187,6 +190,7 @@ describe("practical validator", () => {
     };
 
     const validation = validatePracticalAllocation(result, rules, {
+      standard: "12",
       teachers: [
         {
           teacherId: "physics-internal",
@@ -222,5 +226,22 @@ describe("practical validator", () => {
         }),
       ]),
     );
+  });
+
+  it("rejects a forged standard-12 schedule that uses a BT or special teacher", () => {
+    const result: PracticalResult = {
+      algorithmVersion: "forged",
+      batches: [{ batchKey: "s1|PHY|1", schoolId: "s1", subjectId: "PHY", batchIndex: 1, studentCount: 20 }],
+      schedules: [{ batchKey: "s1|PHY|1", schoolId: "s1", subjectId: "PHY", examDate: "2027-03-01", sessionCode: "MORNING", internalExaminerId: "bt", externalExaminerId: "spl", roleSwitchApplied: false, decisionNotes: [] }],
+      feasible: true,
+    };
+    const validation = validatePracticalAllocation(result, rules, {
+      standard: "12",
+      teachers: [
+        { teacherId: "bt", employeeCode: "B", name: "BT", schoolId: "s1", designation: "BT ASST", subject: "Physics", isActive: true, dataQuality: "Confirmed" },
+        { teacherId: "spl", employeeCode: "S", name: "Special", schoolId: "s2", designation: "SPECIAL_TEACHER", subject: "Physics", isActive: true, dataQuality: "Confirmed" },
+      ],
+    });
+    expect(validation.issues.filter((issue) => issue.ruleCode === "RULE-PRACTICAL-DESIGNATION")).toHaveLength(2);
   });
 });
