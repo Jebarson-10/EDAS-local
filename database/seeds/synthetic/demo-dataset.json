@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedAt": "2026-08-29T16:52:20.868Z",
+    "generatedAt": "2026-09-23T06:01:21.104Z",
     "note": "SYNTHETIC DATA ONLY — not real government records",
     "counts": {
       "blocks": 15,
@@ -547,6 +547,7 @@
     {
       "teacherId": "tch_00001",
       "employeeCode": "SYN00001",
+      "teacherCode": "TC000001",
       "name": "Synthetic Teacher 1",
       "schoolId": "sch_0001",
       "designation": "HM",
@@ -560,6 +561,7 @@
     {
       "teacherId": "tch_00002",
       "employeeCode": "SYN00002",
+      "teacherCode": "TC000002",
       "name": "Synthetic Teacher 2",
       "schoolId": "sch_0002",
       "designation": "PRINCIPAL",
@@ -573,6 +575,7 @@
     {
       "teacherId": "tch_00003",
       "employeeCode": "SYN00003",
+      "teacherCode": "TC000003",
       "name": "Synthetic Teacher 3",
       "schoolId": "sch_0003",
       "designation": "PG",
@@ -586,6 +589,7 @@
     {
       "teacherId": "tch_00004",
       "employeeCode": "SYN00004",
+      "teacherCode": "TC000004",
       "name": "Synthetic Teacher 4",
       "schoolId": "sch_0004",
       "designation": "HM",
@@ -599,6 +603,7 @@
     {
       "teacherId": "tch_00005",
       "employeeCode": "SYN00005",
+      "teacherCode": "TC000005",
       "name": "Synthetic Teacher 5",
       "schoolId": "sch_0005",
       "designation": "PRINCIPAL",
@@ -612,6 +617,7 @@
     {
       "teacherId": "tch_00006",
       "employeeCode": "SYN00006",
+      "teacherCode": "TC000006",
       "name": "Synthetic Teacher 6",
       "schoolId": "sch_0006",
       "designation": "SENIOR_PG",
@@ -625,6 +631,7 @@
     {
       "teacherId": "tch_00007",
       "employeeCode": "SYN00007",
+      "teacherCode": "TC000007",
       "name": "Synthetic Teacher 7",
       "schoolId": "sch_0007",
       "designation": "PG",
@@ -638,6 +645,7 @@
     {
       "teacherId": "tch_00008",
       "employeeCode": "SYN00008",
+      "teacherCode": "TC000008",
       "name": "Synthetic Teacher 8",
       "schoolId": "sch_0008",
       "designation": "PRINCIPAL",
@@ -651,6 +659,7 @@
     {
       "teacherId": "tch_00009",
       "employeeCode": "SYN00009",
+      "teacherCode": "TC000009",
       "name": "Synthetic Teacher 9",
       "schoolId": "sch_0009",
       "designation": "PG",
@@ -664,6 +673,7 @@
     {
       "teacherId": "tch_00010",
       "employeeCode": "SYN00010",
+      "teacherCode": "TC000010",
       "name": "Synthetic Teacher 10",
       "schoolId": "sch_0010",
       "designation": "SENIOR_PG",
@@ -677,6 +687,7 @@
     {
       "teacherId": "tch_00011",
       "employeeCode": "SYN00011",
+      "teacherCode": "TC000011",
       "name": "Synthetic Teacher 11",
       "schoolId": "sch_0011",
       "designation": "HM",
@@ -690,6 +701,7 @@
     {
       "teacherId": "tch_00012",
       "employeeCode": "SYN00012",
+      "teacherCode": "TC000012",
       "name": "Synthetic Teacher 12",
       "schoolId": "sch_0012",
       "designation": "SENIOR_PG",
@@ -703,6 +715,7 @@
     {
       "teacherId": "tch_00013",
       "employeeCode": "SYN00013",
+      "teacherCode": "TC000013",
       "name": "Synthetic Teacher 13",
       "schoolId": "sch_0013",
       "designation": "HM",
@@ -716,6 +729,7 @@
     {
       "teacherId": "tch_00014",
       "employeeCode": "SYN00014",
+      "teacherCode": "TC000014",
       "name": "Synthetic Teacher 14",
       "schoolId": "sch_0014",
       "designation": "PG",
@@ -729,6 +743,7 @@
     {
       "teacherId": "tch_00015",
       "employeeCode": "SYN00015",
+      "teacherCode": "TC000015",
       "name": "Synthetic Teacher 15",
       "schoolId": "sch_0015",
       "designation": "PRINCIPAL",
@@ -742,6 +757,7 @@
     {
       "teacherId": "tch_00016",
       "employeeCode": "SYN00016",
+      "teacherCode": "TC000016",
       "name": "Synthetic Teacher 16",
       "schoolId": "sch_0016",
       "designation": "SENIOR_PG",
@@ -755,6 +771,7 @@
     {
       "teacherId": "tch_00017",
       "employeeCode": "SYN00017",
+      "teacherCode": "TC000017",
       "name": "Synthetic Teacher 17",
       "schoolId": "sch_0017",
       "designation": "PG",
@@ -768,6 +785,7 @@
     {
       "teacherId": "tch_00018",
       "employeeCode": "SYN00018",
+      "teacherCode": "TC000018",
       "name": "Synthetic Teacher 18",
       "schoolId": "sch_0018",
       "designation": "PRINCIPAL",
@@ -781,6 +799,7 @@
     {
       "teacherId": "tch_00019",
       "employeeCode": "SYN00019",
+      "teacherCode": "TC000019",
       "name": "Synthetic Teacher 19",
       "schoolId": "sch_0019",
       "designation": "SENIOR_PG",
@@ -794,6 +813,7 @@
     {
       "teacherId": "tch_00020",
       "employeeCode": "SYN00020",
+      "teacherCode": "TC000020",
       "name": "Synthetic Teacher 20",
       "schoolId": "sch_0020",
       "designation": "PRINCIPAL",
@@ -807,6 +827,7 @@
     {
       "teacherId": "tch_00021",
       "employeeCode": "SYN00021",
+      "teacherCode": "TC000021",
       "name": "Synthetic Teacher 21",
       "schoolId": "sch_0021",
       "designation": "SENIOR_PG",
@@ -820,6 +841,7 @@
     {
       "teacherId": "tch_00022",
       "employeeCode": "SYN00022",
+      "teacherCode": "TC000022",
       "name": "Synthetic Teacher 22",
       "schoolId": "sch_0022",
       "designation": "SENIOR_PG",
@@ -833,6 +855,7 @@
     {
       "teacherId": "tch_00023",
       "employeeCode": "SYN00023",
+      "teacherCode": "TC000023",
       "name": "Synthetic Teacher 23",
       "schoolId": "sch_0023",
       "designation": "HM",
@@ -846,6 +869,7 @@
     {
       "teacherId": "tch_00024",
       "employeeCode": "SYN00024",
+      "teacherCode": "TC000024",
       "name": "Synthetic Teacher 24",
       "schoolId": "sch_0024",
       "designation": "PRINCIPAL",
@@ -859,6 +883,7 @@
     {
       "teacherId": "tch_00025",
       "employeeCode": "SYN00025",
+      "teacherCode": "TC000025",
       "name": "Synthetic Teacher 25",
       "schoolId": "sch_0025",
       "designation": "HM",
@@ -872,6 +897,7 @@
     {
       "teacherId": "tch_00026",
       "employeeCode": "SYN00026",
+      "teacherCode": "TC000026",
       "name": "Synthetic Teacher 26",
       "schoolId": "sch_0026",
       "designation": "PG",
@@ -885,6 +911,7 @@
     {
       "teacherId": "tch_00027",
       "employeeCode": "SYN00027",
+      "teacherCode": "TC000027",
       "name": "Synthetic Teacher 27",
       "schoolId": "sch_0027",
       "designation": "SENIOR_PG",
@@ -898,6 +925,7 @@
     {
       "teacherId": "tch_00028",
       "employeeCode": "SYN00028",
+      "teacherCode": "TC000028",
       "name": "Synthetic Teacher 28",
       "schoolId": "sch_0028",
       "designation": "PRINCIPAL",
@@ -911,6 +939,7 @@
     {
       "teacherId": "tch_00029",
       "employeeCode": "SYN00029",
+      "teacherCode": "TC000029",
       "name": "Synthetic Teacher 29",
       "schoolId": "sch_0029",
       "designation": "PRINCIPAL",
@@ -924,6 +953,7 @@
     {
       "teacherId": "tch_00030",
       "employeeCode": "SYN00030",
+      "teacherCode": "TC000030",
       "name": "Synthetic Teacher 30",
       "schoolId": "sch_0030",
       "designation": "PRINCIPAL",
@@ -937,6 +967,7 @@
     {
       "teacherId": "tch_00031",
       "employeeCode": "SYN00031",
+      "teacherCode": "TC000031",
       "name": "Synthetic Teacher 31",
       "schoolId": "sch_0001",
       "designation": "SENIOR_PG",
@@ -950,6 +981,7 @@
     {
       "teacherId": "tch_00032",
       "employeeCode": "SYN00032",
+      "teacherCode": "TC000032",
       "name": "Synthetic Teacher 32",
       "schoolId": "sch_0002",
       "designation": "PRINCIPAL",
@@ -963,6 +995,7 @@
     {
       "teacherId": "tch_00033",
       "employeeCode": "SYN00033",
+      "teacherCode": "TC000033",
       "name": "Synthetic Teacher 33",
       "schoolId": "sch_0003",
       "designation": "HM",
@@ -976,6 +1009,7 @@
     {
       "teacherId": "tch_00034",
       "employeeCode": "SYN00034",
+      "teacherCode": "TC000034",
       "name": "Synthetic Teacher 34",
       "schoolId": "sch_0004",
       "designation": "PG",
@@ -989,6 +1023,7 @@
     {
       "teacherId": "tch_00035",
       "employeeCode": "SYN00035",
+      "teacherCode": "TC000035",
       "name": "Synthetic Teacher 35",
       "schoolId": "sch_0005",
       "designation": "SENIOR_PG",
@@ -1002,6 +1037,7 @@
     {
       "teacherId": "tch_00036",
       "employeeCode": "SYN00036",
+      "teacherCode": "TC000036",
       "name": "Synthetic Teacher 36",
       "schoolId": "sch_0006",
       "designation": "PRINCIPAL",
@@ -1015,6 +1051,7 @@
     {
       "teacherId": "tch_00037",
       "employeeCode": "SYN00037",
+      "teacherCode": "TC000037",
       "name": "Synthetic Teacher 37",
       "schoolId": "sch_0007",
       "designation": "HM",
@@ -1028,6 +1065,7 @@
     {
       "teacherId": "tch_00038",
       "employeeCode": "SYN00038",
+      "teacherCode": "TC000038",
       "name": "Synthetic Teacher 38",
       "schoolId": "sch_0008",
       "designation": "SENIOR_PG",
@@ -1041,6 +1079,7 @@
     {
       "teacherId": "tch_00039",
       "employeeCode": "SYN00039",
+      "teacherCode": "TC000039",
       "name": "Synthetic Teacher 39",
       "schoolId": "sch_0009",
       "designation": "SENIOR_PG",
@@ -1054,6 +1093,7 @@
     {
       "teacherId": "tch_00040",
       "employeeCode": "SYN00040",
+      "teacherCode": "TC000040",
       "name": "Synthetic Teacher 40",
       "schoolId": "sch_0010",
       "designation": "HM",
@@ -1067,6 +1107,7 @@
     {
       "teacherId": "tch_00041",
       "employeeCode": "SYN00041",
+      "teacherCode": "TC000041",
       "name": "Synthetic Teacher 41",
       "schoolId": "sch_0011",
       "designation": "HM",
@@ -1080,6 +1121,7 @@
     {
       "teacherId": "tch_00042",
       "employeeCode": "SYN00042",
+      "teacherCode": "TC000042",
       "name": "Synthetic Teacher 42",
       "schoolId": "sch_0012",
       "designation": "PG",
@@ -1093,6 +1135,7 @@
     {
       "teacherId": "tch_00043",
       "employeeCode": "SYN00043",
+      "teacherCode": "TC000043",
       "name": "Synthetic Teacher 43",
       "schoolId": "sch_0013",
       "designation": "SENIOR_PG",
@@ -1106,6 +1149,7 @@
     {
       "teacherId": "tch_00044",
       "employeeCode": "SYN00044",
+      "teacherCode": "TC000044",
       "name": "Synthetic Teacher 44",
       "schoolId": "sch_0014",
       "designation": "PRINCIPAL",
@@ -1119,6 +1163,7 @@
     {
       "teacherId": "tch_00045",
       "employeeCode": "SYN00045",
+      "teacherCode": "TC000045",
       "name": "Synthetic Teacher 45",
       "schoolId": "sch_0015",
       "designation": "PRINCIPAL",
@@ -1132,6 +1177,7 @@
     {
       "teacherId": "tch_00046",
       "employeeCode": "SYN00046",
+      "teacherCode": "TC000046",
       "name": "Synthetic Teacher 46",
       "schoolId": "sch_0016",
       "designation": "SENIOR_PG",
@@ -1145,6 +1191,7 @@
     {
       "teacherId": "tch_00047",
       "employeeCode": "SYN00047",
+      "teacherCode": "TC000047",
       "name": "Synthetic Teacher 47",
       "schoolId": "sch_0017",
       "designation": "PG",
@@ -1158,6 +1205,7 @@
     {
       "teacherId": "tch_00048",
       "employeeCode": "SYN00048",
+      "teacherCode": "TC000048",
       "name": "Synthetic Teacher 48",
       "schoolId": "sch_0018",
       "designation": "PG",
@@ -1171,6 +1219,7 @@
     {
       "teacherId": "tch_00049",
       "employeeCode": "SYN00049",
+      "teacherCode": "TC000049",
       "name": "Synthetic Teacher 49",
       "schoolId": "sch_0019",
       "designation": "PG",
@@ -1184,6 +1233,7 @@
     {
       "teacherId": "tch_00050",
       "employeeCode": "SYN00050",
+      "teacherCode": "TC000050",
       "name": "Synthetic Teacher 50",
       "schoolId": "sch_0020",
       "designation": "PRINCIPAL",
@@ -1197,6 +1247,7 @@
     {
       "teacherId": "tch_00051",
       "employeeCode": "SYN00051",
+      "teacherCode": "TC000051",
       "name": "Synthetic Teacher 51",
       "schoolId": "sch_0021",
       "designation": "PG",
@@ -1210,6 +1261,7 @@
     {
       "teacherId": "tch_00052",
       "employeeCode": "SYN00052",
+      "teacherCode": "TC000052",
       "name": "Synthetic Teacher 52",
       "schoolId": "sch_0022",
       "designation": "PRINCIPAL",
@@ -1223,6 +1275,7 @@
     {
       "teacherId": "tch_00053",
       "employeeCode": "SYN00053",
+      "teacherCode": "TC000053",
       "name": "Synthetic Teacher 53",
       "schoolId": "sch_0023",
       "designation": "PG",
@@ -1236,6 +1289,7 @@
     {
       "teacherId": "tch_00054",
       "employeeCode": "SYN00054",
+      "teacherCode": "TC000054",
       "name": "Synthetic Teacher 54",
       "schoolId": "sch_0024",
       "designation": "PRINCIPAL",
@@ -1249,6 +1303,7 @@
     {
       "teacherId": "tch_00055",
       "employeeCode": "SYN00055",
+      "teacherCode": "TC000055",
       "name": "Synthetic Teacher 55",
       "schoolId": "sch_0025",
       "designation": "SENIOR_PG",
@@ -1262,6 +1317,7 @@
     {
       "teacherId": "tch_00056",
       "employeeCode": "SYN00056",
+      "teacherCode": "TC000056",
       "name": "Synthetic Teacher 56",
       "schoolId": "sch_0026",
       "designation": "PG",
@@ -1275,6 +1331,7 @@
     {
       "teacherId": "tch_00057",
       "employeeCode": "SYN00057",
+      "teacherCode": "TC000057",
       "name": "Synthetic Teacher 57",
       "schoolId": "sch_0027",
       "designation": "PG",
@@ -1288,6 +1345,7 @@
     {
       "teacherId": "tch_00058",
       "employeeCode": "SYN00058",
+      "teacherCode": "TC000058",
       "name": "Synthetic Teacher 58",
       "schoolId": "sch_0028",
       "designation": "PRINCIPAL",
@@ -1301,6 +1359,7 @@
     {
       "teacherId": "tch_00059",
       "employeeCode": "SYN00059",
+      "teacherCode": "TC000059",
       "name": "Synthetic Teacher 59",
       "schoolId": "sch_0029",
       "designation": "PG",
@@ -1314,6 +1373,7 @@
     {
       "teacherId": "tch_00060",
       "employeeCode": "SYN00060",
+      "teacherCode": "TC000060",
       "name": "Synthetic Teacher 60",
       "schoolId": "sch_0030",
       "designation": "SENIOR_PG",
@@ -1327,6 +1387,7 @@
     {
       "teacherId": "tch_00061",
       "employeeCode": "SYN00061",
+      "teacherCode": "TC000061",
       "name": "Synthetic Teacher 61",
       "schoolId": "sch_0001",
       "designation": "SENIOR_PG",
@@ -1340,6 +1401,7 @@
     {
       "teacherId": "tch_00062",
       "employeeCode": "SYN00062",
+      "teacherCode": "TC000062",
       "name": "Synthetic Teacher 62",
       "schoolId": "sch_0002",
       "designation": "PG",
@@ -1353,6 +1415,7 @@
     {
       "teacherId": "tch_00063",
       "employeeCode": "SYN00063",
+      "teacherCode": "TC000063",
       "name": "Synthetic Teacher 63",
       "schoolId": "sch_0003",
       "designation": "HM",
@@ -1366,6 +1429,7 @@
     {
       "teacherId": "tch_00064",
       "employeeCode": "SYN00064",
+      "teacherCode": "TC000064",
       "name": "Synthetic Teacher 64",
       "schoolId": "sch_0004",
       "designation": "PG",
@@ -1379,6 +1443,7 @@
     {
       "teacherId": "tch_00065",
       "employeeCode": "SYN00065",
+      "teacherCode": "TC000065",
       "name": "Synthetic Teacher 65",
       "schoolId": "sch_0005",
       "designation": "HM",
@@ -1392,6 +1457,7 @@
     {
       "teacherId": "tch_00066",
       "employeeCode": "SYN00066",
+      "teacherCode": "TC000066",
       "name": "Synthetic Teacher 66",
       "schoolId": "sch_0006",
       "designation": "HM",
@@ -1405,6 +1471,7 @@
     {
       "teacherId": "tch_00067",
       "employeeCode": "SYN00067",
+      "teacherCode": "TC000067",
       "name": "Synthetic Teacher 67",
       "schoolId": "sch_0007",
       "designation": "HM",
@@ -1418,6 +1485,7 @@
     {
       "teacherId": "tch_00068",
       "employeeCode": "SYN00068",
+      "teacherCode": "TC000068",
       "name": "Synthetic Teacher 68",
       "schoolId": "sch_0008",
       "designation": "PRINCIPAL",
@@ -1431,6 +1499,7 @@
     {
       "teacherId": "tch_00069",
       "employeeCode": "SYN00069",
+      "teacherCode": "TC000069",
       "name": "Synthetic Teacher 69",
       "schoolId": "sch_0009",
       "designation": "HM",
@@ -1444,6 +1513,7 @@
     {
       "teacherId": "tch_00070",
       "employeeCode": "SYN00070",
+      "teacherCode": "TC000070",
       "name": "Synthetic Teacher 70",
       "schoolId": "sch_0010",
       "designation": "PG",
@@ -1457,6 +1527,7 @@
     {
       "teacherId": "tch_00071",
       "employeeCode": "SYN00071",
+      "teacherCode": "TC000071",
       "name": "Synthetic Teacher 71",
       "schoolId": "sch_0011",
       "designation": "HM",
@@ -1470,6 +1541,7 @@
     {
       "teacherId": "tch_00072",
       "employeeCode": "SYN00072",
+      "teacherCode": "TC000072",
       "name": "Synthetic Teacher 72",
       "schoolId": "sch_0012",
       "designation": "HM",
@@ -1483,6 +1555,7 @@
     {
       "teacherId": "tch_00073",
       "employeeCode": "SYN00073",
+      "teacherCode": "TC000073",
       "name": "Synthetic Teacher 73",
       "schoolId": "sch_0013",
       "designation": "HM",
@@ -1496,6 +1569,7 @@
     {
       "teacherId": "tch_00074",
       "employeeCode": "SYN00074",
+      "teacherCode": "TC000074",
       "name": "Synthetic Teacher 74",
       "schoolId": "sch_0014",
       "designation": "HM",
@@ -1509,6 +1583,7 @@
     {
       "teacherId": "tch_00075",
       "employeeCode": "SYN00075",
+      "teacherCode": "TC000075",
       "name": "Synthetic Teacher 75",
       "schoolId": "sch_0015",
       "designation": "PG",
@@ -1522,6 +1597,7 @@
     {
       "teacherId": "tch_00076",
       "employeeCode": "SYN00076",
+      "teacherCode": "TC000076",
       "name": "Synthetic Teacher 76",
       "schoolId": "sch_0016",
       "designation": "SENIOR_PG",
@@ -1535,6 +1611,7 @@
     {
       "teacherId": "tch_00077",
       "employeeCode": "SYN00077",
+      "teacherCode": "TC000077",
       "name": "Synthetic Teacher 77",
       "schoolId": "sch_0017",
       "designation": "PRINCIPAL",
@@ -1548,6 +1625,7 @@
     {
       "teacherId": "tch_00078",
       "employeeCode": "SYN00078",
+      "teacherCode": "TC000078",
       "name": "Synthetic Teacher 78",
       "schoolId": "sch_0018",
       "designation": "PRINCIPAL",
@@ -1561,6 +1639,7 @@
     {
       "teacherId": "tch_00079",
       "employeeCode": "SYN00079",
+      "teacherCode": "TC000079",
       "name": "Synthetic Teacher 79",
       "schoolId": "sch_0019",
       "designation": "PG",
@@ -1574,6 +1653,7 @@
     {
       "teacherId": "tch_00080",
       "employeeCode": "SYN00080",
+      "teacherCode": "TC000080",
       "name": "Synthetic Teacher 80",
       "schoolId": "sch_0020",
       "designation": "HM",
@@ -1587,6 +1667,7 @@
     {
       "teacherId": "tch_00081",
       "employeeCode": "SYN00081",
+      "teacherCode": "TC000081",
       "name": "Synthetic Teacher 81",
       "schoolId": "sch_0021",
       "designation": "HM",
@@ -1600,6 +1681,7 @@
     {
       "teacherId": "tch_00082",
       "employeeCode": "SYN00082",
+      "teacherCode": "TC000082",
       "name": "Synthetic Teacher 82",
       "schoolId": "sch_0022",
       "designation": "PG",
@@ -1613,6 +1695,7 @@
     {
       "teacherId": "tch_00083",
       "employeeCode": "SYN00083",
+      "teacherCode": "TC000083",
       "name": "Synthetic Teacher 83",
       "schoolId": "sch_0023",
       "designation": "PRINCIPAL",
@@ -1626,6 +1709,7 @@
     {
       "teacherId": "tch_00084",
       "employeeCode": "SYN00084",
+      "teacherCode": "TC000084",
       "name": "Synthetic Teacher 84",
       "schoolId": "sch_0024",
       "designation": "PG",
@@ -1639,6 +1723,7 @@
     {
       "teacherId": "tch_00085",
       "employeeCode": "SYN00085",
+      "teacherCode": "TC000085",
       "name": "Synthetic Teacher 85",
       "schoolId": "sch_0025",
       "designation": "PG",
@@ -1652,6 +1737,7 @@
     {
       "teacherId": "tch_00086",
       "employeeCode": "SYN00086",
+      "teacherCode": "TC000086",
       "name": "Synthetic Teacher 86",
       "schoolId": "sch_0026",
       "designation": "PG",
@@ -1665,6 +1751,7 @@
     {
       "teacherId": "tch_00087",
       "employeeCode": "SYN00087",
+      "teacherCode": "TC000087",
       "name": "Synthetic Teacher 87",
       "schoolId": "sch_0027",
       "designation": "HM",
@@ -1678,6 +1765,7 @@
     {
       "teacherId": "tch_00088",
       "employeeCode": "SYN00088",
+      "teacherCode": "TC000088",
       "name": "Synthetic Teacher 88",
       "schoolId": "sch_0028",
       "designation": "HM",
@@ -1691,6 +1779,7 @@
     {
       "teacherId": "tch_00089",
       "employeeCode": "SYN00089",
+      "teacherCode": "TC000089",
       "name": "Synthetic Teacher 89",
       "schoolId": "sch_0029",
       "designation": "SENIOR_PG",
@@ -1704,6 +1793,7 @@
     {
       "teacherId": "tch_00090",
       "employeeCode": "SYN00090",
+      "teacherCode": "TC000090",
       "name": "Synthetic Teacher 90",
       "schoolId": "sch_0030",
       "designation": "PG",
@@ -1717,6 +1807,7 @@
     {
       "teacherId": "tch_00091",
       "employeeCode": "SYN00091",
+      "teacherCode": "TC000091",
       "name": "Synthetic Teacher 91",
       "schoolId": "sch_0001",
       "designation": "SENIOR_PG",
@@ -1730,6 +1821,7 @@
     {
       "teacherId": "tch_00092",
       "employeeCode": "SYN00092",
+      "teacherCode": "TC000092",
       "name": "Synthetic Teacher 92",
       "schoolId": "sch_0002",
       "designation": "SENIOR_PG",
@@ -1743,6 +1835,7 @@
     {
       "teacherId": "tch_00093",
       "employeeCode": "SYN00093",
+      "teacherCode": "TC000093",
       "name": "Synthetic Teacher 93",
       "schoolId": "sch_0003",
       "designation": "PRINCIPAL",
@@ -1756,6 +1849,7 @@
     {
       "teacherId": "tch_00094",
       "employeeCode": "SYN00094",
+      "teacherCode": "TC000094",
       "name": "Synthetic Teacher 94",
       "schoolId": "sch_0004",
       "designation": "PG",
@@ -1769,6 +1863,7 @@
     {
       "teacherId": "tch_00095",
       "employeeCode": "SYN00095",
+      "teacherCode": "TC000095",
       "name": "Synthetic Teacher 95",
       "schoolId": "sch_0005",
       "designation": "PRINCIPAL",
@@ -1782,6 +1877,7 @@
     {
       "teacherId": "tch_00096",
       "employeeCode": "SYN00096",
+      "teacherCode": "TC000096",
       "name": "Synthetic Teacher 96",
       "schoolId": "sch_0006",
       "designation": "SENIOR_PG",
@@ -1795,6 +1891,7 @@
     {
       "teacherId": "tch_00097",
       "employeeCode": "SYN00097",
+      "teacherCode": "TC000097",
       "name": "Synthetic Teacher 97",
       "schoolId": "sch_0007",
       "designation": "PG",
@@ -1808,6 +1905,7 @@
     {
       "teacherId": "tch_00098",
       "employeeCode": "SYN00098",
+      "teacherCode": "TC000098",
       "name": "Synthetic Teacher 98",
       "schoolId": "sch_0008",
       "designation": "PG",
@@ -1821,6 +1919,7 @@
     {
       "teacherId": "tch_00099",
       "employeeCode": "SYN00099",
+      "teacherCode": "TC000099",
       "name": "Synthetic Teacher 99",
       "schoolId": "sch_0009",
       "designation": "PG",
@@ -1834,6 +1933,7 @@
     {
       "teacherId": "tch_00100",
       "employeeCode": "SYN00100",
+      "teacherCode": "TC000100",
       "name": "Synthetic Teacher 100",
       "schoolId": "sch_0010",
       "designation": "HM",
@@ -1847,6 +1947,7 @@
     {
       "teacherId": "tch_00101",
       "employeeCode": "SYN00101",
+      "teacherCode": "TC000101",
       "name": "Synthetic Teacher 101",
       "schoolId": "sch_0011",
       "designation": "HM",
@@ -1860,6 +1961,7 @@
     {
       "teacherId": "tch_00102",
       "employeeCode": "SYN00102",
+      "teacherCode": "TC000102",
       "name": "Synthetic Teacher 102",
       "schoolId": "sch_0012",
       "designation": "SENIOR_PG",
@@ -1873,6 +1975,7 @@
     {
       "teacherId": "tch_00103",
       "employeeCode": "SYN00103",
+      "teacherCode": "TC000103",
       "name": "Synthetic Teacher 103",
       "schoolId": "sch_0013",
       "designation": "SENIOR_PG",
@@ -1886,6 +1989,7 @@
     {
       "teacherId": "tch_00104",
       "employeeCode": "SYN00104",
+      "teacherCode": "TC000104",
       "name": "Synthetic Teacher 104",
       "schoolId": "sch_0014",
       "designation": "HM",
@@ -1899,6 +2003,7 @@
     {
       "teacherId": "tch_00105",
       "employeeCode": "SYN00105",
+      "teacherCode": "TC000105",
       "name": "Synthetic Teacher 105",
       "schoolId": "sch_0015",
       "designation": "HM",
@@ -1912,6 +2017,7 @@
     {
       "teacherId": "tch_00106",
       "employeeCode": "SYN00106",
+      "teacherCode": "TC000106",
       "name": "Synthetic Teacher 106",
       "schoolId": "sch_0016",
       "designation": "SENIOR_PG",
@@ -1925,6 +2031,7 @@
     {
       "teacherId": "tch_00107",
       "employeeCode": "SYN00107",
+      "teacherCode": "TC000107",
       "name": "Synthetic Teacher 107",
       "schoolId": "sch_0017",
       "designation": "HM",
@@ -1938,6 +2045,7 @@
     {
       "teacherId": "tch_00108",
       "employeeCode": "SYN00108",
+      "teacherCode": "TC000108",
       "name": "Synthetic Teacher 108",
       "schoolId": "sch_0018",
       "designation": "PRINCIPAL",
@@ -1951,6 +2059,7 @@
     {
       "teacherId": "tch_00109",
       "employeeCode": "SYN00109",
+      "teacherCode": "TC000109",
       "name": "Synthetic Teacher 109",
       "schoolId": "sch_0019",
       "designation": "HM",
@@ -1964,6 +2073,7 @@
     {
       "teacherId": "tch_00110",
       "employeeCode": "SYN00110",
+      "teacherCode": "TC000110",
       "name": "Synthetic Teacher 110",
       "schoolId": "sch_0020",
       "designation": "SENIOR_PG",
@@ -1977,6 +2087,7 @@
     {
       "teacherId": "tch_00111",
       "employeeCode": "SYN00111",
+      "teacherCode": "TC000111",
       "name": "Synthetic Teacher 111",
       "schoolId": "sch_0021",
       "designation": "PG",
@@ -1990,6 +2101,7 @@
     {
       "teacherId": "tch_00112",
       "employeeCode": "SYN00112",
+      "teacherCode": "TC000112",
       "name": "Synthetic Teacher 112",
       "schoolId": "sch_0022",
       "designation": "SENIOR_PG",
@@ -2003,6 +2115,7 @@
     {
       "teacherId": "tch_00113",
       "employeeCode": "SYN00113",
+      "teacherCode": "TC000113",
       "name": "Synthetic Teacher 113",
       "schoolId": "sch_0023",
       "designation": "PRINCIPAL",
@@ -2016,6 +2129,7 @@
     {
       "teacherId": "tch_00114",
       "employeeCode": "SYN00114",
+      "teacherCode": "TC000114",
       "name": "Synthetic Teacher 114",
       "schoolId": "sch_0024",
       "designation": "SENIOR_PG",
@@ -2029,6 +2143,7 @@
     {
       "teacherId": "tch_00115",
       "employeeCode": "SYN00115",
+      "teacherCode": "TC000115",
       "name": "Synthetic Teacher 115",
       "schoolId": "sch_0025",
       "designation": "SENIOR_PG",
@@ -2042,6 +2157,7 @@
     {
       "teacherId": "tch_00116",
       "employeeCode": "SYN00116",
+      "teacherCode": "TC000116",
       "name": "Synthetic Teacher 116",
       "schoolId": "sch_0026",
       "designation": "PRINCIPAL",
@@ -2055,6 +2171,7 @@
     {
       "teacherId": "tch_00117",
       "employeeCode": "SYN00117",
+      "teacherCode": "TC000117",
       "name": "Synthetic Teacher 117",
       "schoolId": "sch_0027",
       "designation": "HM",
@@ -2068,6 +2185,7 @@
     {
       "teacherId": "tch_00118",
       "employeeCode": "SYN00118",
+      "teacherCode": "TC000118",
       "name": "Synthetic Teacher 118",
       "schoolId": "sch_0028",
       "designation": "PRINCIPAL",
@@ -2081,6 +2199,7 @@
     {
       "teacherId": "tch_00119",
       "employeeCode": "SYN00119",
+      "teacherCode": "TC000119",
       "name": "Synthetic Teacher 119",
       "schoolId": "sch_0029",
       "designation": "PRINCIPAL",
@@ -2094,6 +2213,7 @@
     {
       "teacherId": "tch_00120",
       "employeeCode": "SYN00120",
+      "teacherCode": "TC000120",
       "name": "Synthetic Teacher 120",
       "schoolId": "sch_0030",
       "designation": "PRINCIPAL",
