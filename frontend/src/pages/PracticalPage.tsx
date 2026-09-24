@@ -17,13 +17,14 @@ import {
   practicalDecisionTraceFromSchedule,
   shouldApplySessionAfterApi,
   teachesSubject,
+  pendingStaffHealthReviews,
   type ExaminerPairHistory,
   type HydrateOutcome,
 } from "@exam-duty/shared";
 
 /** Synthetic stand-in used only until an officer configures the cycle window. */
 const FALLBACK_PRACTICAL_START = "2027-03-01";
-import { fetchExaminerPairs } from "../lib/api";
+import { fetchExaminerPairs, practicalStudentsApi, type PracticalStudentRow } from "../lib/api";
 import { crossModuleCalendar } from "../lib/crossModuleCalendar";
 import { useApp } from "../state/AppContext";
 import {
@@ -131,6 +132,9 @@ export function PracticalPage() {
     hydrateReport,
   } = useApp();
   const [message, setMessage] = useState<string | null>(null);
+  const [studentRows,setStudentRows]=useState<PracticalStudentRow[]>([]);
+  const [studentsReady,setStudentsReady]=useState(false);
+  useEffect(()=>{let cancelled=false;setStudentsReady(false);void practicalStudentsApi(role,examCycle.examCycleId).then(rows=>{if(!cancelled){setStudentRows(rows);setStudentsReady(true);}}).catch(e=>{if(!cancelled)setMessage(e.message);});return()=>{cancelled=true;};},[role,examCycle.examCycleId]);
   const [summary, setSummary] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pairRows, setPairRows] = useState<ExaminerPairRow[]>([]);
@@ -212,6 +216,7 @@ export function PracticalPage() {
 
   function run() {
     if (!dataset || busy) return;
+    if(pendingStaffHealthReviews(dataset.teachers,exemptions).length){setMessage("Review health and leave remarks in Imports before generating duties.");return;}
     const gate = assertMutable(examCycle.status, "generate allocation");
     if (!gate.ok) {
       setPersistError(gate.error);
@@ -284,7 +289,9 @@ export function PracticalPage() {
       return;
     }
     setBusy(true);
-    const demand = demoDemands(
+    if (!studentsReady) { setBusy(false); setMessage("Practical student numbers have not loaded. Reopen this page and try again."); return; }
+    if (!examCycle.startDate || !examCycle.endDate || examCycle.endDate < examCycle.startDate) {setBusy(false);setMessage("Set the practical examination start and end dates in Examination before generating duties.");return;}
+    const demand = studentRows.length ? studentRows : demoDemands(
       dataset.schools.map((s) => ({
         schoolId: s.schoolId,
         schoolCode: s.schoolCode,
@@ -311,6 +318,7 @@ export function PracticalPage() {
         exemptions,
         calendar: crossModuleCalendar(runs, "PRACTICAL", examCycle.examCycleId),
         pairHistory,
+        history:dataset.history,
         availableDates: dates,
         asOfDate: dates[0]!,
         academicYear: examCycle.academicYear,

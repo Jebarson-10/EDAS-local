@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { DemoDataset } from "../data/demoStore";
 import type { Role } from "@exam-duty/shared";
+import { useApp } from "../state/AppContext";
 import {
   upsertManualMasterRecord,
   fetchMasterTeachers, fetchMasterSchools, fetchMasterCentres, fetchMasterRelationships,
@@ -36,6 +37,7 @@ export function MasterEntryPanel({
   logAudit: (action: string, detail: string, reason?: string) => void;
 }) {
   const [kind, setKind] = useState<EntryKind>("teacher");
+  const {examCycle} = useApp();
   const [editingId, setEditingId] = useState("");
   const [blockId, setBlockId] = useState("");
   const [code, setCode] = useState("");
@@ -105,12 +107,12 @@ export function MasterEntryPanel({
         return setDataset({ ...previous, blocks: [...previous.blocks.filter((x) => x.blockCode !== row.blockCode), row] });
       }
       const [teachers, schools, centres, relationships] = await Promise.all([
-        fetchMasterTeachers(role), fetchMasterSchools(role), fetchMasterCentres(role), fetchMasterRelationships(role),
+        fetchMasterTeachers(role), fetchMasterSchools(role), fetchMasterCentres(role, examCycle.examCycleId), fetchMasterRelationships(role, examCycle.examCycleId),
       ]);
       if (!teachers || !schools || !centres || !relationships) throw new Error("Saved, but the list could not refresh. Reopen this page before making another change.");
       setDataset({ ...previous,
-        teachers: teachers.teachers.map((t) => ({ teacherId:t.teacher_id, employeeCode:t.employee_code, teacherCode:t.teacher_code ?? null, name:t.name, schoolId:t.school_id, designation:t.designation, subject:t.subject ?? null, seniorityRank:t.seniority_rank ?? null, joiningDate:t.joining_date ?? null, homeLatitude:t.home_latitude ?? null, homeLongitude:t.home_longitude ?? null, isActive:t.is_active !== 0, dataQuality:"Imported" as const, staffCategory:t.staff_category === "NON_TEACHING" ? "NON_TEACHING" as const : "TEACHING" as const })),
-        schools: schools.schools.map((s) => ({ schoolId:s.school_id, schoolCode:s.school_code, schoolName:s.school_name, blockId:s.block_id, latitude:s.latitude ?? NaN, longitude:s.longitude ?? NaN, active:s.active !== 0 })),
+        teachers: teachers.teachers.map((t) => ({ teacherId:t.teacher_id, employeeCode:t.employee_code, teacherCode:t.teacher_code ?? null, name:t.name, schoolId:t.school_id, designation:t.designation, subject:t.subject ?? null, seniorityRank:t.seniority_rank ?? null, joiningDate:t.joining_date ?? null, homeLatitude:t.home_latitude ?? null, homeLongitude:t.home_longitude ?? null, isActive:t.is_active !== 0, dataQuality:"Imported" as const, officialDetails: t.official_details_json ? JSON.parse(t.official_details_json) : null, staffCategory:t.staff_category === "NON_TEACHING" ? "NON_TEACHING" as const : "TEACHING" as const })),
+        schools: schools.schools.map((s) => ({ schoolId:s.school_id, schoolCode:s.school_code, sourceSchoolCode:s.source_school_code ?? undefined, schoolName:s.school_name, blockId:s.block_id, latitude:s.latitude ?? NaN, longitude:s.longitude ?? NaN, active:s.active !== 0 })),
         centres: centres.centres.map((c) => ({ centreId:c.centre_id, centreCode:c.centre_code, centreName:c.centre_name, blockId:c.block_id ?? "", latitude:c.latitude ?? NaN, longitude:c.longitude ?? NaN, capacity:c.capacity ?? undefined, active:c.active !== 0 })),
         relationships: relationships.relationships.map((r) => ({ centreId:String(r.centre_id), schoolId:String(r.school_id), relationshipType:r.relationship_type === "CLUBBED" ? "CLUBBED" as const : "HOST" as const, effectiveFrom:String(r.effective_from), effectiveTo:r.effective_to })),
       });

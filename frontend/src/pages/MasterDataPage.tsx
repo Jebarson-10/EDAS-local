@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useApp } from "../state/AppContext";
 import { Panel } from "../components/ui";
 import { MasterEntryPanel } from "../components/MasterEntryPanel";
+import { StaffReturnReview } from "../components/StaffReturnReview";
 import {
   upsertExemptionApi,
 } from "../lib/api";
@@ -69,6 +70,7 @@ export function MasterDataPage() {
       <p className="text-sm text-[var(--color-ink-muted)] mb-3">
         Add or edit schools, blocks and teachers here. Schools with a centre code appear automatically in the centre list. Previous duty records stay unchanged.
       </p>
+      <StaffReturnReview />
       <MasterEntryPanel
         dataset={dataset}
         setDataset={setDataset}

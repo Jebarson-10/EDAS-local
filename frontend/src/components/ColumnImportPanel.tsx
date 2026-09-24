@@ -62,11 +62,11 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
       }
       let refreshed = dataset;
       if (saved) {
-        const [blocks,schools,centres,links] = await Promise.all([fetchMasterBlocks(role),fetchMasterSchools(role),fetchMasterCentres(role),fetchMasterRelationships(role)]);
+        const [blocks,schools,centres,links] = await Promise.all([fetchMasterBlocks(role),fetchMasterSchools(role),fetchMasterCentres(role,examCycle.examCycleId),fetchMasterRelationships(role,examCycle.examCycleId)]);
         if (!blocks || !schools || !centres || !links) throw new Error("Saved lists could not refresh. Reopen the app before retrying.");
         refreshed = {...dataset,
           blocks:blocks.blocks.map((b) => ({blockId:b.block_id,blockCode:b.block_code,blockName:b.block_name})),
-          schools:schools.schools.map((s) => ({schoolId:s.school_id,schoolCode:s.school_code,schoolName:s.school_name,blockId:s.block_id,latitude:s.latitude ?? NaN,longitude:s.longitude ?? NaN,active:s.active !== 0})),
+          schools:schools.schools.map((s) => ({schoolId:s.school_id,schoolCode:s.school_code,sourceSchoolCode:s.source_school_code ?? undefined,schoolName:s.school_name,blockId:s.block_id,latitude:s.latitude ?? NaN,longitude:s.longitude ?? NaN,active:s.active !== 0})),
           centres:centres.centres.map((c) => ({centreId:c.centre_id,centreCode:c.centre_code,centreName:c.centre_name,blockId:c.block_id ?? "",latitude:c.latitude ?? NaN,longitude:c.longitude ?? NaN,capacity:c.capacity ?? undefined,active:c.active !== 0})),
           relationships:links.relationships.map((r) => ({centreId:String(r.centre_id),schoolId:String(r.school_id),relationshipType:r.relationship_type === "CLUBBED" ? "CLUBBED" as const : "HOST" as const,effectiveFrom:String(r.effective_from),effectiveTo:r.effective_to})),
         };

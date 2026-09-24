@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatDutyRole, latestRunForModuleInCycle } from "@exam-duty/shared";
+import { buildSchoolDutyRows, formatDutyRole, latestRunForModuleInCycle } from "@exam-duty/shared";
 import { useApp, isTheoryRun } from "../state/AppContext";
 import { Badge, Bento, EmptyState, Tile, TileHeader } from "../components/ui";
 import type { HallResult, PracticalResult } from "@exam-duty/allocation-engine";
@@ -91,6 +91,9 @@ export function ReportsPage() {
     | "dutyIn"
     | "dutyOut"
     | "hall"
+    | "schoolIn"
+    | "schoolOut"
+    | "schoolExcel"
   >(null);
   const busyRef = useRef(false);
   const busy = busyKind !== null;
@@ -119,6 +122,38 @@ export function ReportsPage() {
     officer: role,
     dataVersion: dataset?.meta.slice ?? "demo",
   };
+
+  async function exportSchoolLists(kind:"schoolIn"|"schoolOut"|"schoolExcel") {
+    if (!dataset || !startBusy(kind)) return;
+    try {
+      const rows=buildSchoolDutyRows({schools:dataset.schools,centres:dataset.centres,teachers:dataset.teachers,relationships:dataset.relationships,assignments:[...(latest?.result?.assignments??[]),...(hallResult?.assignments??[])],practical:practicalResult?.schedules??[]});
+      if (kind==="schoolExcel") {
+        const ExcelJS=(await import("exceljs")).default;
+        const book=new ExcelJS.Workbook();
+        for (const [name,list] of [["Duty-In",rows.dutyIn],["Duty-Out",rows.dutyOut]] as const) {
+          const sheet=book.addWorksheet(name);
+          sheet.addRow([examCycle.name]);
+          sheet.addRow(["School","School reference","Teacher","Post","Duty","Subject","Teacher school","Duty school","Centre code","Date","Session","Batch"]);
+          list.forEach(r=>sheet.addRow([r.schoolName,r.schoolReference,r.teacherName,r.designation,r.duty,r.subject,r.teacherSchool,r.dutySchool,r.centreCode,r.examDate,r.session,r.batch]));
+          sheet.getRow(2).font={bold:true};sheet.views=[{state:"frozen",ySplit:2}];
+          sheet.columns.forEach((c,i)=>{c.width=[0,2,6,7].includes(i)?32:18;});
+          sheet.eachRow(r=>{r.alignment={vertical:"top",wrapText:true};});
+        }
+        downloadBuffer(await book.xlsx.writeBuffer() as ArrayBuffer,`School-duty-lists-${examCycle.academicYear}.xlsx`);
+      } else {
+        const {schoolDutyDocx}=await import("../lib/schoolDutyDocuments");
+        const list=kind==="schoolIn"?rows.dutyIn:rows.dutyOut;
+        if (!list.length) throw new Error("There are no duties for this list yet.");
+        downloadBlob(await schoolDutyDocx(kind==="schoolIn"?"in":"out",list,examCycle.name),`${kind==="schoolIn"?"Duty-In":"Duty-Out"}-${examCycle.academicYear}.docx`);
+      }
+      setReceipt(await noteExport(role,kind,examCycle.examCycleId,undefined,{runIds:[latest?.runId,hall?.runId,practical?.runId].filter(Boolean)}));
+    } catch(e) {setReceipt({ok:false,text:e instanceof Error?e.message:"The duty list could not be prepared."});}
+    finally {stopBusy();}
+  }
+
+  function downloadBlob(blob:Blob,filename:string) {
+    const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;link.click();URL.revokeObjectURL(url);
+  }
 
   async function exportTeacherWise() {
     if (!latest?.result || !dataset) return;
@@ -436,29 +471,19 @@ export function ReportsPage() {
     }
   }
 
-  function downloadText(filename: string, text: string) {
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function exportDutyIn() {
     if (!practicalResult?.schedules.length || !dataset) return;
     if (!startBusy("dutyIn")) return;
     try {
-      const { groupDutyInLetters, buildDutyInLetterText } =
+      const { groupDutyInLetters } =
         await import("@exam-duty/shared");
       const schoolById = new Map(
         dataset.schools.map((s) => [
           s.schoolId,
           {
-            schoolCode: s.schoolCode,
+            schoolCode: s.sourceSchoolCode || s.schoolCode,
             schoolName: s.schoolName,
-            place: s.schoolName,
+            place: "",
           },
         ]),
       );
@@ -469,7 +494,7 @@ export function ReportsPage() {
         ]),
       );
       const letters = groupDutyInLetters({
-        academicYearLabel: `HIGHER SECONDARY PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
+        academicYearLabel: `${examCycle.standard === "10" ? "SSLC" : "HIGHER SECONDARY"} PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
         districtLabel: "ERODE DISTRICT",
         signatoryTitle: "CHIEF EDUCATIONAL OFFICER",
         signatoryPlace: "ERODE",
@@ -477,8 +502,8 @@ export function ReportsPage() {
         schoolById,
         teacherById,
       });
-      const text = letters.map(buildDutyInLetterText).join("\n\n");
-      downloadText(`duty-in-${practical?.runId ?? "run"}.txt`, text);
+      const {practicalLettersDocx}=await import("../lib/schoolDutyDocuments");
+      downloadBlob(await practicalLettersDocx("in",letters),`Practical-Duty-In-${examCycle.academicYear}.docx`);
       logAudit(
         "EXPORT",
         `Duty-In letters (${letters.length}) for ${practical?.runId}`,
@@ -494,6 +519,8 @@ export function ReportsPage() {
           },
         ),
       );
+    } catch (error) {
+      setReceipt({ ok: false, text: error instanceof Error ? error.message : "Could not create the Duty-In document. Please try again." });
     } finally {
       stopBusy();
     }
@@ -503,15 +530,15 @@ export function ReportsPage() {
     if (!practicalResult?.schedules.length || !dataset) return;
     if (!startBusy("dutyOut")) return;
     try {
-      const { groupDutyOutLetters, buildDutyOutLetterText } =
+      const { groupDutyOutLetters } =
         await import("@exam-duty/shared");
       const schoolById = new Map(
         dataset.schools.map((s) => [
           s.schoolId,
           {
-            schoolCode: s.schoolCode,
+            schoolCode: s.sourceSchoolCode || s.schoolCode,
             schoolName: s.schoolName,
-            place: s.schoolName,
+            place: "",
           },
         ]),
       );
@@ -522,7 +549,7 @@ export function ReportsPage() {
         ]),
       );
       const letters = groupDutyOutLetters({
-        academicYearLabel: `HIGHER SECONDARY SECOND YEAR PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
+        academicYearLabel: `${examCycle.standard === "10" ? "SSLC" : "HIGHER SECONDARY SECOND YEAR"} PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
         districtLabel: "ERODE DISTRICT",
         signatoryTitle: "CHIEF EDUCATIONAL OFFICER",
         signatoryPlace: "ERODE",
@@ -530,8 +557,8 @@ export function ReportsPage() {
         schoolById,
         teacherById,
       });
-      const text = letters.map(buildDutyOutLetterText).join("\n\n");
-      downloadText(`duty-out-${practical?.runId ?? "run"}.txt`, text);
+      const {practicalLettersDocx}=await import("../lib/schoolDutyDocuments");
+      downloadBlob(await practicalLettersDocx("out",letters),`Practical-Duty-Out-${examCycle.academicYear}.docx`);
       logAudit(
         "EXPORT",
         `Duty-Out letters (${letters.length}) for ${practical?.runId}`,
@@ -547,6 +574,8 @@ export function ReportsPage() {
           },
         ),
       );
+    } catch (error) {
+      setReceipt({ ok: false, text: error instanceof Error ? error.message : "Could not create the Duty-Out document. Please try again." });
     } finally {
       stopBusy();
     }
@@ -568,10 +597,15 @@ export function ReportsPage() {
 
   return (
     <Bento>
+      <Tile span={6}>
+        <TileHeader title="School-wise Duty-In and Duty-Out" hint="Duty-In lists staff appointed at each school. Duty-Out lists staff leaving each school and where they are going. Includes the latest theory, hall and practical duties for this examination." />
+        <div className="flex flex-wrap gap-2 mt-3">{([['schoolIn','Duty-In (Word)'],['schoolOut','Duty-Out (Word)'],['schoolExcel','Both lists (Excel)']] as const).map(([kind,label])=><button key={kind} disabled={busy||!canExport||!runs.some(r=>r.examCycleId===examCycle.examCycleId)} onClick={()=>void exportSchoolLists(kind)} className="rounded border px-3 py-2 disabled:opacity-40">{busyKind===kind?"Preparing…":label}</button>)}</div>
+        <p className="text-sm mt-3">Check shortages and validation before issuing the lists. A generated list may be incomplete when suitable staff are unavailable.</p>
+      </Tile>
       <Tile span={2}>
         <TileHeader
-          title="Export readiness"
-          hint="Downloads stay on this machine. A receipt (type, cycle, run) is stored when the API accepts it — the file is not archived."
+          title="Available duty lists"
+          hint="Download the generated lists below. Each download is recorded in Activity."
         />
         <ul className="space-y-2 text-sm">
           {readiness.map((r) => (
@@ -706,7 +740,7 @@ export function ReportsPage() {
             data-testid="export-duty-in"
             className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
           >
-            {busyKind === "dutyIn" ? "Exporting…" : "Duty-In.txt"}
+            {busyKind === "dutyIn" ? "Preparing…" : "Practical Duty-In (Word)"}
           </button>
           <button
             type="button"
@@ -715,7 +749,7 @@ export function ReportsPage() {
             data-testid="export-duty-out"
             className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
           >
-            {busyKind === "dutyOut" ? "Exporting…" : "Duty-Out.txt"}
+            {busyKind === "dutyOut" ? "Preparing…" : "Practical Duty-Out (Word)"}
           </button>
           <button
             type="button"

@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { CustodianSetup } from "../components/CustodianSetup";
+import type { CustodianPoint } from "../lib/api";
 import type { TheoryAllocationResult } from "@exam-duty/allocation-engine";
 import { validateTheoryAllocation } from "@exam-duty/validator";
 import type {
@@ -21,12 +23,13 @@ import AllocationWorker from "../workers/allocation.worker.ts?worker";
 import {
   assertMutable,
   buildCentreStaffingRequirements,
-  calculateCustodianRequirementCount,
+  buildCustodianRequirements,
   catalogUsableForGenerate,
   firstUnusableGenerateCatalogLabel,
   latestRunForModuleInCycle,
   mergeOverrideIntoDecisionTrace,
   shouldApplySessionAfterApi,
+  pendingStaffHealthReviews,
 } from "@exam-duty/shared";
 
 export function TheoryPage() {
@@ -47,6 +50,7 @@ export function TheoryPage() {
   } = useApp();
   const [progress, setProgress] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [custodianPlan, setCustodianPlan] = useState<{rows: CustodianPoint[]; ready: boolean}>({rows: [], ready: false});
   const [selectedWhy, setSelectedWhy] = useState<string | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [overrideReq, setOverrideReq] = useState("");
@@ -174,15 +178,11 @@ export function TheoryPage() {
           },
     [dataset, rules, timetable],
   );
-  const requirements: TheoryRequirement[] = staffingPlan.requirements;
-  const custodianRequirementCount = dataset
-    ? calculateCustodianRequirementCount(
-        dataset.schools.filter((school) => school.active).length,
-        rules.custodian_schools_per_custodian,
-      )
-    : 0;
+  const requirements: TheoryRequirement[] = [...staffingPlan.requirements, ...buildCustodianRequirements(custodianPlan.rows, timetable)];
 
   async function generate() {
+    if (!custodianPlan.ready) { setProgress("Load or save the custodian setup before generating duties."); return; }
+    if(dataset && pendingStaffHealthReviews(dataset.teachers,exemptions).length){setProgress("Review health and leave remarks in Imports before generating duties.");return;}
     if (!dataset || !canGenerate || !theoryDataset) return;
     if (timetableState !== "ready" || chiefSessions.length === 0) {
       setProgress("Add at least one timetable session marked Chief duty before allocating theory duties.");
@@ -542,6 +542,7 @@ export function TheoryPage() {
 
   return (
     <Bento>
+      <Tile span={6}><CustodianSetup onChange={setCustodianPlan}/></Tile>
       <Tile span={6}>
         <TileHeader
           title="Theory centre duties"
@@ -584,7 +585,7 @@ export function TheoryPage() {
             Planned for {staffingPlan.centreSessions} centre session(s):{" "}
             {requirements.filter((item) => item.roleCode === "CHIEF_EXAMINATION").length} chief examiner, {" "}
             {requirements.filter((item) => item.roleCode === "DEPARTMENT_OFFICER").length} departmental officer, and {" "}
-            {requirements.filter((item) => item.roleCode === "OFFICE_STAFF").length} office-staff duty slot(s). Custodian starting plan: {custodianRequirementCount} for {dataset.schools.filter((school) => school.active).length} active school(s), at one custodian per {rules.custodian_schools_per_custodian} schools. The final count can change when eligible people are unavailable. Custodian points still need to be entered before named custodian allotment can begin.
+            {requirements.filter((item) => item.roleCode === "OFFICE_STAFF").length} office-staff duties, plus {requirements.filter((item) => item.roleCode === "CUSTODIAN").length} custodian duties from your saved points. Unfilled duties are reported as shortages.
           </p>
         )}
         {!cyclesReady ? (

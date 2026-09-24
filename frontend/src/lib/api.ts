@@ -1,9 +1,34 @@
 /** Browser client for Worker / local API. Falls back gracefully if API is down. */
 import { isLoadableBackupPayload } from "@exam-duty/shared";
+import { postImportBatch, teacherImportBatchSize } from "./importTransport";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 export type ApiRole = "ADMIN" | "OFFICER" | "DATA_OPERATOR" | "VIEWER";
+export type CustodianPoint = {centreId: string; schoolIds: string[]; count: number};
+export async function custodianPlanApi(role: ApiRole, examCycleId: string, plan?: {rows: CustodianPoint[]; reason: string}) {
+  const res = await fetch(`${API_BASE}/api/custodian-plan?examCycleId=${encodeURIComponent(examCycleId)}`, {
+    method: plan ? "POST" : "GET", headers: headers(role),
+    ...(plan ? {body: JSON.stringify({examCycleId, ...plan})} : {}),
+  });
+  const payload = await res.json() as {rows?: CustodianPoint[]; error?: string};
+  if (!res.ok || !Array.isArray(payload.rows)) throw new Error(payload.error ?? "Custodian points could not be loaded.");
+  return payload.rows;
+}
+export type PracticalStudentRow = {schoolId:string;subjectId:string;studentCount:number};
+export async function practicalStudentsApi(role:ApiRole,examCycleId:string,rows?:PracticalStudentRow[]) {
+  const res=await fetch(`${API_BASE}/api/imports/practical-students?examCycleId=${encodeURIComponent(examCycleId)}`,{method:rows?"POST":"GET",headers:headers(role),...(rows?{body:JSON.stringify({examCycleId,rows})}:{})});
+  const payload=await res.json() as {rows?:PracticalStudentRow[];error?:string};
+  if(!res.ok||!Array.isArray(payload.rows))throw new Error(payload.error??"Practical student numbers could not be loaded.");
+  return payload.rows;
+}
+
+export async function saveCentreChecklistApi(role: ApiRole, body: unknown) {
+  const res = await fetch(`${API_BASE}/api/imports/centre-checklist`, {method:"POST",headers:headers(role),body:JSON.stringify(body)});
+  const result = await res.json() as {ok?:boolean;error?:string;centres?:number;schools?:number;students?:number};
+  if (!res.ok || !result.ok) throw new Error(result.error ?? "The centre list could not be saved.");
+  return result;
+}
 
 /**
  * Dev-only identity headers. Production builds omit them so Access claims
@@ -448,7 +473,7 @@ export async function applyImportApi(
   // designation, location and source-row writes, so keep batches deliberately
   // small. Repeating a batch is safe because teacher and history writes upsert
   // or use stable IDs.
-  const batchSize = 6;
+  const batchSize = teacherImportBatchSize((await apiHealth())?.environment);
   let totals = {
     upserted: 0,
     schoolHistory: 0,
@@ -467,7 +492,7 @@ export async function applyImportApi(
         ),
       );
       const rowBatch = rows?.slice(offset, offset + batchSize);
-      const res = await fetch(`${API_BASE}/api/imports/apply`, {
+      const res = await postImportBatch(`${API_BASE}/api/imports/apply`, {
         method: "POST",
         headers: headers(role),
         body: JSON.stringify({
@@ -711,9 +736,9 @@ export async function fetchMasterSubjects(role: ApiRole) {
   }
 }
 
-export async function fetchMasterCentres(role: ApiRole) {
+export async function fetchMasterCentres(role: ApiRole, examCycleId?: string) {
   try {
-    const res = await fetch(`${API_BASE}/api/centres`, {
+    const res = await fetch(`${API_BASE}/api/centres${examCycleId ? `?examCycleId=${encodeURIComponent(examCycleId)}` : ""}`, {
       headers: headers(role),
     });
     if (!res.ok) return null;
@@ -735,9 +760,9 @@ export async function fetchMasterCentres(role: ApiRole) {
   }
 }
 
-export async function fetchMasterRelationships(role: ApiRole) {
+export async function fetchMasterRelationships(role: ApiRole, examCycleId?: string) {
   try {
-    const res = await fetch(`${API_BASE}/api/relationships`, {
+    const res = await fetch(`${API_BASE}/api/relationships${examCycleId ? `?examCycleId=${encodeURIComponent(examCycleId)}` : ""}`, {
       headers: headers(role),
     });
     if (!res.ok) return null;

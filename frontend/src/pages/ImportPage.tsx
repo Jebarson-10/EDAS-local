@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
   assertMutable,
-  importUploadOfficerMessage,
   previewTeacherImport,
   prepareTeacherUpload,
   shouldApplySessionAfterApi,
@@ -9,6 +8,9 @@ import {
 import { useApp } from "../state/AppContext";
 import { Panel } from "../components/ui";
 import { ColumnImportPanel } from "../components/ColumnImportPanel";
+import { CentreChecklistImport } from "../components/CentreChecklistImport";
+import { PracticalStudentsImport } from "../components/PracticalStudentsImport";
+import { StaffReturnReview } from "../components/StaffReturnReview";
 import type { DemoDataset } from "../data/demoStore";
 
 export function ImportPage() {
@@ -21,6 +23,8 @@ export function ImportPage() {
     setDataset,
   } = useApp();
   const [text, setText] = useState("");
+  const [reviewProblemsOnly, setReviewProblemsOnly] = useState(false);
+  const [reviewPage, setReviewPage] = useState(0);
   const uploadDetails = useMemo(() => {
     try { const rows = JSON.parse(text); return Array.isArray(rows) ? prepareTeacherUpload(rows) : null; }
     catch { return null; }
@@ -83,6 +87,7 @@ export function ImportPage() {
     setError(null);
     setMessage(null);
     setText("");
+    setReviewPage(0);
     setLastImportId(null);
     setUploadBusy(true);
     const run = (async (): Promise<string | null> => {
@@ -120,7 +125,7 @@ export function ImportPage() {
           setDataset({
             ...currentDataset,
             blocks: blocks.blocks.map((block) => ({ blockId: block.block_id, blockCode: block.block_code, blockName: block.block_name })),
-            schools: schools.schools.map((school) => ({ schoolId: school.school_id, schoolCode: school.school_code, schoolName: school.school_name, blockId: school.block_id, latitude: school.latitude ?? Number.NaN, longitude: school.longitude ?? Number.NaN, active: school.active !== 0 })),
+            schools: schools.schools.map((school) => ({ schoolId: school.school_id, schoolCode: school.school_code, sourceSchoolCode:school.source_school_code??undefined, schoolName: school.school_name, blockId: school.block_id, latitude: school.latitude ?? Number.NaN, longitude: school.longitude ?? Number.NaN, active: school.active !== 0 })),
           });
           officialMasterMessage = ` Created ${master.createdBlocks ?? 0} blocks and ${master.createdSchools ?? 0} schools; matched ${master.matchedSchools ?? 0} existing schools.${master.missingLocations?.length ? ` ${master.missingLocations.length} school locations still need to be added.` : ""}${master.skippedNoBlock?.length ? ` ${master.skippedNoBlock.length} schools had no block and were not created.` : ""}`;
         }
@@ -137,14 +142,7 @@ export function ImportPage() {
         if (gen !== uploadGenRef.current) return null;
         if (up?.importId) {
           setLastImportId(up.importId);
-          const baseMessage = importUploadOfficerMessage(
-              {
-                importId: up.importId,
-                fileHash: up.fileHash,
-                stored: up.stored,
-              },
-              parsed.rows.length,
-            );
+          const baseMessage = `Read ${parsed.rows.length} staff rows. ${up.stored === false ? "The original file was not stored; keep your own copy." : "A copy of the original file was saved."}`;
           setMessage(
             `${baseMessage}${parsed.format === "official-staff-workbook" ? " Official staff workbook recognised; all supported staff tabs were read together." : ""}${officialMasterMessage}${parsed.notes?.length ? ` ${parsed.notes[0]}` : ""}`,
           );
@@ -185,14 +183,15 @@ export function ImportPage() {
 
   return (
     <div className="space-y-4">
-      <ColumnImportPanel onTeachers={(rows) => {
+      <Panel title="Import your examination data"><p>1. Upload OVER ALL to save staff and schools. 2. Upload 13A to review centres and student numbers. 3. Add the timetable and practical subject counts. Then generate duties and download school-wise Duty-In and Duty-Out lists.</p></Panel>
+      <details><summary className="cursor-pointer p-2">Other spreadsheets and column matching</summary><ColumnImportPanel onTeachers={(rows) => {
         clearArchivedImport();
         setText(rows.length ? JSON.stringify(rows) : "");
         setError(null); setMessage(null);
-      }} />
-      <Panel title="Teacher review">
+      }} /></details>
+      <Panel title="1. Staff and schools (OVER ALL)">
         <p className="text-sm text-[var(--color-ink-muted)] mb-3">
-          Teachers from the import above appear here. Check their details, then save. Employee codes are not needed. Teachers not included in the file are kept unchanged by default.
+          Upload the school staff return with its original sheet names. Check the preview, then save the staff. Schools and blocks are created from the file. Existing duty history is kept.
         </p>
         {!canImport && (
           <p className="text-sm text-[var(--color-err)] mb-3">
@@ -208,7 +207,7 @@ export function ImportPage() {
 
         <div className="flex flex-wrap gap-2 mb-3 items-center">
           <label className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm cursor-pointer">
-            Upload teacher workbook .xlsx
+            Upload OVER ALL.xlsx
             <input
               type="file"
               accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -235,7 +234,7 @@ export function ImportPage() {
         </div>
 
         {uploadDetails && <div className="mb-3 space-y-2 text-sm">
-          <p>The official HM, PG, BT, BT NON, SGT, SPL and NON TEACHING sheets are read together. The file’s School Code is kept as a school reference; it does not create an exam centre. School name is used to match your saved school list. The app keeps the post, subject, dates, contact, qualification, past-duty and remarks fields. PG uses the 11/12 handling subject and BT uses the 10th handling subject. Office staff stay separate from teaching staff.</p>
+          <p>All staff sheets are read together. Schools are matched by their reference number, then by name. A school reference is not an exam centre code. Original post, subject, dates, contact and remarks are kept. Past-duty remarks must be checked before adding them to duty history.</p>
           {uploadDetails.notes.length > 0 && <details><summary className="cursor-pointer">Missing details to check before allotment</summary><ul className="mt-2 list-disc pl-5">{uploadDetails.notes.map((note) => <li key={note}>{note}</li>)}</ul></details>}
         </div>}
         <div className="mt-3 flex flex-wrap gap-2 items-center">
@@ -340,7 +339,7 @@ export function ImportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.rows.slice(0, 100).map((r, i) => (
+                  {preview.rows.filter(r => !reviewProblemsOnly || r.status === "INVALID" || r.status === "DUPLICATE").slice(reviewPage * 100, (reviewPage + 1) * 100).map((r, i) => (
                     <tr key={i} className="border-t border-[var(--color-line)]">
                       <td className="px-2 py-1">{r.rowNumber}</td>
                       <td className="px-2 py-1">{r.status}</td>
@@ -351,11 +350,20 @@ export function ImportPage() {
                 </tbody>
               </table>
             </div>
+            <div className="flex flex-wrap gap-3 items-center text-sm">
+              <label><input type="checkbox" checked={reviewProblemsOnly} onChange={e=>{setReviewProblemsOnly(e.target.checked);setReviewPage(0);}}/> Show only rows needing attention</label>
+              <button type="button" className="underline" disabled={reviewPage===0} onClick={()=>setReviewPage(n=>n-1)}>Previous 100</button>
+              <span>Page {reviewPage+1}</span>
+              <button type="button" className="underline" disabled={(reviewPage+1)*100 >= preview.rows.filter(r=>!reviewProblemsOnly||r.status==="INVALID"||r.status==="DUPLICATE").length} onClick={()=>setReviewPage(n=>n+1)}>Next 100</button>
+            </div>
           </div>
         )}
       </Panel>
 
-      <PracticalFormatImportPanel
+      <CentreChecklistImport />
+      <StaffReturnReview />
+      <PracticalStudentsImport />
+      <details><summary className="cursor-pointer p-2">Additional import formats</summary><PracticalFormatImportPanel
         canImport={canImport}
         logAudit={logAudit}
         onForm01Rows={(rows) => {
@@ -366,7 +374,7 @@ export function ImportPage() {
           );
           setError(null);
         }}
-      />
+      /></details>
     </div>
   );
 }

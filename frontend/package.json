@@ -15,12 +15,16 @@
     "@exam-duty/allocation-engine": "*",
     "@exam-duty/shared": "*",
     "@exam-duty/validator": "*",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "docx": "^9.5.1",
     "exceljs": "^4.4.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.4.0"
+    "react-router-dom": "^7.4.0",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.14",

@@ -14,6 +14,8 @@ import {
   firstUnusableGenerateCatalogLabel,
   latestRunForModuleInCycle,
   shouldApplySessionAfterApi,
+  pendingStaffHealthReviews,
+  buildHallDemands,
 } from "@exam-duty/shared";
 import {
   Bento,
@@ -124,6 +126,7 @@ export function HallPage() {
 
   function run() {
     if (!dataset || busy) return;
+    if(pendingStaffHealthReviews(dataset.teachers,exemptions).length){setText("Review health and leave remarks in Imports before generating duties.");return;}
     if (timetableState !== "ready" || hallSessions.length === 0) {
       setText("Add at least one timetable session marked Hall duty before allocating hall duties.");
       return;
@@ -218,18 +221,7 @@ export function HallPage() {
       set.add(r.schoolId);
       centreSchoolIds.set(r.centreId, set);
     }
-    const demands = hallSessions.flatMap((slot) => dataset.centres.filter((c) =>
-      c.active && (!slot.schoolId || dataset.relationships.some((relationship) =>
-        relationship.centreId === c.centreId && relationship.schoolId === slot.schoolId &&
-        relationship.effectiveFrom <= slot.examDate &&
-        (!relationship.effectiveTo || relationship.effectiveTo >= slot.examDate),
-      )),
-    ).map((c) => ({
-      centreId: c.centreId,
-      totalStudents: c.capacity ?? 0,
-      examDate: slot.examDate,
-      sessionCode: slot.sessionCode,
-    })));
+    const demands = buildHallDemands({timetable:hallSessions,centres:dataset.centres,relationships:dataset.relationships});
     if (!demands.length || demands.some((d) => !Number.isInteger(d.totalStudents) || d.totalStudents <= 0)) {
       setBusy(false);
       setText("Enter student numbers for every selected centre in Schools & teachers before allotting hall duty.");

@@ -413,8 +413,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           api.fetchExemptions("OFFICER"),
           api.fetchMasterTeachers("OFFICER"),
           api.fetchMasterSchools("OFFICER"),
-          api.fetchMasterCentres("OFFICER"),
-          api.fetchMasterRelationships("OFFICER"),
+          api.fetchMasterCentres("OFFICER", cycleId),
+          api.fetchMasterRelationships("OFFICER", cycleId),
           api.fetchAllocationRuns("OFFICER", cycleId),
           api.fetchTeacherSchoolHistory("OFFICER"),
           api.fetchTeacherDesignationHistory("OFFICER"),
@@ -661,16 +661,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return {
               schoolId: String(s.school_id),
               schoolCode: String(s.school_code),
+              sourceSchoolCode: s.source_school_code ?? undefined,
               schoolName: String(s.school_name),
               blockId: String(s.block_id || prior?.blockId || "blk_restored"),
               latitude:
                 typeof s.latitude === "number"
                   ? s.latitude
-                  : (prior?.latitude ?? 0),
+                  : Number.NaN,
               longitude:
                 typeof s.longitude === "number"
                   ? s.longitude
-                  : (prior?.longitude ?? 0),
+                  : Number.NaN,
               active: s.active !== 0,
             };
           });
@@ -704,11 +705,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
               latitude:
                 typeof c.latitude === "number"
                   ? c.latitude
-                  : (prior?.latitude ?? 0),
+                  : Number.NaN,
               longitude:
                 typeof c.longitude === "number"
                   ? c.longitude
-                  : (prior?.longitude ?? 0),
+                  : Number.NaN,
               capacity:
                 typeof c.capacity === "number" ? c.capacity : prior?.capacity,
               active: c.active !== 0,
@@ -1202,11 +1203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       setSchoolHistory((h) => [...applied.schoolHistory, ...h]);
       setDesignationHistory((h) => [...applied.designationHistory, ...h]);
-      const message = `Applied import ${importId ?? "(no archive)"}: +${applied.appliedNew} ~${applied.appliedUpdated} deactivated=${applied.deactivated}${
-        api?.ok
-          ? ` · API ok${api.importRows != null ? `, row outcomes=${api.importRows}` : ""}`
-          : ""
-      }`;
+      const message = `Saved ${applied.appliedNew} new staff, updated ${applied.appliedUpdated}, and marked ${applied.deactivated} inactive. Rows needing correction were not saved.`;
       logAudit("IMPORT", message);
       return {
         ok: true as const,

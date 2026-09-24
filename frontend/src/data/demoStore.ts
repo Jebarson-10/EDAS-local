@@ -6,6 +6,7 @@ export interface DemoDataset {
   schools: Array<{
     schoolId: string;
     schoolCode: string;
+    sourceSchoolCode?: string;
     schoolName: string;
     blockId: string;
     latitude: number;
