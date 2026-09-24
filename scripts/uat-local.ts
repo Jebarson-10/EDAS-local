@@ -481,7 +481,7 @@ async function main() {
   const pairTeachers = [
     (demo.teachers as Teacher[]).find((t) => t.schoolId === pairSchoolId),
     (demo.teachers as Teacher[]).find((t) => t.schoolId !== pairSchoolId),
-  ].filter((t): t is Teacher => Boolean(t));
+  ].filter((t): t is Teacher => Boolean(t)).map(t => ({ ...t, designation: "PG" as const, staffCategory: "TEACHING" as const, subject: "PHYSICS" }));
   const pairIds = new Set(pairTeachers.map((t) => t.teacherId));
   const pairDemand = [
     { schoolId: pairSchoolId, subjectId: "PHYSICS", studentCount: 30 },
@@ -498,6 +498,7 @@ async function main() {
     availableDates: [examDate],
     asOfDate: examDate,
     academicYear,
+    standard: "12",
     internalEligible: (t: Teacher) => pairIds.has(t.teacherId),
     externalEligible: (t: Teacher) => pairIds.has(t.teacherId),
   });
@@ -761,8 +762,8 @@ async function main() {
   record(
     "UAT-19",
     "Seed rule_parameters rehydrate to the documented defaults",
-    seedParams.length === 18 &&
-      appliedSeed.applied.length === 18 &&
+    seedParams.length === Object.keys(DEFAULT_RULE_PARAMETERS).length &&
+      appliedSeed.applied.length === seedParams.length &&
       appliedSeed.invalid.length === 0 &&
       appliedSeed.parameters.maximum_distance_km ===
         DEFAULT_RULE_PARAMETERS.maximum_distance_km &&
@@ -3715,15 +3716,15 @@ async function main() {
       settingsSrc.includes('busyKind === "activate"') &&
       settingsSrc.includes("Activating…") &&
       settingsSrc.includes("disabled={role !== \"ADMIN\" || busy}") &&
-      reportsSrc.includes('busyKind === "dutyIn" ? "Exporting…"') &&
-      reportsSrc.includes('busyKind === "dutyOut" ? "Exporting…"') &&
+      reportsSrc.includes('busyKind === "dutyIn" ? "Preparing…"') &&
+      reportsSrc.includes('busyKind === "dutyOut" ? "Preparing…"') &&
       reportsSrc.includes(
         "disabled={!canExport || !practicalResult?.schedules.length || busy}",
       ) &&
       reportsSrc.includes("disabled={!canExport || !latest?.result || busy}") &&
       smokeSrc.includes('createRule.getByText("Creating…")') &&
       smokeSrc.includes('activateRule.getByText("Activating…")') &&
-      smokeSrc.includes('exportDutyIn.getByText("Exporting…")'),
+      smokeSrc.includes('exportDutyIn.getByText("Preparing…")'),
     `settingsCreate=${settingsSrc.includes("Creating…")} settingsActivate=${settingsSrc.includes("Activating…")} dutyIn=${reportsSrc.includes("dutyIn")} smokeExport=${smokeSrc.includes("Exporting…")}`,
   );
 
@@ -3741,6 +3742,18 @@ async function main() {
   let rosterN = -1;
   let importRowErr = "";
   try {
+    // The production app intentionally starts empty. Only this isolated test
+    // database receives fixtures; never make application startup seed data.
+    const importFixtureSqlite = new Database(importRowCountPath);
+    importFixtureSqlite.pragma("foreign_keys = ON");
+    try {
+      const fixtureDb = createSqliteClient(importFixtureSqlite);
+      await applyMigrations(fixtureDb, ROOT);
+      const fixture = await transactionalRestore(fixtureDb, demo, { adminConfirmed: true, includeHistory: true });
+      if (!fixture.ok) throw new Error(fixture.error);
+    } finally {
+      importFixtureSqlite.close();
+    }
     await withLocalApi(importRowCountPath, async (base) => {
       const hdrs = {
         "content-type": "application/json",
@@ -3891,7 +3904,7 @@ async function main() {
     "UAT-62",
     "sample/JSON apply does not invent local imp_* ids; textarea edit drops lastImportId; audit drill-down file rows match listed row_count (outcomes may include MISSING)",
     !appCtxSrc.includes('createId("imp")') &&
-      appCtxSrc.includes('importId ?? "(no archive)"') &&
+      appCtxSrc.includes('const importId = opts?.importId') &&
       importApplySrc.includes("historySourceImportId") &&
       textareaClearsArchive &&
       auditSrc.includes("file rows") &&
@@ -3998,10 +4011,10 @@ async function main() {
       ) &&
       reportsSrc.includes("Receipt recorded") &&
       reportsSrc.includes("receipt was not stored") &&
-      reportsSrc.includes("the file is not archived") &&
+      reportsSrc.includes("The download stays on this machine") &&
       reportsSrc.includes("setReceipt") &&
-      auditSrc.includes("Export receipts") &&
-      auditSrc.includes("only the receipt is stored") &&
+      auditSrc.includes("Downloaded reports") &&
+      auditSrc.includes("The files stay on your computer.") &&
       smokeSrc.includes('export-receipt")') &&
       smokeSrc.includes("Receipt recorded"),
     `viewer=${viewerExportStatus} officerOk=${officerExportOk} listed=${viewerListHasReceipt} id=${officerExportId || "none"} err=${exportReceiptErr || "none"}`,
@@ -4112,14 +4125,13 @@ async function main() {
       cycleRuleAfter === cycleRuleBefore &&
       catalogActiveAfter.startsWith("rv_") &&
       activateCopyErr === "" &&
-      settingsSrc.includes("active catalog row") &&
-      settingsSrc.includes("cycle's stored rule id is unchanged") &&
-      settingsSrc.includes("Cycle stored rule version (UI)") &&
+      settingsSrc.includes("Previous examinations keep their own rules.") &&
+      settingsSrc.includes("Rules for this examination") &&
       !settingsSrc.includes("new allocations use this version") &&
       !settingsSrc.includes("Active rule version (UI)") &&
-      theorySrc.includes("cycle's stored rule version") &&
+      theorySrc.includes("examCycle.ruleVersionId") &&
       !theorySrc.includes("the active rule version") &&
-      importSrc.includes("local filesystem in api:local") &&
+      importSrc.includes("The original file was not stored; keep your own copy.") &&
       !importSrc.includes("Official imports are archived to R2") &&
       smokeSrc.includes("Activated ${createdId}") &&
       appCtxSrc.includes("Activate flips rule_versions.is_active only"),
@@ -4161,9 +4173,9 @@ async function main() {
       ).includes("file not archived") &&
       backupSrc.includes("inlineCanonicalBackupPayload") &&
       backupSrc.includes("backupArchiveOfficerMessage") &&
-      backupSrc.includes("payload returned inline because the file was not stored") &&
+      backupSrc.includes("inline snapshot when the worker returns stored=false") &&
       !backupSrc.includes("Server archive created: ${r.backupId}") &&
-      importSrc.includes("importUploadOfficerMessage") &&
+      importSrc.includes("up.stored === false") &&
       examCycleSrc.includes("publishBackupSuffix") &&
       apiTsSrc.includes("stored?: boolean") &&
       apiTsSrc.includes("payload?: Record<string, unknown>") &&
@@ -4208,7 +4220,7 @@ async function main() {
       localApiSrc.includes('error: "Backup payload was not stored"') &&
       workerSrc.includes('meta.status === "RECORDED_NO_R2" || !key') &&
       localApiSrc.includes('meta.status === "RECORDED_NO_R2"') &&
-      importSrc.includes("stored:false receipt means the file was not archived") &&
+      importSrc.includes("The original file was not stored; keep your own copy.") &&
       !importSrc.includes("Uploads are archived when the API accepts them"),
     `unstoredLoad=${backupCatalogRowHasStoredPayload(unstoredRow)} storedLoad=${backupCatalogRowHasStoredPayload(storedRow)}`,
   );
@@ -4289,7 +4301,7 @@ async function main() {
       hallSrc.includes("catalogUsableForGenerate") &&
       hallSrc.includes("!rulesReady || !exemptionsReady") &&
       practicalSrc.includes("catalogUsableForGenerate") &&
-      practicalSrc.includes("Waiting for exemptions from the API") &&
+      practicalSrc.includes("Waiting for exemptions from saved data") &&
       masterSrc.includes("exemptions-failed") &&
       masterSrc.includes("exemptions-empty") &&
       masterSrc.includes("Exemptions unavailable") &&
@@ -4319,10 +4331,10 @@ async function main() {
       hallSrc.includes("Rules unavailable") &&
       practicalSrc.includes("catalogUsableForGenerate(hydrateReady, rulesOutcome)") &&
       practicalSrc.includes(
-        "Rule parameters could not be loaded from the API",
+        "Allotment rules could not be loaded from saved data",
       ) &&
       settingsSrc.includes("rules-failed") &&
-      settingsSrc.includes("seed defaults, not the stored catalog") &&
+      settingsSrc.includes("Saved rules could not be loaded. Allotment is paused") &&
       smokeSrc.includes(
         'generateTheory.getByText("Generate theory allocation").waitFor()',
       ),
@@ -4367,7 +4379,7 @@ async function main() {
       hallSrc.includes("Clubbing unavailable") &&
       practicalSrc.includes("catalogUsableForGenerate(hydrateReady, cyclesOutcome)") &&
       practicalSrc.includes("!cyclesReady") &&
-      practicalSrc.includes("Exam cycle could not be loaded from the API") &&
+      practicalSrc.includes("Examination could not be loaded from saved data") &&
       !practicalSrc.includes("centresOutcome") &&
       !practicalSrc.includes("relationshipsOutcome") &&
       smokeSrc.includes(
@@ -4425,7 +4437,7 @@ async function main() {
       practicalSrc.includes("catalogUsableForGenerate(hydrateReady, schoolsOutcome)") &&
       practicalSrc.includes("!teachersReady") &&
       practicalSrc.includes("!schoolsReady") &&
-      practicalSrc.includes("Teachers could not be loaded from the API") &&
+      practicalSrc.includes("Teachers could not be loaded from saved data") &&
       !practicalSrc.includes("historyOutcome") &&
       !practicalSrc.includes("historyReady") &&
       !practicalSrc.includes("centresOutcome") &&
@@ -4467,11 +4479,11 @@ async function main() {
       theorySrc.includes("runs-failed") &&
       theorySrc.includes("runs-loading") &&
       hallSrc.includes("catalogUsableForGenerate(hydrateReady, runsOutcome)") &&
-      hallSrc.includes("Allocation runs unavailable") &&
+      hallSrc.includes("Duty lists unavailable") &&
       hallSrc.includes("!runsReady") &&
       practicalSrc.includes("catalogUsableForGenerate(hydrateReady, runsOutcome)") &&
       practicalSrc.includes("!runsReady") &&
-      practicalSrc.includes("Allocation runs could not be loaded from the API") &&
+      practicalSrc.includes("Duty lists could not be loaded from saved data") &&
       !theorySrc.includes("catalogUsableForGenerate(hydrateReady, blocksOutcome)") &&
       !theorySrc.includes("catalogUsableForGenerate(hydrateReady, subjectsOutcome)") &&
       smokeSrc.includes(

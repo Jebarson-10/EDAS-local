@@ -284,11 +284,24 @@ permitted when availability is limited?
 **Confirmed planning count:** Start with one custodian for every ten active
 schools. The available staff count may make the final feasible total different.
 
-**Interim:** Show the required count only. Do not invent points, routes,
-eligibility, or named custodian assignments.
+**Eligibility confirmed by client (2026-09-24):** PG Assistants and BT
+Assistants. The stored SENIOR_PG designation is part of the PG pool. HM,
+special teachers and office staff are not eligible. Both the allocator and
+independent validator enforce this even if a requested designation band is empty.
 
-**Needed:** Point list, routes/centre coverage, eligible-person list, and the
-shortage/one-person-point policy.
+**Implemented:** The operator selects a saved centre as the duty point and
+the active schools served. One per ten schools is the initial count; a changed
+count is explicitly saved with a reason in the change log. Custodians share
+the theory timetable, distance, exemption, own/clubbed-school, history and
+same-session checks. No points means no custodian allocation; coverage is shown
+so missing schools are visible. Insufficient eligible people are reported,
+never silently replaced with another post. Point setup is examination-specific
+and included in backup/restore.
+
+**Still needed from the operator:** Actual point locations, school coverage and
+any authorised count adjustments. No real locations or routes are invented.
+Non-centre custody locations and the separate Custodian I/II route form remain
+unconfirmed; the current output lists custodian duties in the school-wise reports.
 
 ## OQ-023 — Ambiguous fields in the official staff workbook
 

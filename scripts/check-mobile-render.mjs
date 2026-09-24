@@ -33,14 +33,14 @@ for (const vp of viewports) {
   try {
     // Real content, not the skeleton: stat tiles + pipeline + provenance.
     await page.getByTestId("dashboard-hydrate").waitFor({ timeout: 20_000 });
-    await page.getByText("Allocation pipeline").waitFor({ timeout: 20_000 });
-    await page.getByText("Data provenance").waitFor({ timeout: 20_000 });
+    await page.getByRole("heading", { name: "Duty lists", exact: true }).waitFor({ timeout: 20_000 });
+    await page.getByRole("heading", { name: "System health", exact: true }).waitFor({ timeout: 20_000 });
 
     // Navigation must be reachable at every width.
     const navSelector =
       vp.width < 768 ? "nav-mobile-theory" : "nav-theory";
     await page.getByTestId(navSelector).click({ timeout: 10_000 });
-    await page.getByText("Theory examination duty").waitFor({ timeout: 20_000 });
+    await page.getByRole("heading", { name: "Theory centre duties", exact: true }).waitFor({ timeout: 20_000 });
 
     // No horizontal overflow of the document at any width.
     const overflow = await page.evaluate(

@@ -359,16 +359,16 @@ await page
 
 await page.getByTestId("nav-reports").click();
 await page.getByText("practical-schedules.csv").waitFor();
-await page.getByText("Duty-In.txt").waitFor();
-await page.getByText("Duty-Out.txt").waitFor();
+await page.getByText("Practical Duty-In (Word)", { exact: true }).waitFor();
+await page.getByText("Practical Duty-Out (Word)", { exact: true }).waitFor();
 await page.getByText("hall-assignments.csv").waitFor();
 await delayPost(page, "**/api/exports");
 const exportDutyIn = page.getByTestId("export-duty-in");
 const dutyInDownload = page.waitForEvent("download");
 await exportDutyIn.click();
-await exportDutyIn.getByText("Exporting…").waitFor();
+await exportDutyIn.getByText("Preparing…").waitFor();
 await dutyInDownload;
-await exportDutyIn.getByText("Duty-In.txt").waitFor();
+await exportDutyIn.getByText("Practical Duty-In (Word)").waitFor();
 await page.getByTestId("export-receipt").getByText("Receipt recorded").waitFor();
 await page.unroute("**/api/exports");
 

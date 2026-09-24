@@ -6,6 +6,49 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 ## What this application does
 
+### Official school returns and school-wise duty lists
+
+The revised Imports page follows the supplied documents:
+
+1. **Staff workbook (OVER ALL):** reads the staff sheets together and retains
+   the original staff details. Missing schools can be created during review.
+   School reference numbers are kept separately from examination centre codes.
+2. **Centre/student list (13A PDF):** reads text PDFs or uses bundled offline
+   English OCR for scanned pages. Review the host school, linked schools,
+   block and student count before saving. Unreadable numbers need correction;
+   they are not guessed. The file's standard and year must match the selected
+   examination. A 2026 SSLC list must not become a 2027 HSC student list.
+3. **Practical students:** enter or upload actual school/subject student counts.
+   Total centre strength does not tell the app how many take each practical.
+   Download the template in this section for its headings.
+
+Health/leave remarks need an explicit available/exempt decision before generating
+duties. Missing coordinates must be entered; imports do not invent locations.
+
+In **Theory → Custodian points**, select a duty centre and the schools served.
+Only PG/BT Assistants (including stored Senior PG staff) are eligible. The
+starting count is one per ten schools. Changes require a recorded reason;
+shortages stay visible. Save the setup before generating. No saved points means
+no custodian duties. Custodian setup, centre memberships and practical student
+counts are saved per examination and included in backups.
+
+In **Reports**, download school-wise incoming/outgoing Word lists or an Excel
+workbook. Incoming lists group staff by receiving school; outgoing lists group
+them by their current home school. Practical letters include subjects, batches,
+internal/external examiners and the actual generated dates. Sample document
+dates and places are not reused. Published history is preserved.
+
+The offline PDF reader adds bundled OCR files to the desktop app; it does not
+upload the PDF to an external OCR service. A scanned list always needs human
+review before it becomes saved examination data.
+
+Large teacher imports use larger batches on the local SQLite app and small
+batches on the hosted database. A request-limit response is retried after its
+specified waiting time, with a bounded retry count; other save failures are
+reported. The server's rate-limit protection is not disabled. Valid rows can be
+saved while duplicate/invalid rows remain flagged; use **Show only rows needing
+attention** to find those rows anywhere in a large workbook.
+
 ### Import by column heading
 
 In **Imports → Import Excel**, choose an `.xlsx` file.
@@ -275,6 +318,15 @@ npm run desktop:dist:win:portable
 
 The test suite covers rule parameters, history, deterministic theory/practical/hall
 allocation, independent validation, authorization and SQLite persistence.
+
+`npm run smoke:ui` tests the current single-user interface using a disposable,
+empty database: official templates, automatic school creation, staff import,
+reload/re-import, practical counts, diagnosis download and backup. It refuses to
+run when teachers or schools already exist; it never clears an operator's data.
+`scripts/ui-smoke.mjs` retains the earlier role-based workflow as a legacy
+reference, not the current browser acceptance test. `npm run check:responsive`
+checks mobile, tablet and desktop navigation. `npm run uat:local` exercises
+allocation, immutable history, restore and error handling on isolated test data.
 # Schools, teachers and app updates
 
 Teacher import also accepts older templates containing school names under `schoolCode`. Matching is exact against saved school names (case and repeated spaces are ignored); it never invents a school, block, location or centre code. Employee-code columns are ignored, so serial numbers do not become teacher identities. Common Headmaster and PG Assistant spellings are normalised; acting/in-charge posts are kept as written for confirmation. Missing subjects, seniority and home locations are listed before allotment. The original workbook is not changed.

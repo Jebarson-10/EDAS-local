@@ -24,7 +24,7 @@
     "seed:synthetic": "tsx scripts/generate-synthetic-dataset.ts",
     "template:timetable": "node scripts/build-timetable-template.mjs",
     "maps:build-index": "node scripts/build-offline-geocode-index.mjs",
-    "smoke:ui": "node scripts/ui-smoke.mjs",
+    "smoke:ui": "node scripts/current-ui-smoke.mjs",
     "check:responsive": "node scripts/check-mobile-render.mjs",
     "load:theory": "tsx scripts/load-test-theory.ts",
     "e2e:cycle": "tsx scripts/e2e-exam-cycle.ts",
