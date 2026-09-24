@@ -106,8 +106,7 @@ function headerRowIndex(lines: unknown[][]): number {
 
 function isFormInstructionRow(name: string, schoolName: string, schoolCode: string | undefined): boolean {
   const joined = `${name} ${schoolName} ${schoolCode ?? ""}`.toUpperCase();
-  return !schoolCode ||
-    /^\d+$/.test(name) ||
+  return /^\d+$/.test(name) ||
     /S\.?(NO|NUMBER)|TEACHERS? NAME|HEADMASTER NAME|NAME OF THE EMPLOYEE|NAME OF THE SCHOOL|SCHOOL CODE/.test(joined);
 }
 
@@ -184,7 +183,7 @@ export function parseOfficialStaffWorkbook(
     );
     const previousCampIndex = headers.findIndex((item) => item.startsWith("PREVIOUSCAMPDUTY"));
     const exceptionIndex = headers.findIndex((item) =>
-      item.startsWith("IFEMPOLYEEISPHYSICALLY") || item.startsWith("REMARKS"),
+      item.startsWith("IFEMPOLYEEISPHYSICALLY") || item.startsWith("IFEMPLOYEEISPHYSICALLY") || item.startsWith("HEALTH") || item.startsWith("REMARKS"),
     );
     const blockIndex = firstIndex(["BLOCK"]);
     const additionalSubjectIndex = headers.findIndex((item) => item.startsWith("ADDITIONALHANDLINGSUBJECT"));
@@ -214,6 +213,8 @@ export function parseOfficialStaffWorkbook(
       const details = Object.fromEntries(
         [
           ["Source sheet", sheet.name],
+          ["Source row", String(index + 1)],
+          ["Post as entered", textAt(source, designationIndex)],
           ["School reference code", sourceSchoolCode],
           ["School type", textAt(source, schoolTypeIndex)],
           ["Sex", textAt(source, sexIndex)],
@@ -254,7 +255,7 @@ export function parseOfficialStaffWorkbook(
     }
     if (subjectIndexes.length > 1 && handlingSubjectIndex < 0) {
       warnings.push(
-        `${sheet.name}: major and handling subject were left blank for review; choose the practical subject manually.`,
+        `${sheet.name}: check the subject before practical duty because this sheet does not identify the subject taught at the exam standard.`,
       );
     }
   }

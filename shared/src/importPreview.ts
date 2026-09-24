@@ -1,6 +1,7 @@
 import { teacherImportRowSchema, type TeacherImportRow } from "./validation.js";
 import { createId } from "./ids.js";
 import { normalizeImportValue, friendlyImportIssue } from "./importValues.js";
+import { schoolReferenceKey } from "./centreChecklist.js";
 
 export type ImportRowStatus =
   | "NEW"
@@ -53,7 +54,7 @@ export interface ImportPreviewSummary {
 export function previewTeacherImport(
   rawRows: unknown[],
   existing: ExistingTeacherRef[],
-  schools?: Array<{ schoolId: string; schoolCode: string; schoolName: string }>,
+  schools?: Array<{ schoolId: string; schoolCode: string; schoolName: string; sourceSchoolCode?: string }>,
 ): ImportPreviewSummary {
   const rows: ImportPreviewRow[] = [];
   const seenCodes = new Map<string, number>();
@@ -81,6 +82,10 @@ export function previewTeacherImport(
       let matches = schools.filter((s) =>
         (code ? normal(s.schoolCode) === code || s.schoolId === input.schoolCode : normal(s.schoolName) === name) &&
         (!name || normal(s.schoolName) === name));
+      if (input.sourceSchoolCode) {
+        const byReference = schools.filter(s => s.sourceSchoolCode && schoolReferenceKey(s.sourceSchoolCode) === schoolReferenceKey(String(input.sourceSchoolCode)));
+        if (byReference.length) matches = byReference;
+      }
       // Older templates put school names under "schoolCode". Match an exact saved
       // name only after code lookup fails; never create a centre from that text.
       if (!matches.length && code && !name) matches = schools.filter((s) => normal(s.schoolName) === code);

@@ -8,7 +8,7 @@ import type {
 export type CentreStaffingRequirement = {
   requirementKey: string;
   centreId: string;
-  roleCode: "CHIEF_EXAMINATION" | "DEPARTMENT_OFFICER" | "OFFICE_STAFF";
+  roleCode: "CHIEF_EXAMINATION" | "DEPARTMENT_OFFICER" | "OFFICE_STAFF" | "CUSTODIAN";
   examDate: string;
   sessionCode: "MORNING" | "AFTERNOON";
   preferredDesignations: string[];
@@ -137,4 +137,19 @@ export function calculateCustodianRequirementCount(
   if (!Number.isInteger(schoolCount) || schoolCount < 0) return 0;
   if (!Number.isInteger(schoolsPerCustodian) || schoolsPerCustodian <= 0) return 0;
   return Math.ceil(schoolCount / schoolsPerCustodian);
+}
+
+/** Several subjects at one centre/session still need just one hall staffing set. */
+export function buildHallDemands(input:{timetable:ExamTimetableEntry[];centres:Centre[];relationships:CentreSchoolRelationship[]}) {
+  const demands=new Map<string,{centreId:string;totalStudents:number;examDate:string;sessionCode:"MORNING"|"AFTERNOON"}>();
+  for(const entry of input.timetable.filter(e=>e.requiresHall))for(const centre of input.centres){
+    if(!centre.active||!centreAppliesToSession(centre.centreId,entry,input.relationships))continue;
+    demands.set(`${centre.centreId}|${entry.examDate}|${entry.sessionCode}`,{centreId:centre.centreId,totalStudents:centre.capacity??0,examDate:entry.examDate,sessionCode:entry.sessionCode});
+  }
+  return [...demands.values()];
+}
+
+export function buildCustodianRequirements(plans:Array<{centreId:string;schoolIds:string[];count:number}>, timetable:ExamTimetableEntry[]):CentreStaffingRequirement[] {
+  const sessions=new Map(timetable.filter(t=>t.requiresChief).map(t=>[`${t.examDate}|${t.sessionCode}`,t]));
+  return plans.flatMap(p=>[...sessions.values()].flatMap(s=>Array.from({length:p.count},(_,i)=>({requirementKey:`${p.centreId}|${s.examDate}|${s.sessionCode}|CUSTODIAN|${i+1}`,centreId:p.centreId,roleCode:"CUSTODIAN" as const,examDate:s.examDate,sessionCode:s.sessionCode,preferredDesignations:["PG","SENIOR_PG","BT"],fallbackDesignations:[],staffCategory:"TEACHING" as const}))));
 }

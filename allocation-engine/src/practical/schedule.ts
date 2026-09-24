@@ -5,12 +5,13 @@ import type {
   Teacher,
   TeacherExemption,
   DutyCalendarEvent,
+  HistoricalDuty,
 } from "@exam-duty/shared";
 
 // 1.2 schedules different subjects in parallel.  A subject's own batches
 // still remain in morning/afternoon order, which models the 50 + 50 pattern
 // without incorrectly treating all subjects in one school as one queue.
-export const PRACTICAL_ALGORITHM_VERSION = "practical-1.3.0";
+export const PRACTICAL_ALGORITHM_VERSION = "practical-1.4.0";
 
 /** The confirmed examiner post rule for public practical examinations. */
 export function requiredPracticalDesignation(
@@ -45,6 +46,7 @@ export interface PracticalDataset {
   academicYear: string;
   /** `10` uses BT Assistants; `12` uses PG Assistants. */
   standard: string;
+  history?: HistoricalDuty[];
   /** Teachers eligible as internal for a school (typically same school) */
   internalEligible: (teacher: Teacher, schoolId: string, subjectId: string) => boolean;
   /** Teachers eligible as external */
@@ -202,6 +204,7 @@ export function schedulePractical(
 
   const schedules: PracticalScheduleItem[] = [];
   const occupied = new Set<string>();
+  const workload = new Map<string,number>();
   const sortedDates = [...dataset.availableDates].sort();
 
   for (const [schoolId, schoolBatches] of [...bySchool.entries()].sort((a, b) =>
@@ -250,8 +253,15 @@ export function schedulePractical(
       }
     }
 
-    for (const { batch, slotIndex } of schoolScheduleOrder) {
-      const slot = windowSlots[slotIndex]!;
+    const previousSlotBySubject = new Map<string,number>();
+    for (const { batch } of schoolScheduleOrder) {
+      const candidatesAt = (slot:{date:string;session:SessionCode}) => {
+      const rank = (a:Teacher,b:Teacher,role:"PRACTICAL_INTERNAL"|"PRACTICAL_EXTERNAL") => {
+        const previousRole = (t:Teacher) => (dataset.history??[]).filter(h=>h.teacherId===t.teacherId && Number(h.academicYear)===Number(dataset.academicYear)-1 && (h.roleCode??h.dutyTypeCode).startsWith("PRACTICAL_")).sort((x,y)=>y.examDate.localeCompare(x.examDate))[0];
+        const rotation = (t:Teacher) => (previousRole(t)?.roleCode??previousRole(t)?.dutyTypeCode)===role?1:0;
+        const recent = (t:Teacher) => (dataset.history??[]).filter(h=>h.teacherId===t.teacherId && h.examDate<slot.date).map(h=>h.examDate).sort().at(-1)??"";
+        return rotation(a)-rotation(b)||(workload.get(a.teacherId)??0)-(workload.get(b.teacherId)??0)||recent(a).localeCompare(recent(b))||a.employeeCode.localeCompare(b.employeeCode);
+      };
       const internals = dataset.teachers
         .filter(
           (t) =>
@@ -259,12 +269,12 @@ export function schedulePractical(
             isTeachingStaff(t) &&
             matchesPracticalDesignation(t, dataset.standard) &&
             !dataset.exemptions.some(
-              (e) => e.teacherId === t.teacherId && exemptionActive(e, dataset.asOfDate),
+              (e) => e.teacherId === t.teacherId && exemptionActive(e, slot.date),
             ) &&
             dataset.internalEligible(t, schoolId, batch.subjectId) &&
             !conflicted(t.teacherId, slot.date, slot.session, dataset.calendar, occupied),
         )
-        .sort((a, b) => a.employeeCode.localeCompare(b.employeeCode));
+        .sort((a, b) => rank(a,b,"PRACTICAL_INTERNAL"));
 
       const externals = dataset.teachers
         .filter(
@@ -273,12 +283,20 @@ export function schedulePractical(
             isTeachingStaff(t) &&
             matchesPracticalDesignation(t, dataset.standard) &&
             !dataset.exemptions.some(
-              (e) => e.teacherId === t.teacherId && exemptionActive(e, dataset.asOfDate),
+              (e) => e.teacherId === t.teacherId && exemptionActive(e, slot.date),
             ) &&
             dataset.externalEligible(t, schoolId, batch.subjectId) &&
             !conflicted(t.teacherId, slot.date, slot.session, dataset.calendar, occupied),
         )
-        .sort((a, b) => a.employeeCode.localeCompare(b.employeeCode));
+        .sort((a, b) => rank(a,b,"PRACTICAL_EXTERNAL"));
+      return {internals,externals};
+      };
+      let chosen: {slot:typeof windowSlots[number];internals:Teacher[];externals:Teacher[];index:number}|undefined;
+      for(let index=(previousSlotBySubject.get(batch.subjectId)??-1)+1;index<windowSlots.length;index++){
+        const slot=windowSlots[index]!;const {internals,externals}=candidatesAt(slot);
+        if(internals.some(a=>externals.some(b=>a.teacherId!==b.teacherId))){chosen={slot,internals,externals,index};break;}
+      }
+      const {slot,internals,externals}=chosen??{slot:windowSlots[0]!,internals:[],externals:[]};
 
       if (internals.length === 0 || externals.length === 0) {
         return {
@@ -358,6 +376,9 @@ export function schedulePractical(
       });
       occupied.add(`${internal.teacherId}|${slot.date}|${slot.session}`);
       occupied.add(`${external.teacherId}|${slot.date}|${slot.session}`);
+      previousSlotBySubject.set(batch.subjectId,chosen!.index);
+      workload.set(internal.teacherId,(workload.get(internal.teacherId)??0)+1);
+      workload.set(external.teacherId,(workload.get(external.teacherId)??0)+1);
     }
   }
 

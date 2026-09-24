@@ -281,7 +281,7 @@ export function groupDutyInLetters(input: {
     const school = input.schoolById.get(schoolId);
     const grouped = new Map<string, typeof schedules>();
     for (const s of schedules) {
-      const key = `${s.subjectId}|${s.externalExaminerId}|${s.internalExaminerId}`;
+      const key = `${s.subjectId}|${s.externalExaminerId}|${s.internalExaminerId}|${s.examDate}`;
       const list = grouped.get(key) ?? [];
       list.push(s);
       grouped.set(key, list);
@@ -309,12 +309,12 @@ export function groupDutyInLetters(input: {
       schoolNumber: school?.schoolCode ?? schoolId,
       schoolName: school?.schoolName ?? schoolId,
       city: school?.place ?? "",
-      appointments,
+      appointments:appointments.sort((a,b)=>a.subject.localeCompare(b.subject)||a.fromDate.localeCompare(b.fromDate)||a.externalName.localeCompare(b.externalName)),
       signatoryTitle: input.signatoryTitle,
       signatoryPlace: input.signatoryPlace,
     });
   }
-  return letters;
+  return letters.sort((a,b)=>a.schoolNumber.localeCompare(b.schoolNumber)||a.schoolName.localeCompare(b.schoolName));
 }
 
 /** Group practical schedules into Duty-Out letters keyed by external examiner home school. */
@@ -353,7 +353,7 @@ export function groupDutyOutLetters(input: {
     const school = input.schoolById.get(homeSchoolId);
     const grouped = new Map<string, typeof schedules>();
     for (const s of schedules) {
-      const key = `${s.externalExaminerId}|${s.schoolId}|${s.subjectId}`;
+      const key = `${s.externalExaminerId}|${s.schoolId}|${s.subjectId}|${s.examDate}`;
       const list = grouped.get(key) ?? [];
       list.push(s);
       grouped.set(key, list);
@@ -379,12 +379,12 @@ export function groupDutyOutLetters(input: {
       schoolNumber: school?.schoolCode ?? homeSchoolId,
       schoolName: school?.schoolName ?? homeSchoolId,
       place: school?.place ?? "",
-      assignments,
+      assignments:assignments.sort((a,b)=>a.subject.localeCompare(b.subject)||a.teacherName.localeCompare(b.teacherName)||a.fromDate.localeCompare(b.fromDate)||a.dutySchoolName.localeCompare(b.dutySchoolName)),
       signatoryTitle: input.signatoryTitle,
       signatoryPlace: input.signatoryPlace,
     });
   }
-  return letters;
+  return letters.sort((a,b)=>a.schoolNumber.localeCompare(b.schoolNumber)||a.schoolName.localeCompare(b.schoolName));
 }
 
 export interface Form01TeacherRow {

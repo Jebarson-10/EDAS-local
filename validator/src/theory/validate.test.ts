@@ -9,6 +9,12 @@ import {
 } from "@exam-duty/allocation-engine";
 import { validateTheoryAllocation, validatePracticalAllocation, detectSessionConflicts } from "../index.js";
 
+it.each(["PG", "BT", "SENIOR_PG", "HM", "SPECIAL_TEACHER", "OFFICE_STAFF"])("independently verifies custodian post %s", designation => {
+  const requirement = makeRequirement({roleCode: "CUSTODIAN", preferredDesignations: [], fallbackDesignations: []});
+  const result = validateTheoryAllocation([requirement], makeForgedResult(requirement), makeDataset({teachers: [makeTeacher({designation})]}), DEFAULT_RULE_PARAMETERS);
+  expect(result.valid).toBe(["PG", "BT", "SENIOR_PG"].includes(designation) ? 1 : 0);
+});
+
 function makeTeacher(overrides: Partial<Teacher> = {}): Teacher {
   return {
     teacherId: "t1",

@@ -3,6 +3,8 @@ import { DEFAULT_RULE_PARAMETERS } from "./types.js";
 import {
   buildCentreStaffingRequirements,
   calculateCustodianRequirementCount,
+  buildCustodianRequirements,
+  buildHallDemands,
 } from "./centreStaffing.js";
 
 const entry = (subjectLabel: string) => ({
@@ -15,6 +17,16 @@ const entry = (subjectLabel: string) => ({
 });
 
 describe("centre staffing requirements", () => {
+  it("creates custodians once per point/session with PG and BT eligibility", () => {
+    const result = buildCustodianRequirements([{centreId: "c1", schoolIds: ["s1", "s2"], count: 2}], [entry("Tamil"), entry("English")]);
+    expect(result).toHaveLength(2);
+    expect(new Set(result.map(r => r.requirementKey)).size).toBe(2);
+    expect(result[0]).toMatchObject({roleCode: "CUSTODIAN", preferredDesignations: ["PG", "SENIOR_PG", "BT"], fallbackDesignations: []});
+    expect(buildCustodianRequirements([], [entry("Tamil")])).toEqual([]);
+  });
+  it("does not duplicate hall staff when subjects share a session", () => {
+    expect(buildHallDemands({timetable: [entry("Tamil"), entry("English")], centres: [{centreId: "c1", centreCode: "1", centreName: "Synthetic", blockId: "b1", capacity: 101, active: true}], relationships: []})).toHaveLength(1);
+  });
   it("creates one chief, one department officer and two office staff through 500 students", () => {
     const plan = buildCentreStaffingRequirements({
       timetable: [entry("Tamil"), entry("English")],

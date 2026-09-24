@@ -17,6 +17,10 @@ import { join, resolve, relative, extname } from "node:path";
 import { randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
 import { createSqliteClient } from "../worker/src/db/client.ts";
+import { checklistCentres, checklistRelationships, getCentreChecklist, saveCentreChecklist, getPracticalStudents, savePracticalStudents } from "../worker/src/db/centreChecklist.ts";
+import { centreChecklistBodySchema, officialMasterImportBodySchema, examCycleStandardBodySchema, practicalStudentsBodySchema, custodianPlanBodySchema } from "../shared/src/index.ts";
+import { getCustodianPlan, saveCustodianPlan } from "../worker/src/db/centreChecklist.ts";
+import { importOfficialSchoolMasterData, setExamCycleStandard } from "../worker/src/db/repos.ts";
 import { applyMigrations } from "../worker/src/db/migrate.ts";
 import {
   countMaster,
@@ -131,6 +135,8 @@ const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".ico": "image/x-icon",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".wasm": "application/wasm",
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".woff2": "font/woff2",
@@ -411,7 +417,8 @@ async function main() {
       }
       if (url.pathname === "/api/centres" && req.method === "GET") {
         if (!requirePerm(a, "master.read", res)) return;
-        return json(res, { centres: await listCentres(db) });
+        const masters = await listCentres(db);
+        return json(res, { centres: url.searchParams.has("examCycleId") ? await checklistCentres(db, url.searchParams.get("examCycleId")!, masters) : masters });
       }
       if (url.pathname === "/api/blocks" && req.method === "GET") {
         if (!requirePerm(a, "master.read", res)) return;
@@ -448,7 +455,8 @@ async function main() {
       }
       if (url.pathname === "/api/relationships" && req.method === "GET") {
         if (!requirePerm(a, "master.read", res)) return;
-        return json(res, { relationships: await listRelationships(db) });
+        const masters = await listRelationships(db, 20000);
+        return json(res, { relationships: url.searchParams.has("examCycleId") ? await checklistRelationships(db, url.searchParams.get("examCycleId")!, masters) : masters });
       }
       if (url.pathname === "/api/history" && req.method === "GET") {
         if (!requirePerm(a, "master.read", res)) return;
@@ -641,6 +649,53 @@ async function main() {
         return json(res, result);
       }
 
+      if (url.pathname === "/api/imports/official-school-master" && req.method === "POST") {
+        if (!requirePerm(a, "master.write", res)) return;
+        const parsed = parseBody(officialMasterImportBodySchema, JSON.parse((await readBody(req)).toString("utf8")));
+        if (!parsed.ok) return json(res, {error:parsed.error}, 400);
+        const result = await importOfficialSchoolMasterData(db, parsed.data.schools);
+        await insertAudit(db, {auditId:randomUUID(),userId:a!.userId,action:"IMPORT",entity:"official_school_master",reason:"Official staff workbook school import",newValue:JSON.stringify({createdSchools:result.createdSchools})});
+        return json(res, {ok:true,...result});
+      }
+      if (url.pathname === "/api/custodian-plan") {
+        if (!requirePerm(a, req.method === "GET" ? "master.read" : "import.apply", res)) return;
+        try {
+          if (req.method === "GET") return json(res, {rows: await getCustodianPlan(db, url.searchParams.get("examCycleId") ?? "")});
+          if (req.method === "POST") {
+            const parsed = parseBody(custodianPlanBodySchema, JSON.parse((await readBody(req)).toString("utf8")));
+            if (!parsed.ok) return json(res, {error: parsed.error}, 400);
+            return json(res, {ok: true, ...await saveCustodianPlan(db, parsed.data, a!.userId)});
+          }
+        } catch (e) { return json(res, {error: e instanceof Error ? e.message : String(e)}, 400); }
+      }
+      if (url.pathname === "/api/imports/practical-students") {
+        if(!requirePerm(a,req.method==="GET"?"master.read":"import.apply",res))return;
+        try {
+          if(req.method==="GET")return json(res,{rows:await getPracticalStudents(db,url.searchParams.get("examCycleId")??"")});
+          if(req.method==="POST"){
+            const parsed=parseBody(practicalStudentsBodySchema,JSON.parse((await readBody(req)).toString("utf8")));if(!parsed.ok)return json(res,{error:parsed.error},400);
+            return json(res,{ok:true,...await savePracticalStudents(db,parsed.data,a!.userId)});
+          }
+        }catch(e){return json(res,{error:e instanceof Error?e.message:String(e)},400);}
+      }
+      if (url.pathname === "/api/imports/centre-checklist") {
+        if (!requirePerm(a, req.method === "GET" ? "master.read" : "import.apply", res)) return;
+        try {
+          if (req.method === "GET") return json(res, {checklist:await getCentreChecklist(db, url.searchParams.get("examCycleId") ?? "")});
+          if (req.method === "POST") {
+            const parsed = parseBody(centreChecklistBodySchema, JSON.parse((await readBody(req)).toString("utf8")));
+            if (!parsed.ok) return json(res, {error:parsed.error}, 400);
+            return json(res, {ok:true,...await saveCentreChecklist(db, parsed.data, a!.userId)});
+          }
+        } catch (e) { return json(res, {error:e instanceof Error ? e.message : String(e)}, 400); }
+      }
+      if (url.pathname.match(/^\/api\/exam-cycles\/[^/]+\/standard$/) && req.method === "POST") {
+        if (!requirePerm(a, "allocation.approve", res)) return;
+        const parsed = parseBody(examCycleStandardBodySchema, JSON.parse((await readBody(req)).toString("utf8")));
+        if (!parsed.ok) return json(res, {error:parsed.error}, 400);
+        const result = await setExamCycleStandard(db, url.pathname.split("/")[3]!, parsed.data.standard);
+        return json(res, result, result.ok ? 200 : 409);
+      }
       if (url.pathname === "/api/exam-cycles" && req.method === "GET") {
         if (!requirePerm(a, "master.read", res)) return;
         return json(res, { cycles: await listExamCycles(db) });

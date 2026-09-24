@@ -31,6 +31,34 @@ export const officialMasterImportBodySchema = z.object({
   })).max(10_000),
 });
 
+export const centreChecklistBodySchema = z.object({
+  examCycleId: z.string().min(1),
+  standard: z.enum(["10", "12"]),
+  academicYear: z.string().regex(/^20\d{2}$/),
+  reviewed: z.literal(true),
+  rows: z.array(z.object({
+    centreCode: z.string().trim().min(1).max(64),
+    centreName: z.string().trim().min(1).max(250),
+    sourceSchoolCode: z.string().trim().min(1).max(64),
+    schoolName: z.string().trim().min(1).max(250),
+    studentCount: z.number().int().nonnegative().max(100000),
+    schoolId: z.string().optional(),
+    blockId: z.string().min(1),
+    hostSchoolKey: z.string().min(1),
+  })).min(1).max(10000),
+});
+
+export const practicalStudentsBodySchema = z.object({
+  examCycleId:z.string().min(1),
+  rows:z.array(z.object({schoolId:z.string().min(1),subjectId:z.string().trim().min(1).max(64),studentCount:z.number().int().positive().max(100000)})).max(10000),
+});
+
+export const custodianPlanBodySchema=z.object({
+  examCycleId:z.string().min(1),
+  rows:z.array(z.object({centreId:z.string().min(1),schoolIds:z.array(z.string().min(1)).min(1),count:z.number().int().positive().max(1000)})).max(1000),
+  reason:z.string().trim().min(1).max(1000),
+});
+
 export function validateCoordinates(
   lat: number | null | undefined,
   lon: number | null | undefined,
@@ -322,6 +350,10 @@ export const importApplyBodySchema = z.object({
         designation: z.string().min(1),
         subject: z.string().nullable().optional(),
         seniorityRank: z.number().nullable().optional(),
+        joiningDate: z.string().nullable().optional(),
+        joining_date: z.string().nullable().optional(),
+        officialDetails: z.record(z.string(), z.string()).nullable().optional(),
+        official_details_json: z.string().nullable().optional(),
         seniority_rank: z.number().nullable().optional(),
         homeLatitude: z.number().nullable().optional(),
         home_latitude: z.number().nullable().optional(),

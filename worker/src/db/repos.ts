@@ -13,6 +13,7 @@ import {
   mergeValidationFindings,
   normalizeValidationFinding,
   sha256Hex,
+  schoolReferenceKey,
   type ExamCycleStatus,
 } from "@exam-duty/shared";
 
@@ -912,6 +913,9 @@ export type BackupPayload = {
   source_imports?: Array<Record<string, unknown>>;
   source_import_rows?: Array<Record<string, unknown>>;
   export_records?: Array<Record<string, unknown>>;
+  centre_checklists?: Array<Record<string, unknown>>;
+  practical_student_returns?: Array<Record<string, unknown>>;
+  custodian_plans?: Array<Record<string, unknown>>;
   rules?: unknown;
 };
 
@@ -1567,11 +1571,12 @@ export async function transactionalRestore(
       db
         .prepare(
           `INSERT INTO schools
-            (school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at, source_school_code)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(school_id) DO UPDATE SET
              school_code=excluded.school_code,
              school_name=excluded.school_name,
+             source_school_code=excluded.source_school_code,
              block_id=excluded.block_id,
              latitude=excluded.latitude,
              longitude=excluded.longitude,
@@ -1590,6 +1595,7 @@ export async function transactionalRestore(
           s.dataQuality ?? s.data_quality ?? "Imported",
           now,
           now,
+          s.sourceSchoolCode ?? s.source_school_code ?? null,
         ),
     );
   }
@@ -1687,8 +1693,8 @@ export async function transactionalRestore(
           t.dataQuality ?? t.data_quality ?? "Imported",
           t.teacherCode ?? t.teacher_code ?? null,
           t.staffCategory ?? t.staff_category ?? "TEACHING",
-          typeof (t.officialDetails ?? t.official_details) === "string"
-            ? (t.officialDetails ?? t.official_details)
+          typeof (t.official_details_json ?? t.officialDetails ?? t.official_details) === "string"
+            ? (t.official_details_json ?? t.officialDetails ?? t.official_details)
             : JSON.stringify(t.officialDetails ?? t.official_details ?? null),
           now,
           now,
@@ -2127,6 +2133,24 @@ export async function transactionalRestore(
     );
   }
 
+  for (const row of payload.centre_checklists ?? []) {
+    const parsedRows = JSON.parse(String(row.rows_json ?? "[]"));
+    if (!Array.isArray(parsedRows)) return {ok:false,error:"Invalid centre list in backup"};
+    stmts.push(db.prepare(`INSERT INTO centre_checklists (exam_cycle_id,standard,academic_year,rows_json,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(exam_cycle_id) DO UPDATE SET standard=excluded.standard,academic_year=excluded.academic_year,rows_json=excluded.rows_json,updated_at=excluded.updated_at`)
+      .bind(row.exam_cycle_id,row.standard,row.academic_year,JSON.stringify(parsedRows),row.updated_at??now));
+  }
+  for (const row of payload.custodian_plans ?? []) {
+    const rowsJson = String(row.rows_json ?? "[]");
+    if (!Array.isArray(JSON.parse(rowsJson))) throw new Error("Invalid custodian plan in backup");
+    stmts.push(db.prepare(`INSERT INTO custodian_plans (exam_cycle_id,rows_json,updated_at) VALUES (?,?,?) ON CONFLICT(exam_cycle_id) DO UPDATE SET rows_json=excluded.rows_json,updated_at=excluded.updated_at`)
+      .bind(row.exam_cycle_id, rowsJson, row.updated_at));
+  }
+  for (const row of payload.practical_student_returns ?? []) {
+    const parsedRows = JSON.parse(String(row.rows_json ?? "[]"));
+    if (!Array.isArray(parsedRows)) return {ok:false,error:"Invalid practical student list in backup"};
+    stmts.push(db.prepare(`INSERT INTO practical_student_returns (exam_cycle_id,rows_json,updated_at) VALUES (?,?,?) ON CONFLICT(exam_cycle_id) DO UPDATE SET rows_json=excluded.rows_json,updated_at=excluded.updated_at`)
+      .bind(row.exam_cycle_id,JSON.stringify(parsedRows),row.updated_at??now));
+  }
   try {
     await runAtomic(db, stmts);
     return {
@@ -2354,7 +2378,7 @@ export async function importOfficialSchoolMasterData(
   const existingBlocks = await listBlocks(db, 10_000) as Array<{ block_id: string; block_code: string; block_name: string }>;
   const existingSchools = await listSchools(db, 20_000) as Array<{ school_id: string; school_name: string; source_school_code?: string | null; latitude?: number | null; longitude?: number | null }>;
   const blocks = new Map(existingBlocks.map((item) => [normal(item.block_code), item]));
-  const schoolsBySource = new Map(existingSchools.filter((item) => item.source_school_code).map((item) => [normal(String(item.source_school_code)), item]));
+  const schoolsBySource = new Map(existingSchools.filter((item) => item.source_school_code).map((item) => [schoolReferenceKey(String(item.source_school_code)), item]));
   const schoolsByName = new Map(existingSchools.map((item) => [normal(item.school_name), item]));
   const statements: DbStatement[] = [];
   const skippedNoBlock = new Set<string>();
@@ -2368,6 +2392,17 @@ export async function importOfficialSchoolMasterData(
     const schoolName = raw.schoolName.trim().replace(/\s+/g, " ");
     const blockCode = raw.blockCode?.trim().replace(/\s+/g, " ") ?? "";
     if (!schoolName) continue;
+    const sourceKey = raw.sourceSchoolCode?.trim() ? schoolReferenceKey(raw.sourceSchoolCode) : "";
+    const existing = (sourceKey ? schoolsBySource.get(sourceKey) : undefined) ?? schoolsByName.get(normal(schoolName));
+    if (existing) {
+      matchedSchools += 1;
+      if (sourceKey && !existing.source_school_code) {
+        statements.push(db.prepare("UPDATE schools SET source_school_code=? WHERE school_id=?").bind(raw.sourceSchoolCode!.trim(), existing.school_id));
+        schoolsBySource.set(sourceKey, existing);
+      }
+      if (existing.latitude == null || existing.longitude == null) missingLocations.add(schoolName);
+      continue;
+    }
     if (!blockCode) {
       skippedNoBlock.add(schoolName);
       continue;
@@ -2381,13 +2416,6 @@ export async function importOfficialSchoolMasterData(
       statements.push(db.prepare(`INSERT INTO blocks (block_id, block_code, block_name, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)`)
         .bind(blockId, blockCode, blockCode, now, now));
       createdBlocks += 1;
-    }
-    const sourceKey = raw.sourceSchoolCode?.trim() ? normal(raw.sourceSchoolCode) : "";
-    const existing = (sourceKey ? schoolsBySource.get(sourceKey) : undefined) ?? schoolsByName.get(normal(schoolName));
-    if (existing) {
-      matchedSchools += 1;
-      if (existing.latitude == null || existing.longitude == null) missingLocations.add(schoolName);
-      continue;
     }
     const schoolId = `sch_${crypto.randomUUID()}`;
     const internalCode = `__school_${schoolId}`;
@@ -4356,5 +4384,8 @@ export async function buildCanonicalBackup(
     source_imports: sourceImports as Array<Record<string, unknown>>,
     source_import_rows: sourceImportRows as Array<Record<string, unknown>>,
     export_records: exportRecords as Array<Record<string, unknown>>,
+    centre_checklists: (await db.prepare("SELECT * FROM centre_checklists").all()).results,
+    practical_student_returns: (await db.prepare("SELECT * FROM practical_student_returns").all()).results,
+    custodian_plans: (await db.prepare("SELECT * FROM custodian_plans").all()).results,
   };
 }

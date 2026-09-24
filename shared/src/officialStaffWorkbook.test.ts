@@ -168,4 +168,12 @@ describe("official staff workbook import", () => {
       expect.objectContaining({ name: "D. Headmaster", designation: "HM" }),
     );
   });
+  it("keeps a named teacher when the school reference cell is blank", () => {
+    const parsed = parseOfficialStaffWorkbook([{name:"HM",lines:[
+      ["SCHOOL CODE","NAME OF THE SCHOOL","HEADMASTER NAME"],
+      [null,"Synthetic school without centre code","Synthetic HM"],
+    ]}]);
+    expect(parsed.rows).toHaveLength(1);
+    expect(parsed.rows[0]).toMatchObject({name:"Synthetic HM",schoolName:"Synthetic school without centre code",designation:"HM"});
+  });
 });

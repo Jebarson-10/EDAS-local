@@ -114,6 +114,11 @@ function baseDataset(overrides: Partial<TheoryDataset> = {}): TheoryDataset {
 }
 
 describe("theory allocation", () => {
+  it.each(["PG", "BT", "SENIOR_PG", "HM", "SPECIAL_TEACHER", "OFFICE_STAFF"])("enforces custodian eligibility for %s even with an unrestricted requested band", designation => {
+    const dataset = baseDataset({teachers: [teacher({teacherId: "candidate", employeeCode: "T", name: "Synthetic", schoolId: "s2", designation})]});
+    const result = allocateTheory([{requirementKey: "custodian", centreId: "c1", roleCode: "CUSTODIAN", examDate: "2027-03-10", sessionCode: "MORNING", preferredDesignations: [], fallbackDesignations: []}], dataset, rules);
+    expect(result.assignments).toHaveLength(["PG", "BT", "SENIOR_PG"].includes(designation) ? 1 : 0);
+  });
   it("reserves special teachers for hall invigilation", () => {
     const dataset = baseDataset({
       teachers: [teacher({

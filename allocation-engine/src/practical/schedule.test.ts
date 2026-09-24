@@ -17,6 +17,15 @@ const teacher = (
 });
 
 describe("practical scheduling", () => {
+  it("stagger schools so the same subject teachers can exchange examiner duties", () => {
+    const result = schedulePractical(
+      [{schoolId:"a",subjectId:"physics",studentCount:50},{schoolId:"b",subjectId:"physics",studentCount:50}],
+      {teachers:[teacher("ta","A","a"),teacher("tb","B","b")],exemptions:[],calendar:[],pairHistory:[],availableDates:["2027-03-01"],asOfDate:"2027-03-01",academicYear:"2027",standard:"12",internalEligible:(t,s)=>t.schoolId===s,externalEligible:(t,s)=>t.schoolId!==s},
+      DEFAULT_RULE_PARAMETERS,
+    );
+    expect(result.feasible).toBe(true);
+    expect(result.schedules.map(s=>[s.schoolId,s.sessionCode,s.internalExaminerId,s.externalExaminerId])).toEqual([["a","MORNING","ta","tb"],["b","AFTERNOON","tb","ta"]]);
+  });
   it("never uses office staff as practical internal or external examiners", () => {
     const officeInternal: Teacher = {
       ...teacher("office-internal", "A-OFFICE", "host"),

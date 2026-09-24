@@ -40,6 +40,13 @@ export const API_ROUTES: ApiRoute[] = [
   { method: "GET", path: "/api/exemptions" },
   { method: "POST", path: "/api/exemptions" },
   { method: "POST", path: "/api/imports/apply" },
+  { method: "POST", path: "/api/imports/official-school-master" },
+  { method: "GET", path: "/api/imports/centre-checklist" },
+  { method: "POST", path: "/api/imports/centre-checklist" },
+  { method: "GET", path: "/api/imports/practical-students" },
+  { method: "POST", path: "/api/imports/practical-students" },
+  { method: "GET", path: "/api/custodian-plan" },
+  { method: "POST", path: "/api/custodian-plan" },
   { method: "GET", path: "/api/imports" },
   { method: "POST", path: "/api/imports" },
   {

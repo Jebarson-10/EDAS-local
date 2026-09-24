@@ -12,7 +12,7 @@ import { haversineKm, roundKm } from "@exam-duty/shared";
 
 // 1.1 permits a teacher to be considered again on a different date/session,
 // while the dynamic workload score gives every eligible teacher a turn first.
-export const HALL_ALGORITHM_VERSION = "hall-1.1.0";
+export const HALL_ALGORITHM_VERSION = "hall-1.2.0";
 
 export interface HallCentreDemand {
   centreId: string;
@@ -133,8 +133,8 @@ export function allocateHall(
           (e) =>
             e.teacherId === t.teacherId &&
             e.isExempted &&
-            e.effectiveFrom <= dataset.asOfDate &&
-            (!e.effectiveTo || e.effectiveTo >= dataset.asOfDate),
+            e.effectiveFrom <= demand.examDate &&
+            (!e.effectiveTo || e.effectiveTo >= demand.examDate),
         )
       )
         return false;

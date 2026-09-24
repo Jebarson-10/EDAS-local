@@ -65,6 +65,9 @@ import {
   type BackupPayload,
 } from "./db/repos";
 import type { DbClient } from "./db/client";
+import { checklistCentres, checklistRelationships, getCentreChecklist, saveCentreChecklist, getPracticalStudents, savePracticalStudents } from "./db/centreChecklist";
+import { centreChecklistBodySchema, practicalStudentsBodySchema, custodianPlanBodySchema } from "@exam-duty/shared";
+import { getCustodianPlan, saveCustodianPlan } from "./db/centreChecklist";
 import {
   allocationRunBodySchema,
   activateRuleVersionBodySchema,
@@ -427,7 +430,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const denied = requirePerm(auth, "master.read");
     if (denied) return denied;
     try {
-      return json({ centres: await listCentres(db) });
+      const masters = await listCentres(db);
+      return json({ centres: url.searchParams.has("examCycleId") ? await checklistCentres(db, url.searchParams.get("examCycleId")!, masters) : masters });
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 503);
     }
@@ -480,7 +484,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const denied = requirePerm(auth, "master.read");
     if (denied) return denied;
     try {
-      return json({ relationships: await listRelationships(db) });
+      const masters = await listRelationships(db, 20000);
+      return json({ relationships: url.searchParams.has("examCycleId") ? await checklistRelationships(db, url.searchParams.get("examCycleId")!, masters) : masters });
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 503);
     }
@@ -820,6 +825,43 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 503);
     }
+  }
+
+  if (url.pathname === "/api/imports/centre-checklist") {
+    const denied = requirePerm(auth, request.method === "GET" ? "master.read" : "import.apply");
+    if (denied) return denied;
+    try {
+      if (request.method === "GET") return json({ checklist: await getCentreChecklist(db, url.searchParams.get("examCycleId") ?? "") });
+      if (request.method === "POST") {
+        const parsed = parseBody(centreChecklistBodySchema, await request.json());
+        if (!parsed.ok) return json({error: parsed.error}, 400);
+        return json({ok:true, ...await saveCentreChecklist(db, parsed.data, auth!.userId)});
+      }
+    } catch (e) { return json({error: e instanceof Error ? e.message : String(e)}, 400); }
+  }
+
+  if (url.pathname === "/api/custodian-plan") {
+    const denied = requirePerm(auth, request.method === "GET" ? "master.read" : "import.apply");
+    if (denied) return denied;
+    try {
+      if (request.method === "GET") return json({rows: await getCustodianPlan(db, url.searchParams.get("examCycleId") ?? "")});
+      if (request.method === "POST") {
+        const parsed = parseBody(custodianPlanBodySchema, await request.json());
+        if (!parsed.ok) return json({error: parsed.error}, 400);
+        return json({ok: true, ...await saveCustodianPlan(db, parsed.data, auth!.userId)});
+      }
+    } catch (e) { return json({error: e instanceof Error ? e.message : String(e)}, 400); }
+  }
+
+  if (url.pathname === "/api/imports/practical-students") {
+    const denied=requirePerm(auth,request.method==="GET"?"master.read":"import.apply");if(denied)return denied;
+    try {
+      if(request.method==="GET")return json({rows:await getPracticalStudents(db,url.searchParams.get("examCycleId")??"")});
+      if(request.method==="POST"){
+        const parsed=parseBody(practicalStudentsBodySchema,await request.json());if(!parsed.ok)return json({error:parsed.error},400);
+        return json({ok:true,...await savePracticalStudents(db,parsed.data,auth!.userId)});
+      }
+    }catch(e){return json({error:e instanceof Error?e.message:String(e)},400);}
   }
 
   if (

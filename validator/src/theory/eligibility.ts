@@ -146,6 +146,9 @@ export function validateTheoryCandidateEligibility(
 ): TheoryEligibilityCheck {
   const hardReasons: DecisionReason[] = [];
   const warnings: DecisionReason[] = [];
+  if (requirement.roleCode === "CUSTODIAN" && !["PG", "SENIOR_PG", "BT"].includes(teacher.designation)) {
+    hardReasons.push({ruleCode: "RULE-CUSTODIAN-POST", severity: "ERROR", message: "Only PG and BT Assistants may be custodians."});
+  }
 
   if (
     requirement.staffCategory &&
@@ -178,7 +181,7 @@ export function validateTheoryCandidateEligibility(
     (item) =>
       item.teacherId === teacher.teacherId &&
       item.isExempted &&
-      exemptionApplies(item.effectiveFrom, item.effectiveTo, dataset.asOfDate),
+      exemptionApplies(item.effectiveFrom, item.effectiveTo, requirement.examDate),
   );
   if (exemption) {
     hardReasons.push({

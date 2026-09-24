@@ -11,7 +11,7 @@ import type {
 } from "@exam-duty/shared";
 import { haversineKm, roundKm } from "@exam-duty/shared";
 
-export const ALGORITHM_VERSION = "theory-1.2.0";
+export const ALGORITHM_VERSION = "theory-1.3.0";
 
 export interface TheoryRequirement {
   requirementKey: string;
@@ -242,7 +242,7 @@ export function evaluateTheoryCandidate(
   }
 
   const exempt = dataset.exemptions.find(
-    (e) => e.teacherId === teacher.teacherId && isExemptionActive(e, dataset.asOfDate),
+    (e) => e.teacherId === teacher.teacherId && isExemptionActive(e, requirement.examDate),
   );
   if (exempt) {
     hardReasons.push({
@@ -386,6 +386,9 @@ export function evaluateTheoryCandidate(
     }
   }
 
+  if (requirement.roleCode === "CUSTODIAN" && !["PG", "SENIOR_PG", "BT"].includes(teacher.designation)) {
+    hardReasons.push({ruleCode: "RULE-CUSTODIAN-POST", severity: "ERROR", message: "Custodian duty requires a PG or BT Assistant."});
+  }
   const band =
     designationBand === "preferred"
       ? requirement.preferredDesignations
