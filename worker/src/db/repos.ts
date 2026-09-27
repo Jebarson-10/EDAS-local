@@ -3543,6 +3543,127 @@ export async function listDutyHistory(db: DbClient, limit = 5000) {
   return rs.results;
 }
 
+/**
+ * Adds officer-confirmed, dated duties from earlier examinations. These rows
+ * are append-only just like published runs: they are never overwritten by a
+ * later staff workbook import and a repeat upload leaves matching rows alone.
+ */
+export async function importHistoricalDutyHistory(
+  db: DbClient,
+  input: {
+    examCycleId: string;
+    rows: Array<{
+      teacherId: string;
+      centreId?: string;
+      schoolId?: string;
+      dutyTypeCode: string;
+      roleCode: string;
+      subjectId?: string;
+      examDate: string;
+      sessionCode: "MORNING" | "AFTERNOON";
+      academicYear: string;
+    }>;
+  },
+): Promise<{ imported: number; unchanged: number; pairs: number }> {
+  const mutable = await assertExamCycleMutable(db, input.examCycleId, "import previous duty history");
+  if (!mutable.ok) throw new Error(mutable.error);
+
+  const [teacherRows, centreRows, priorRows] = await Promise.all([
+    db.prepare(`SELECT teacher_id FROM teachers`).all<{ teacher_id: string }>(),
+    db.prepare(`SELECT centre_id FROM centres`).all<{ centre_id: string }>(),
+    db.prepare(`SELECT teacher_id, centre_id, duty_type_code, role_code, exam_date, session_code, academic_year FROM duty_assignment_history`).all<{
+      teacher_id: string; centre_id: string | null; duty_type_code: string; role_code: string | null; exam_date: string; session_code: string; academic_year: string | null;
+    }>(),
+  ]);
+  const teachers = new Set((teacherRows.results ?? []).map((row) => row.teacher_id));
+  const centres = new Set((centreRows.results ?? []).map((row) => row.centre_id));
+  const keyFor = (row: {
+    teacherId: string; centreId?: string; dutyTypeCode: string; roleCode: string;
+    examDate: string; sessionCode: string; academicYear: string;
+  }) => [row.teacherId, row.centreId, row.dutyTypeCode.trim().toUpperCase(), row.roleCode.trim().toUpperCase(), row.examDate, row.sessionCode, row.academicYear].join("|");
+  const existing = new Set((priorRows.results ?? []).map((row) => keyFor({
+    teacherId: row.teacher_id,
+    centreId: row.centre_id ?? undefined,
+    dutyTypeCode: row.duty_type_code,
+    roleCode: row.role_code ?? "",
+    examDate: row.exam_date,
+    sessionCode: row.session_code,
+    academicYear: row.academic_year ?? "",
+  })));
+  const savedAt = new Date().toISOString();
+  const statements: DbStatement[] = [];
+  let unchanged = 0;
+  for (const row of input.rows) {
+    if (!teachers.has(row.teacherId)) throw new Error(`Teacher ${row.teacherId} no longer exists.`);
+    if (row.centreId && !centres.has(row.centreId)) throw new Error(`Centre ${row.centreId} no longer exists.`);
+    const key = keyFor(row);
+    if (existing.has(key)) {
+      unchanged += 1;
+      continue;
+    }
+    existing.add(key);
+    statements.push(db.prepare(
+      `INSERT INTO duty_assignment_history
+        (history_id, assignment_id, exam_cycle_id, teacher_id, centre_id, school_id, duty_type_code, role_code, exam_date, session_code, subject_id, academic_year, published_at, run_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+    ).bind(
+      crypto.randomUUID(),
+      `historical-import:${crypto.randomUUID()}`,
+      input.examCycleId,
+      row.teacherId,
+      row.centreId ?? null,
+      row.schoolId ?? null,
+      row.dutyTypeCode,
+      row.roleCode,
+      row.examDate,
+      row.sessionCode,
+      row.subjectId ?? null,
+      row.academicYear,
+      savedAt,
+    ));
+  }
+  const pairGroups = new Map<string, typeof input.rows>();
+  for (const row of input.rows) {
+    if (row.dutyTypeCode !== "PRACTICAL_HISTORICAL") continue;
+    if (!row.schoolId || !row.subjectId) {
+      throw new Error("Every practical history row needs its examination school and subject.");
+    }
+    const pairKey = [row.schoolId, row.subjectId.trim().toUpperCase(), row.examDate, row.sessionCode, row.academicYear].join("|");
+    const group = pairGroups.get(pairKey) ?? [];
+    group.push(row);
+    pairGroups.set(pairKey, group);
+  }
+  const pairStatements: DbStatement[] = [];
+  const pairIds = new Set<string>();
+  for (const group of pairGroups.values()) {
+    const internals = group.filter((row) => row.roleCode === "PRACTICAL_INTERNAL");
+    const externals = group.filter((row) => row.roleCode === "PRACTICAL_EXTERNAL");
+    if (internals.length !== 1 || externals.length !== 1 || internals[0]!.teacherId === externals[0]!.teacherId) {
+      throw new Error("Each practical history session needs one different internal and external examiner.");
+    }
+    const first = group[0]!;
+    const subjectId = await ensureSubjectId(db, first.subjectId!);
+    const [teacherA, teacherB] = [internals[0]!.teacherId, externals[0]!.teacherId].sort();
+    const pairId = `ep_historical_${first.academicYear}_${subjectId}_${first.schoolId}_${teacherA}_${teacherB}`;
+    pairStatements.push(db.prepare(
+      `INSERT INTO examiner_pairs
+        (pair_id, teacher_a_id, teacher_b_id, subject_id, school_id, academic_year, internal_teacher_id, external_teacher_id, exam_cycle_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+       ON CONFLICT(pair_id) DO UPDATE SET
+         internal_teacher_id=excluded.internal_teacher_id,
+         external_teacher_id=excluded.external_teacher_id,
+         academic_year=excluded.academic_year`,
+    ).bind(
+      pairId, teacherA!, teacherB!, subjectId, first.schoolId, first.academicYear,
+      internals[0]!.teacherId, externals[0]!.teacherId,
+    ));
+    pairIds.add(pairId);
+  }
+  statements.push(...pairStatements);
+  if (statements.length) await runAtomic(db, statements);
+  return { imported: statements.length - pairStatements.length, unchanged, pairs: pairIds.size };
+}
+
 export async function listExemptions(db: DbClient, limit = 2000) {
   const rs = await db
     .prepare(

@@ -97,6 +97,14 @@ reports how many saved. Reopen the page and re-upload to continue. Historical
 duties and published allotments are not replaced. This heading-based reader
 supports `.xlsx`; save old `.xls` files as `.xlsx` first.
 
+For a safe live allotment, import the dated centre-wise duties from the previous
+two years using **Previous duty history**. The app does not guess from a short
+remark such as `HS` or `CHIEF`: a past-duty row needs the teacher, date, duty
+group and (for theory/hall) centre code. A practical past-duty row also needs
+the school, subject, and the matching Internal/External examiner rows, so the
+next examination can prefer their role switch. The OVER ALL workbook alone
+does not contain those facts.
+
 This is an offline-first application for 12th-standard public-examination duty
 allotment across Erode blocks and centres. It lets the CEO office maintain the
 master lists, generate deterministic theory/practical/hall allotments, review

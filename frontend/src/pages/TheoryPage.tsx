@@ -30,6 +30,7 @@ import {
   mergeOverrideIntoDecisionTrace,
   shouldApplySessionAfterApi,
   pendingStaffHealthReviews,
+  distanceReadiness,
 } from "@exam-duty/shared";
 
 export function TheoryPage() {
@@ -184,6 +185,13 @@ export function TheoryPage() {
     if (!custodianPlan.ready) { setProgress("Load or save the custodian setup before generating duties."); return; }
     if(dataset && pendingStaffHealthReviews(dataset.teachers,exemptions).length){setProgress("Review health and leave remarks in Imports before generating duties.");return;}
     if (!dataset || !canGenerate || !theoryDataset) return;
+    const distanceGaps = distanceReadiness(dataset);
+    if (distanceGaps.centreIdsMissingCoordinates.length || distanceGaps.teacherIdsWithoutDistanceLocation.length) {
+      setProgress(
+        `Add locations before allotment: ${distanceGaps.centreIdsMissingCoordinates.length} centre(s) need coordinates and ${distanceGaps.schoolIdsMissingCoordinates.length} school(s) need coordinates for ${distanceGaps.teacherIdsWithoutDistanceLocation.length} active staff. Use Schools & teachers to find and save each location.`,
+      );
+      return;
+    }
     if (timetableState !== "ready" || chiefSessions.length === 0) {
       setProgress("Add at least one timetable session marked Chief duty before allocating theory duties.");
       return;

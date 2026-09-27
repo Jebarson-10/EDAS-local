@@ -20,7 +20,7 @@ import { createSqliteClient } from "../worker/src/db/client.ts";
 import { checklistCentres, checklistRelationships, getCentreChecklist, saveCentreChecklist, getPracticalStudents, savePracticalStudents } from "../worker/src/db/centreChecklist.ts";
 import { centreChecklistBodySchema, officialMasterImportBodySchema, examCycleStandardBodySchema, practicalStudentsBodySchema, custodianPlanBodySchema } from "../shared/src/index.ts";
 import { getCustodianPlan, saveCustodianPlan } from "../worker/src/db/centreChecklist.ts";
-import { importOfficialSchoolMasterData, setExamCycleStandard } from "../worker/src/db/repos.ts";
+import { importHistoricalDutyHistory, importOfficialSchoolMasterData, setExamCycleStandard } from "../worker/src/db/repos.ts";
 import { applyMigrations } from "../worker/src/db/migrate.ts";
 import {
   countMaster,
@@ -93,6 +93,7 @@ import {
   examTimetableBodySchema,
   exemptionBodySchema,
   exportRecordBodySchema,
+  historicalDutyImportBodySchema,
   importApplyBodySchema,
   importFileRowCount,
   manualOverrideBodySchema,
@@ -656,6 +657,24 @@ async function main() {
         const result = await importOfficialSchoolMasterData(db, parsed.data.schools);
         await insertAudit(db, {auditId:randomUUID(),userId:a!.userId,action:"IMPORT",entity:"official_school_master",reason:"Official staff workbook school import",newValue:JSON.stringify({createdSchools:result.createdSchools})});
         return json(res, {ok:true,...result});
+      }
+
+      if (url.pathname === "/api/imports/previous-duties" && req.method === "POST") {
+        if (!requirePerm(a, "import.apply", res)) return;
+        const parsed = parseBody(historicalDutyImportBodySchema, JSON.parse((await readBody(req)).toString("utf8")));
+        if (!parsed.ok) return json(res, { error: parsed.error }, 400);
+        try {
+          const result = await importHistoricalDutyHistory(db, parsed.data);
+          await insertAudit(db, {
+            auditId: randomUUID(), userId: a!.userId, action: "IMPORT",
+            entity: "previous_duty_history", entityId: parsed.data.examCycleId,
+            newValue: JSON.stringify({ rows: parsed.data.rows.length, ...result }),
+            reason: "Confirmed previous duty history import",
+          });
+          return json(res, { ok: true, ...result });
+        } catch (e) {
+          return json(res, { error: e instanceof Error ? e.message : "Previous duty history could not be saved." }, 400);
+        }
       }
       if (url.pathname === "/api/custodian-plan") {
         if (!requirePerm(a, req.method === "GET" ? "master.read" : "import.apply", res)) return;

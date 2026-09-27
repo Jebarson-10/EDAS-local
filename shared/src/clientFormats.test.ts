@@ -206,4 +206,32 @@ describe("clubbing apply / FORM-01 / centre strength", () => {
       studentCount: 150,
     });
   });
+
+  it("maps batch demand by official school reference when a school is not a centre", async () => {
+    const { mapBatchDemandToPractical } = await import("./clientFormats.js");
+    const { demands, unmatched } = mapBatchDemandToPractical({
+      rows: [
+        {
+          serialNo: 1,
+          schoolCode: "220ERDE0001",
+          subject: "PHYSICS",
+          batchCount: 2,
+          isSchoolTotal: false,
+        },
+      ],
+      schools: [
+        {
+          schoolId: "sch1",
+          schoolCode: "",
+          sourceSchoolCode: "220ERDE0001",
+          schoolName: "Ordinary School",
+        },
+      ],
+      batchSize: 50,
+    });
+    expect(unmatched).toEqual([]);
+    expect(demands).toEqual([
+      { schoolId: "sch1", subjectId: "PHYSICS", studentCount: 100 },
+    ]);
+  });
 });

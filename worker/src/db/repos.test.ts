@@ -26,6 +26,7 @@ import {
   insertAudit,
   insertExportRecord,
   insertSourceImport,
+  importHistoricalDutyHistory,
 } from "./repos.js";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
@@ -5513,5 +5514,53 @@ describe("master list APIs for blocks and subjects", () => {
     const counts = await countMaster(db);
     expect(counts.blocks).toBe(2);
     expect(counts.subjects).toBe(8);
+  });
+});
+
+describe("previous duty history import", () => {
+  let db: ReturnType<typeof createSqliteClient>;
+  let sqlite: Database.Database;
+
+  beforeEach(async () => {
+    sqlite = new Database(":memory:");
+    sqlite.pragma("foreign_keys = ON");
+    db = createSqliteClient(sqlite);
+    await applyMigrations(db, join(process.cwd(), ".."));
+    const restored = await transactionalRestore(db, {
+      blocks: [{ blockId: "b1", blockCode: "B1", blockName: "Block" }],
+      schools: [{ schoolId: "s1", schoolCode: "", schoolName: "School", blockId: "b1", active: true }],
+      centres: [{ centreId: "c1", centreCode: "5001", centreName: "Centre", blockId: "b1", active: true }],
+      teachers: [
+        { teacherId: "t1", employeeCode: "T1", name: "Internal", schoolId: "s1", designation: "PG", active: true },
+        { teacherId: "t2", employeeCode: "T2", name: "External", schoolId: "s1", designation: "PG", active: true },
+      ],
+    }, { adminConfirmed: true, includeHistory: true });
+    expect(restored.ok).toBe(true);
+    await upsertExamCycle(db, {
+      examCycleId: "ec_history", name: "History", academicYear: "2027", status: "OPEN", ruleVersionId: "rv-2027-1", createdBy: "test",
+    });
+  });
+
+  afterEach(() => sqlite.close());
+
+  it("keeps confirmed rows immutable and records a practical role-switch pair", async () => {
+    const result = await importHistoricalDutyHistory(db, {
+      examCycleId: "ec_history",
+      rows: [
+        { teacherId: "t1", centreId: "c1", dutyTypeCode: "THEORY_HISTORICAL", roleCode: "Hall invigilator", examDate: "2025-03-10", sessionCode: "MORNING", academicYear: "2025" },
+        { teacherId: "t1", schoolId: "s1", subjectId: "Physics", dutyTypeCode: "PRACTICAL_HISTORICAL", roleCode: "PRACTICAL_INTERNAL", examDate: "2025-03-11", sessionCode: "MORNING", academicYear: "2025" },
+        { teacherId: "t2", schoolId: "s1", subjectId: "Physics", dutyTypeCode: "PRACTICAL_HISTORICAL", roleCode: "PRACTICAL_EXTERNAL", examDate: "2025-03-11", sessionCode: "MORNING", academicYear: "2025" },
+      ],
+    });
+    expect(result).toEqual({ imported: 3, unchanged: 0, pairs: 1 });
+    const repeat = await importHistoricalDutyHistory(db, {
+      examCycleId: "ec_history",
+      rows: [{ teacherId: "t1", centreId: "c1", dutyTypeCode: "THEORY_HISTORICAL", roleCode: "Hall invigilator", examDate: "2025-03-10", sessionCode: "MORNING", academicYear: "2025" }],
+    });
+    expect(repeat).toEqual({ imported: 0, unchanged: 1, pairs: 0 });
+    const { listExaminerPairs } = await import("./repos.js");
+    expect(await listExaminerPairs(db)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ school_id: "s1", academic_year: "2025", internal_teacher_id: "t1", external_teacher_id: "t2", exam_cycle_id: null }),
+    ]));
   });
 });

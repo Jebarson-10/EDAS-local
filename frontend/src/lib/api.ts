@@ -1,5 +1,5 @@
 /** Browser client for Worker / local API. Falls back gracefully if API is down. */
-import { isLoadableBackupPayload } from "@exam-duty/shared";
+import { isLoadableBackupPayload, type HistoricalDuty } from "@exam-duty/shared";
 import { postImportBatch, teacherImportBatchSize } from "./importTransport";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -21,6 +21,36 @@ export async function practicalStudentsApi(role:ApiRole,examCycleId:string,rows?
   const payload=await res.json() as {rows?:PracticalStudentRow[];error?:string};
   if(!res.ok||!Array.isArray(payload.rows))throw new Error(payload.error??"Practical student numbers could not be loaded.");
   return payload.rows;
+}
+
+export async function importPreviousDutyHistoryApi(
+  role: ApiRole,
+  examCycleId: string,
+  rows: HistoricalDuty[],
+): Promise<{ imported: number; unchanged: number; pairs: number }> {
+  const res = await fetch(`${API_BASE}/api/imports/previous-duties`, {
+    method: "POST",
+    headers: headers(role),
+    body: JSON.stringify({
+      examCycleId,
+      rows: rows.map((row) => ({
+        teacherId: row.teacherId,
+        centreId: row.centreId ?? undefined,
+        schoolId: row.schoolId ?? undefined,
+        dutyTypeCode: row.dutyTypeCode,
+        roleCode: row.roleCode,
+        subjectId: row.subjectId ?? undefined,
+        examDate: row.examDate,
+        sessionCode: row.sessionCode,
+        academicYear: row.academicYear,
+      })),
+    }),
+  });
+  const payload = await res.json() as { imported?: number; unchanged?: number; pairs?: number; error?: string };
+  if (!res.ok || typeof payload.imported !== "number") {
+    throw new Error(payload.error ?? "Previous duty history could not be saved.");
+  }
+  return { imported: payload.imported, unchanged: payload.unchanged ?? 0, pairs: payload.pairs ?? 0 };
 }
 
 export async function saveCentreChecklistApi(role: ApiRole, body: unknown) {

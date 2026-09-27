@@ -1,3 +1,5 @@
+import { schoolReferenceKey } from "./centreChecklist.js";
+
 /**
  * Parsers and report builders aligned to client manual sample *layouts*
  * (see docs/client-sample-formats.md). Synthetic data only — no client PII.
@@ -685,7 +687,12 @@ export function applyCentreStrengths(input: {
 /** Map batch-demand rows to practical engine demands via school code. */
 export function mapBatchDemandToPractical(input: {
   rows: PracticalBatchDemandRow[];
-  schools: Array<{ schoolId: string; schoolCode: string; schoolName?: string }>;
+  schools: Array<{
+    schoolId: string;
+    schoolCode: string;
+    schoolName?: string;
+    sourceSchoolCode?: string | null;
+  }>;
   batchSize: number;
 }): {
   demands: Array<{ schoolId: string; subjectId: string; studentCount: number }>;
@@ -693,6 +700,11 @@ export function mapBatchDemandToPractical(input: {
 } {
   const byCode = new Map(
     input.schools.filter((s) => s.schoolCode.trim()).map((s) => [normalizeCode(s.schoolCode), s]),
+  );
+  const bySourceCode = new Map(
+    input.schools
+      .filter((s) => s.sourceSchoolCode?.trim())
+      .map((s) => [schoolReferenceKey(String(s.sourceSchoolCode)), s]),
   );
   const unmatched: string[] = [];
   const demands: Array<{
@@ -703,7 +715,10 @@ export function mapBatchDemandToPractical(input: {
   for (const row of input.rows) {
     if (row.isSchoolTotal) continue;
     const matches = input.schools.filter((s) => s.schoolName && normalizeName(s.schoolName) === normalizeName(row.schoolCode));
-    const school = byCode.get(normalizeCode(row.schoolCode)) ?? (matches.length === 1 ? matches[0] : undefined);
+    const school =
+      byCode.get(normalizeCode(row.schoolCode)) ??
+      bySourceCode.get(schoolReferenceKey(row.schoolCode)) ??
+      (matches.length === 1 ? matches[0] : undefined);
     if (!school) {
       unmatched.push(row.schoolCode);
       continue;

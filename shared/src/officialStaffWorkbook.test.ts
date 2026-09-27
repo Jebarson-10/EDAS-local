@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseOfficialStaffWorkbook } from "./officialStaffWorkbook.js";
 import { previewTeacherImport } from "./importPreview.js";
+import { normalizeImportedDesignation } from "./excelTeachers.js";
 
 describe("official staff workbook import", () => {
   it("reads the CEO workbook layout and keeps office staff separate", () => {
@@ -168,6 +169,61 @@ describe("official staff workbook import", () => {
       expect.objectContaining({ name: "D. Headmaster", designation: "HM" }),
     );
   });
+
+  it("does not use BT non-handling subjects for practical eligibility", () => {
+    const parsed = parseOfficialStaffWorkbook([
+      {
+        name: "BT NON",
+        lines: [
+          ["SSLC STAFF LIST"],
+          [
+            "S.NO",
+            "SCHOOL CODE",
+            "NAME OF THE SCHOOL",
+            "TEACHERS NAME",
+            "MAJOR SUBJECT",
+            "ADDITIONAL HANDLING SUBJECTS",
+          ],
+          [1, "1001", "Example School", "BT Non-handling", "SCIENCE", "PHYSICS"],
+        ],
+      },
+    ]);
+
+    expect(parsed.rows[0]).toEqual(expect.objectContaining({
+      designation: "BT",
+      officialDetails: expect.objectContaining({
+        "Practical duty": "Not eligible: BT non-handling return",
+      }),
+    }));
+    expect(parsed.rows[0]).not.toHaveProperty("subject");
+  });
+
+  it("normalises block spelling variants and falls back to residential block", () => {
+    const parsed = parseOfficialStaffWorkbook([
+      {
+        name: "PG",
+        lines: [
+          ["HSC STAFF LIST"],
+          [
+            "S.NO",
+            "SCHOOL CODE",
+            "NAME OF THE SCHOOL",
+            "TEACHERS NAME",
+            "11,12TH HANDLING SUBJECT",
+            "RESIDENTIAL UNION/BLOCK",
+            "BLOCK",
+          ],
+          [1, "1001", "Example School", "PG One", "PHYSICS", "ERODE", "THALAVADY"],
+          [2, "1002", "Other School", "PG Two", "CHEMISTRY", "BHAVANI SAGAR", ""],
+        ],
+      },
+    ]);
+
+    expect(parsed.rows.map((row) => (row.officialDetails as Record<string, string> | undefined)?.["Reporting block"])).toEqual([
+      "THALAVADI",
+      "BHAVANISAGAR",
+    ]);
+  });
   it("keeps a named teacher when the school reference cell is blank", () => {
     const parsed = parseOfficialStaffWorkbook([{name:"HM",lines:[
       ["SCHOOL CODE","NAME OF THE SCHOOL","HEADMASTER NAME"],
@@ -175,5 +231,14 @@ describe("official staff workbook import", () => {
     ]}]);
     expect(parsed.rows).toHaveLength(1);
     expect(parsed.rows[0]).toMatchObject({name:"Synthetic HM",schoolName:"Synthetic school without centre code",designation:"HM"});
+  });
+
+  it("normalises official post spelling variants without broadening unrelated posts", () => {
+    expect(normalizeImportedDesignation("B.T-ASST")).toBe("BT");
+    expect(normalizeImportedDesignation("BT ASSST")).toBe("BT");
+    expect(normalizeImportedDesignation("P.G.ASS.,")).toBe("PG");
+    expect(normalizeImportedDesignation("S.G.ASST")).toBe("SGT");
+    expect(normalizeImportedDesignation("SPL. BT ASST")).toBe("SPECIAL_TEACHER");
+    expect(normalizeImportedDesignation("PHYSICAL DIRECTOR")).toBe("PHYSICAL DIRECTOR");
   });
 });

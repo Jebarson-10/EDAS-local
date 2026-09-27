@@ -3,8 +3,39 @@ import type { TeacherImportRow } from "./validation.js";
 /** Only spelling variants of established designations; acting posts stay unchanged. */
 export function normalizeImportedDesignation(value: unknown): string {
   const text = String(value ?? "").trim();
-  const key = text.toUpperCase().replace(/[\s._'’]+/g, "");
-  return ({ HEADMASTER:"HM", HEADMISTRESS:"HM", HM:"HM", PRINCIPAL:"PRINCIPAL", PGASST:"PG", PGASSISTANT:"PG", PGTEACHER:"PG", PG:"PG", SENIORPG:"SENIOR_PG", SENIORPGTEACHER:"SENIOR_PG" } as Record<string,string>)[key] ?? text;
+  const key = text.toUpperCase().replace(/[^A-Z0-9]+/g, "");
+  const direct = ({
+    HEADMASTER: "HM",
+    HEADMISTRESS: "HM",
+    HM: "HM",
+    PRINCIPAL: "PRINCIPAL",
+    PGASST: "PG",
+    PGASSISTANT: "PG",
+    PGTEACHER: "PG",
+    PGT: "PG",
+    PG: "PG",
+    SENIORPG: "SENIOR_PG",
+    SENIORPGTEACHER: "SENIOR_PG",
+    BT: "BT",
+    BTASST: "BT",
+    BTASSST: "BT",
+    BTASSISTANT: "BT",
+    BTTEACHER: "BT",
+    SGT: "SGT",
+    SGTASST: "SGT",
+    SGTEACHER: "SGT",
+    SGASST: "SGT",
+    SECGRT: "SGT",
+    SEGT: "SGT",
+  } as Record<string, string>)[key];
+  if (direct) return direct;
+  // These are common truncated or subject-suffixed versions of an assistant
+  // post in the official return. Do not turn an acting HM or an unrelated
+  // instructor post into BT/PG merely because the words appear somewhere.
+  if (/^PGASS(?:T|ISTANT|DEPUTATION)?$/.test(key)) return "PG";
+  if (/^SPLBT(?:ASST|ASSST|ASSISTANT)/.test(key)) return "SPECIAL_TEACHER";
+  if (/^(?:BT|SPECIALBT)(?:ASST|ASSST|ASSISTANT|TEACHER|SCIENCE|ENGLISH|TAMIL|MATHS|SOCIALSCIENCE)/.test(key)) return "BT";
+  return text;
 }
 
 /** Codes are optional: ordinary uploads match by teacher name and school. */

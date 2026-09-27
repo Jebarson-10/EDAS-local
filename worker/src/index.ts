@@ -62,6 +62,7 @@ import {
   upsertTeachers,
   upsertMasterRecord,
   importOfficialSchoolMasterData,
+  importHistoricalDutyHistory,
   type BackupPayload,
 } from "./db/repos";
 import type { DbClient } from "./db/client";
@@ -84,6 +85,7 @@ import {
   exportRecordBodySchema,
   importApplyBodySchema,
   importFileRowCount,
+  historicalDutyImportBodySchema,
   manualOverrideBodySchema,
   manualMasterRecordBodySchema,
   officialMasterImportBodySchema,
@@ -824,6 +826,25 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       return json({ ok: true, ...result });
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 503);
+    }
+  }
+
+  if (url.pathname === "/api/imports/previous-duties" && request.method === "POST") {
+    const denied = requirePerm(auth, "import.apply");
+    if (denied) return denied;
+    const parsed = parseBody(historicalDutyImportBodySchema, await request.json());
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    try {
+      const result = await importHistoricalDutyHistory(db, parsed.data);
+      await insertAudit(db, {
+        auditId: crypto.randomUUID(), userId: auth!.userId, action: "IMPORT",
+        entity: "previous_duty_history", entityId: parsed.data.examCycleId,
+        newValue: JSON.stringify({ rows: parsed.data.rows.length, ...result }),
+        reason: "Confirmed previous duty history import",
+      });
+      return json({ ok: true, ...result });
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : "Previous duty history could not be saved." }, 400);
     }
   }
 

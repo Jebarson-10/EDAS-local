@@ -83,7 +83,12 @@ function toPairHistory(
 }
 
 function demoDemands(
-  schools: Array<{ schoolId: string; schoolCode: string; schoolName: string }>,
+  schools: Array<{
+    schoolId: string;
+    schoolCode: string;
+    schoolName: string;
+    sourceSchoolCode?: string;
+  }>,
   batchSize: number,
   imported: Array<{
     schoolCode: string;
@@ -296,6 +301,7 @@ export function PracticalPage() {
         schoolId: s.schoolId,
         schoolCode: s.schoolCode,
         schoolName: s.schoolName,
+        sourceSchoolCode: s.sourceSchoolCode,
       })),
       rules.practical_batch_size,
       practicalBatchDemand,

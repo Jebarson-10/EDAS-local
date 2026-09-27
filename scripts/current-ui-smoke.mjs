@@ -27,6 +27,7 @@ try {
   await page.getByRole('heading', { name: '1. Staff and schools (OVER ALL)' }).waitFor();
   await page.getByRole('heading', { name: '2. Centres and student numbers' }).waitFor();
   await page.getByRole('heading', { name: '3. Practical subject counts' }).waitFor();
+  await page.getByRole('heading', { name: '4. Previous duty history' }).waitFor();
 
   const templateDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download official staff template' }).click();
@@ -35,6 +36,14 @@ try {
   const templateBook = new ExcelJS.Workbook();
   await templateBook.xlsx.readFile(await template.path());
   assert(templateBook.worksheets.length >= 3, 'Staff template must contain the official staff categories.');
+
+  const previousDutyTemplateDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download previous-duty template' }).click();
+  const previousDutyTemplate = await previousDutyTemplateDownload;
+  const previousDutyBook = new ExcelJS.Workbook();
+  await previousDutyBook.xlsx.readFile(await previousDutyTemplate.path());
+  assert.equal(previousDutyBook.worksheets[0].getCell('A1').text, 'Teacher name');
+  assert.equal(previousDutyBook.worksheets[0].getCell('L1').text, 'Subject');
 
   const book = new ExcelJS.Workbook();
   const sheet = book.addWorksheet('PG');

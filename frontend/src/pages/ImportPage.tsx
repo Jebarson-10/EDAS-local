@@ -10,6 +10,7 @@ import { Panel } from "../components/ui";
 import { ColumnImportPanel } from "../components/ColumnImportPanel";
 import { CentreChecklistImport } from "../components/CentreChecklistImport";
 import { PracticalStudentsImport } from "../components/PracticalStudentsImport";
+import { PreviousDutyHistoryImport } from "../components/PreviousDutyHistoryImport";
 import { StaffReturnReview } from "../components/StaffReturnReview";
 import type { DemoDataset } from "../data/demoStore";
 
@@ -111,11 +112,18 @@ export function ImportPage() {
             const schoolName = String(record.schoolName ?? "").trim();
             if (!schoolName) continue;
             const key = schoolName.replace(/\s+/g, " ").toLocaleUpperCase();
-            if (!bySchool.has(key)) bySchool.set(key, {
-              schoolName,
-              sourceSchoolCode: record.sourceSchoolCode == null ? null : String(record.sourceSchoolCode),
-              blockCode: record.officialDetails?.["Reporting block"] == null ? null : String(record.officialDetails["Reporting block"]),
-            });
+            const sourceSchoolCode = record.sourceSchoolCode == null ? null : String(record.sourceSchoolCode);
+            const blockCode = record.officialDetails?.["Reporting block"] == null ? null : String(record.officialDetails["Reporting block"]);
+            const existing = bySchool.get(key);
+            if (!existing) {
+              bySchool.set(key, { schoolName, sourceSchoolCode, blockCode });
+            } else {
+              // One staff row may have a blank reference or block while
+              // another row from the same school supplies it. Keep the real
+              // value instead of letting source-row order omit that school.
+              existing.sourceSchoolCode ??= sourceSchoolCode;
+              existing.blockCode ??= blockCode;
+            }
           }
           const { importOfficialSchoolMasterData, fetchMasterBlocks, fetchMasterSchools } = await import("../lib/api");
           const master = await importOfficialSchoolMasterData(role, [...bySchool.values()]);
@@ -183,7 +191,7 @@ export function ImportPage() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Import your examination data"><p>1. Upload OVER ALL to save staff and schools. 2. Upload 13A to review centres and student numbers. 3. Add the timetable and practical subject counts. Then generate Theory, Hall and Practical duties and download the centre-wise duty lists.</p></Panel>
+      <Panel title="Import your examination data"><p>1. Upload OVER ALL to save staff and schools. 2. Upload 13A to review centres and student numbers. 3. Add the timetable and practical subject counts. 4. Upload previous duty history. Then generate Theory, Hall and Practical duties and download the centre-wise duty lists.</p></Panel>
       <details><summary className="cursor-pointer p-2">Other spreadsheets and column matching</summary><ColumnImportPanel onTeachers={(rows) => {
         clearArchivedImport();
         setText(rows.length ? JSON.stringify(rows) : "");
@@ -363,6 +371,7 @@ export function ImportPage() {
       <CentreChecklistImport />
       <StaffReturnReview />
       <PracticalStudentsImport />
+      <PreviousDutyHistoryImport />
       <details><summary className="cursor-pointer p-2">Additional import formats</summary><PracticalFormatImportPanel
         canImport={canImport}
         logAudit={logAudit}

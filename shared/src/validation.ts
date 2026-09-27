@@ -53,6 +53,22 @@ export const practicalStudentsBodySchema = z.object({
   rows:z.array(z.object({schoolId:z.string().min(1),subjectId:z.string().trim().min(1).max(64),studentCount:z.number().int().positive().max(100000)})).max(10000),
 });
 
+/** Confirmed, dated prior duties used for the two-year centre rule and fairness. */
+export const historicalDutyImportBodySchema = z.object({
+  examCycleId: z.string().min(1),
+  rows: z.array(z.object({
+    teacherId: z.string().min(1),
+    centreId: z.string().min(1).optional(),
+    schoolId: z.string().min(1).optional(),
+    dutyTypeCode: z.enum(["THEORY_HISTORICAL", "PRACTICAL_HISTORICAL", "OTHER_HISTORICAL"]),
+    roleCode: z.string().trim().min(1).max(100),
+    subjectId: z.string().trim().min(1).max(100).optional(),
+    examDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    sessionCode: z.enum(["MORNING", "AFTERNOON"]),
+    academicYear: z.string().regex(/^20\d{2}$/),
+  })).min(1).max(50_000),
+});
+
 export const custodianPlanBodySchema=z.object({
   examCycleId:z.string().min(1),
   rows:z.array(z.object({centreId:z.string().min(1),schoolIds:z.array(z.string().min(1)).min(1),count:z.number().int().positive().max(1000)})).max(1000),

@@ -127,6 +127,28 @@ function designationForSheet(
   return undefined;
 }
 
+/** Keep the CEO return's spelling variations in one block for seniority. */
+function reportingBlock(
+  reported: string | undefined,
+  residential: string | undefined,
+): string | undefined {
+  const source = reported || residential;
+  if (!source || /^(?:NIL|-+|_+)$/i.test(source.trim())) return undefined;
+  const compact = source.toUpperCase().replace(/[^A-Z0-9]+/g, "");
+  const aliases: Record<string, string> = {
+    BHAVANISAGAR: "BHAVANISAGAR",
+    MODAKKURICHI: "MODAKKURICHI",
+    MODAKKURUCHI: "MODAKKURICHI",
+    SATHY: "SATHYAMANGALAM",
+    SATHYAMANGALAM: "SATHYAMANGALAM",
+    THALAVADI: "THALAVADI",
+    THALAVADY: "THALAVADI",
+    TNPAALAYAM: "T N PALAYAM",
+    TNPALAYAM: "T N PALAYAM",
+  };
+  return aliases[compact] ?? source.trim().replace(/\s+/g, " ").toUpperCase();
+}
+
 /**
  * Reads the CEO's seven-tab staff workbook. It deliberately uses the school
  * name, not the source "SCHOOL CODE", because in EDAS a blank centre code
@@ -206,10 +228,24 @@ export function parseOfficialStaffWorkbook(
       // FORM-02 and FORM-03 explicitly state the subject actually handled at
       // the relevant standard. That field is authoritative for practical duty;
       // use a major subject only when no handling-subject field exists.
+      const handlingSubject = textAt(
+        source,
+        handlingSubjectIndex >= 0 ? handlingSubjectIndex : undefined,
+      );
+      // For public practicals, the return's 10th/11th-12th *handling*
+      // subject is authoritative. A BT NON row is deliberately not given a
+      // practical subject: its additional/major subject must never be treated
+      // as proof that the teacher currently handles the examination standard.
       const subject =
-        textAt(source, handlingSubjectIndex >= 0 ? handlingSubjectIndex : undefined) ??
-        textAt(source, additionalSubjectIndex >= 0 ? additionalSubjectIndex : undefined) ??
-        textAt(source, subjectIndexes.length === 1 ? subjectIndexes[0] : majorSubjectIndex);
+        sheetName === "PG" || sheetName === "BT"
+          ? handlingSubject
+          : sheetName === "BT NON"
+            ? undefined
+            : handlingSubject ??
+              textAt(source, additionalSubjectIndex >= 0 ? additionalSubjectIndex : undefined) ??
+              textAt(source, subjectIndexes.length === 1 ? subjectIndexes[0] : majorSubjectIndex);
+      const residentialBlock = textAt(source, residentialIndex);
+      const block = reportingBlock(textAt(source, blockIndex), residentialBlock);
       const details = Object.fromEntries(
         [
           ["Source sheet", sheet.name],
@@ -224,11 +260,14 @@ export function parseOfficialStaffWorkbook(
           ["Handling subject", textAt(source, handlingSubjectIndex >= 0 ? handlingSubjectIndex : undefined)],
           ["Additional handling subjects", textAt(source, additionalSubjectIndex >= 0 ? additionalSubjectIndex : undefined)],
           ["Retirement date", retirementIndex >= 0 ? dateAt(source, [retirementIndex]) : undefined],
-          ["Residential union/block", textAt(source, residentialIndex)],
+          ["Residential union/block", residentialBlock],
           ["Previous exam duty", textAt(source, previousExamIndex)],
           ["Previous camp duty", textAt(source, previousCampIndex)],
           ["Health, leave or remarks", textAt(source, exceptionIndex)],
-          ["Reporting block", textAt(source, blockIndex)],
+          ["Reporting block", block],
+          ...(sheetName === "BT NON"
+            ? [["Practical duty", "Not eligible: BT non-handling return"]]
+            : []),
         ].filter((entry): entry is [string, string] => Boolean(entry[1])),
       );
       rows.push({

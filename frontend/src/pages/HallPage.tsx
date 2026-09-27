@@ -16,6 +16,7 @@ import {
   shouldApplySessionAfterApi,
   pendingStaffHealthReviews,
   buildHallDemands,
+  distanceReadiness,
 } from "@exam-duty/shared";
 import {
   Bento,
@@ -127,6 +128,13 @@ export function HallPage() {
   function run() {
     if (!dataset || busy) return;
     if(pendingStaffHealthReviews(dataset.teachers,exemptions).length){setText("Review health and leave remarks in Imports before generating duties.");return;}
+    const distanceGaps = distanceReadiness(dataset);
+    if (distanceGaps.centreIdsMissingCoordinates.length || distanceGaps.teacherIdsWithoutDistanceLocation.length) {
+      setText(
+        `Add locations before allotment: ${distanceGaps.centreIdsMissingCoordinates.length} centre(s) need coordinates and ${distanceGaps.schoolIdsMissingCoordinates.length} school(s) need coordinates for ${distanceGaps.teacherIdsWithoutDistanceLocation.length} active staff. Use Schools & teachers to find and save each location.`,
+      );
+      return;
+    }
     if (timetableState !== "ready" || hallSessions.length === 0) {
       setText("Add at least one timetable session marked Hall duty before allocating hall duties.");
       return;
@@ -244,11 +252,18 @@ export function HallPage() {
     );
     const validation = validateHallAllocation(
       result,
-      demands.map((d) => ({
-        centreId: d.centreId,
-        totalStudents: d.totalStudents,
-      })),
+      demands,
       rules,
+      {
+        teachers: dataset.teachers,
+        schools: dataset.schools,
+        centres: dataset.centres,
+        exemptions,
+        history: dataset.history,
+        calendar: crossModuleCalendar(runs, "HALL", examCycle.examCycleId),
+        academicYear: examCycle.academicYear,
+        centreSchoolIds,
+      },
     );
     const runId = `run_${crypto.randomUUID()}`;
     void import("../lib/api")
