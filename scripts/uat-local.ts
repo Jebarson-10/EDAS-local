@@ -659,7 +659,14 @@ async function main() {
     }),
   );
   const hallDataset = (calendar: DutyCalendarEvent[]) => ({
-    teachers: demo.teachers as Teacher[],
+    // This UAT is about the same-session calendar guard, not post eligibility.
+    // Give its synthetic candidates an approved PG post so the test cannot rely
+    // on HM/Principal rows that production hall duty correctly excludes.
+    teachers: (demo.teachers as Teacher[]).map((teacher) => ({
+      ...teacher,
+      designation: "PG",
+      staffCategory: "TEACHING" as const,
+    })),
     schools: demo.schools,
     centres: demo.centres,
     exemptions: [],
