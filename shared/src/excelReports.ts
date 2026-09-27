@@ -303,7 +303,7 @@ export async function buildCentreWiseTheoryDutyWorkbook(
     styleLabelRow(sheet, 5);
     sheet.mergeCells("A6:B6");
     sheet.mergeCells("C6:H6");
-    sheet.getCell("A6").value = "Office helpers";
+    sheet.getCell("A6").value = "Office helpers (non-teaching)";
     sheet.getCell("C6").value = officerCell(centre.officeHelpers);
     styleLabelRow(sheet, 6);
     sheet.mergeCells("A7:H7");

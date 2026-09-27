@@ -7,11 +7,12 @@ import type {
   DutyCalendarEvent,
   HistoricalDuty,
 } from "@exam-duty/shared";
+import { teachesSubject } from "@exam-duty/shared";
 
 // 1.2 schedules different subjects in parallel.  A subject's own batches
 // still remain in morning/afternoon order, which models the 50 + 50 pattern
 // without incorrectly treating all subjects in one school as one queue.
-export const PRACTICAL_ALGORITHM_VERSION = "practical-1.4.0";
+export const PRACTICAL_ALGORITHM_VERSION = "practical-1.5.0";
 
 /** The confirmed examiner post rule for public practical examinations. */
 export function requiredPracticalDesignation(
@@ -125,6 +126,14 @@ function isTeachingStaff(teacher: Teacher): boolean {
 function matchesPracticalDesignation(teacher: Teacher, standard: string): boolean {
   const required = requiredPracticalDesignation(standard);
   return Boolean(required && normalizedExaminerDesignation(teacher.designation) === required);
+}
+
+/** A practical examiner must be recorded as handling the batch subject. */
+function teachesPracticalSubject(
+  teacher: Teacher,
+  subjectId: string,
+): boolean {
+  return Boolean(teacher.subject?.trim() && teachesSubject(teacher.subject, subjectId));
 }
 
 function sessionsForDates(dates: string[]): { date: string; session: SessionCode }[] {
@@ -268,6 +277,7 @@ export function schedulePractical(
             t.isActive &&
             isTeachingStaff(t) &&
             matchesPracticalDesignation(t, dataset.standard) &&
+            teachesPracticalSubject(t, batch.subjectId) &&
             !dataset.exemptions.some(
               (e) => e.teacherId === t.teacherId && exemptionActive(e, slot.date),
             ) &&
@@ -282,6 +292,7 @@ export function schedulePractical(
             t.isActive &&
             isTeachingStaff(t) &&
             matchesPracticalDesignation(t, dataset.standard) &&
+            teachesPracticalSubject(t, batch.subjectId) &&
             !dataset.exemptions.some(
               (e) => e.teacherId === t.teacherId && exemptionActive(e, slot.date),
             ) &&

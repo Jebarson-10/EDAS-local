@@ -546,7 +546,7 @@ export function TheoryPage() {
       <Tile span={6}>
         <TileHeader
           title="Theory centre duties"
-          hint="Allots chief examiner, departmental officer and office staff from the saved staff list, timetable and previous duties."
+          hint="Allots chief examiner, departmental officer and non-teaching office helpers from the saved staff list, timetable and previous duties."
         />
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -585,7 +585,7 @@ export function TheoryPage() {
             Planned for {staffingPlan.centreSessions} centre session(s):{" "}
             {requirements.filter((item) => item.roleCode === "CHIEF_EXAMINATION").length} chief examiner, {" "}
             {requirements.filter((item) => item.roleCode === "DEPARTMENT_OFFICER").length} departmental officer, and {" "}
-            {requirements.filter((item) => item.roleCode === "OFFICE_STAFF").length} office-staff duties, plus {requirements.filter((item) => item.roleCode === "CUSTODIAN").length} custodian duties from your saved points. Unfilled duties are reported as shortages.
+            {requirements.filter((item) => item.roleCode === "OFFICE_STAFF").length} non-teaching office-helper duties, plus {requirements.filter((item) => item.roleCode === "CUSTODIAN").length} custodian duties from your saved points. Unfilled duties are reported as shortages.
           </p>
         )}
         {!cyclesReady ? (

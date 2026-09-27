@@ -501,7 +501,7 @@ export function PracticalPage() {
       <Tile span={6}>
         <TileHeader
           title="Practical examination scheduling"
-          hint="Creates balanced student batches and assigns examiners within the allowed days. Check any shortage before approval."
+          hint="Creates balanced student batches and assigns same-subject examiners within the allowed days. Standard 10 uses BT Assistants; Standard 12 uses PG Assistants."
         />
         <p className="mb-3 text-sm text-[var(--color-ink-muted)]">
           Demand source:{" "}

@@ -33,7 +33,7 @@ no custodian duties. Custodian setup, centre memberships and practical student
 counts are saved per examination and included in backups.
 
 In **Reports**, download one centre-wise Theory duty order. Each centre gets its
-own sheet with the chief examiner, departmental officer, two office helpers and
+own sheet with the chief examiner, departmental officer, two non-teaching office helpers and
 hall team together. A separate short list contains only chief and departmental
 officers. The practical list has one line per school and subject with batches,
 internal examiner and external examiner.
@@ -107,7 +107,7 @@ teacher-wise outputs.
   straight-line 10 km home-or-current-school radius; chooses HM/Principal first
   and Senior PG fallback block-first, then district-wide. Each marked centre
   session also plans one Chief, one Departmental Officer (two only when student
-  strength is above 500), and two office-staff duties. The official `PG` roster
+  strength is above 500), and two non-teaching office-helper duties. The official `PG` roster
   is treated as the Senior PG candidate pool and is ordered by appointment date
   when seniority is needed.
 - **Practical:** Standard 10 uses BT Assistants and Standard 12 uses PG

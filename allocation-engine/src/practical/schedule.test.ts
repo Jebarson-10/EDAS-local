@@ -12,6 +12,7 @@ const teacher = (
   name: teacherId,
   schoolId,
   designation: "PG",
+  subject: "physics",
   isActive: true,
   dataQuality: "Confirmed",
 });
@@ -43,8 +44,8 @@ describe("practical scheduling", () => {
         teachers: [
           officeInternal,
           officeExternal,
-          teacher("teaching-internal", "Z-INTERNAL", "host"),
-          teacher("teaching-external", "Z-EXTERNAL", "outside"),
+          { ...teacher("teaching-internal", "Z-INTERNAL", "host"), subject: "bio" },
+          { ...teacher("teaching-external", "Z-EXTERNAL", "outside"), subject: "bio" },
         ],
         exemptions: [],
         calendar: [],
@@ -78,8 +79,8 @@ describe("practical scheduling", () => {
       ],
       {
         teachers: [
-          teacher("i-bio", "I1", "host"), teacher("i-computer", "I2", "host"), teacher("i-vocational", "I3", "host"),
-          teacher("e-bio", "E1", "outside"), teacher("e-computer", "E2", "outside"), teacher("e-vocational", "E3", "outside"),
+          { ...teacher("i-bio", "I1", "host"), subject: "bio" }, { ...teacher("i-computer", "I2", "host"), subject: "computer" }, { ...teacher("i-vocational", "I3", "host"), subject: "vocational" },
+          { ...teacher("e-bio", "E1", "outside"), subject: "bio" }, { ...teacher("e-computer", "E2", "outside"), subject: "computer" }, { ...teacher("e-vocational", "E3", "outside"), subject: "vocational" },
         ],
         exemptions: [],
         calendar: [],
@@ -109,9 +110,9 @@ describe("practical scheduling", () => {
   });
 
   it("uses BT assistants for standard 10 and PG assistants for standard 12", () => {
-    const pg = teacher("pg", "PG", "host");
-    const bt = { ...teacher("bt", "BT", "host"), designation: "BT ASST" };
-    const outsideBt = { ...teacher("outside-bt", "BT2", "outside"), designation: "BT" };
+    const pg = { ...teacher("pg", "PG", "host"), subject: "bio" };
+    const bt = { ...teacher("bt", "BT", "host"), designation: "BT ASST", subject: "bio" };
+    const outsideBt = { ...teacher("outside-bt", "BT2", "outside"), designation: "BT", subject: "bio" };
     const result = schedulePractical(
       [{ schoolId: "host", subjectId: "bio", studentCount: 20 }],
       {
@@ -123,5 +124,36 @@ describe("practical scheduling", () => {
       DEFAULT_RULE_PARAMETERS,
     );
     expect(result.schedules[0]).toMatchObject({ internalExaminerId: "bt", externalExaminerId: "outside-bt" });
+  });
+
+  it("requires a matching recorded subject and never uses SGT or SPL for practical duty", () => {
+    const result = schedulePractical(
+      [{ schoolId: "host", subjectId: "chemistry", studentCount: 20 }],
+      {
+        teachers: [
+          { ...teacher("wrong-internal", "A1", "host"), subject: "physics" },
+          { ...teacher("right-internal", "A2", "host"), subject: "chemistry" },
+          { ...teacher("sgt-internal", "A3", "host"), designation: "SGT", subject: "chemistry" },
+          { ...teacher("spl-internal", "A4", "host"), designation: "SPECIAL_TEACHER", subject: "chemistry" },
+          { ...teacher("wrong-external", "B1", "outside"), subject: "physics" },
+          { ...teacher("right-external", "B2", "outside"), subject: "chemistry" },
+          { ...teacher("sgt-external", "B3", "outside"), designation: "SGT", subject: "chemistry" },
+          { ...teacher("spl-external", "B4", "outside"), designation: "SPECIAL_TEACHER", subject: "chemistry" },
+        ],
+        exemptions: [], calendar: [], pairHistory: [], availableDates: ["2027-03-01"],
+        asOfDate: "2027-03-01", academicYear: "2027", standard: "12",
+        // The scheduler must still enforce its subject and post rules when a
+        // caller accidentally supplies a broad school-only callback.
+        internalEligible: (candidate, schoolId) => candidate.schoolId === schoolId,
+        externalEligible: (candidate, schoolId) => candidate.schoolId !== schoolId,
+      },
+      DEFAULT_RULE_PARAMETERS,
+    );
+
+    expect(result.feasible).toBe(true);
+    expect(result.schedules[0]).toMatchObject({
+      internalExaminerId: "right-internal",
+      externalExaminerId: "right-external",
+    });
   });
 });

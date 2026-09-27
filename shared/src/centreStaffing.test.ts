@@ -37,6 +37,12 @@ describe("centre staffing requirements", () => {
     expect(plan.requirements.map((requirement) => requirement.roleCode)).toEqual([
       "CHIEF_EXAMINATION", "DEPARTMENT_OFFICER", "OFFICE_STAFF", "OFFICE_STAFF",
     ]);
+    const officeHelpers = plan.requirements.filter(
+      (requirement) => requirement.roleCode === "OFFICE_STAFF",
+    );
+    expect(officeHelpers).toHaveLength(2);
+    expect(officeHelpers.every((requirement) => requirement.staffCategory === "NON_TEACHING")).toBe(true);
+    expect(officeHelpers.every((requirement) => requirement.preferredDesignations.length === 0)).toBe(true);
   });
 
   it("creates a second department officer above 500 students", () => {

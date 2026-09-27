@@ -12,7 +12,7 @@ import { haversineKm, roundKm } from "@exam-duty/shared";
 
 // 1.1 permits a teacher to be considered again on a different date/session,
 // while the dynamic workload score gives every eligible teacher a turn first.
-export const HALL_ALGORITHM_VERSION = "hall-1.2.0";
+export const HALL_ALGORITHM_VERSION = "hall-1.3.0";
 
 export interface HallCentreDemand {
   centreId: string;
@@ -73,6 +73,12 @@ export function calculateHallRequirements(
 function yearNum(y: string): number {
   const m = y.match(/(\d{4})/);
   return m ? Number(m[1]) : NaN;
+}
+
+/** SGT staff are held back for hall work until the regular teaching pool is short. */
+function isSgtTeacher(teacher: Teacher): boolean {
+  const compact = teacher.designation.toUpperCase().replace(/[\s._'’-]+/g, "");
+  return ["SGT", "SECONDARYGRADETEACHER"].includes(compact);
 }
 
 export function allocateHall(
@@ -195,49 +201,64 @@ export function allocateHall(
       return true;
     });
 
-    eligible.sort((a, b) => {
-      const score = (t: Teacher) => {
-        let lastDuty: number | null = null;
-        const asOf = Date.parse(dataset.asOfDate);
-        const fairnessWindowMs = rules.fairness_window_days * 86_400_000;
-        for (const h of dataset.history) {
-          if (h.teacherId !== t.teacherId) continue;
-          const dutyDate = Date.parse(h.examDate);
-          const elapsedMs = asOf - dutyDate;
-          if (!Number.isNaN(asOf) && !Number.isNaN(dutyDate) && elapsedMs >= 0) {
-            lastDuty = lastDuty == null ? dutyDate : Math.max(lastDuty, dutyDate);
+    const rankCandidates = (candidates: Teacher[]) => {
+      candidates.sort((a, b) => {
+        const score = (t: Teacher) => {
+          let lastDuty: number | null = null;
+          const asOf = Date.parse(dataset.asOfDate);
+          const fairnessWindowMs = rules.fairness_window_days * 86_400_000;
+          for (const h of dataset.history) {
+            if (h.teacherId !== t.teacherId) continue;
+            const dutyDate = Date.parse(h.examDate);
+            const elapsedMs = asOf - dutyDate;
+            if (!Number.isNaN(asOf) && !Number.isNaN(dutyDate) && elapsedMs >= 0) {
+              lastDuty = lastDuty == null ? dutyDate : Math.max(lastDuty, dutyDate);
+            }
           }
-        }
-        const elapsed = lastDuty == null || Number.isNaN(asOf) ? null : Math.max(0, asOf - lastDuty);
-        const recent = elapsed != null && elapsed <= fairnessWindowMs
-          ? Math.max(1, Math.ceil((fairnessWindowMs - elapsed) / 86_400_000))
-          : 0;
-        return (
-          rules.scoring_weights.recent_duty * recent +
-          rules.scoring_weights.workload * (assignmentCountByTeacher.get(t.teacherId) ?? 0) +
-          (t.seniorityRank ?? 9999) * 0.0001
-        );
-      };
-      const sa = score(a);
-      const sb = score(b);
-      if (sa !== sb) return sa - sb;
-      return a.employeeCode.localeCompare(b.employeeCode);
-    });
+          const elapsed = lastDuty == null || Number.isNaN(asOf) ? null : Math.max(0, asOf - lastDuty);
+          const recent = elapsed != null && elapsed <= fairnessWindowMs
+            ? Math.max(1, Math.ceil((fairnessWindowMs - elapsed) / 86_400_000))
+            : 0;
+          return (
+            rules.scoring_weights.recent_duty * recent +
+            rules.scoring_weights.workload * (assignmentCountByTeacher.get(t.teacherId) ?? 0) +
+            (t.seniorityRank ?? 9999) * 0.0001
+          );
+        };
+        const sa = score(a);
+        const sb = score(b);
+        if (sa !== sb) return sa - sb;
+        return a.employeeCode.localeCompare(b.employeeCode);
+      });
+      return candidates;
+    };
 
-    if (eligible.length < need.length) {
+    // SGT is a hall-only reserve. PG, BT and special-subject teachers get
+    // their normal turn first; an SGT teacher is considered only when that
+    // regular teaching pool cannot fill the centre/session requirement.
+    const regularTeaching = eligible.filter((teacher) => !isSgtTeacher(teacher));
+    const sgtReserve = eligible.filter(isSgtTeacher);
+    const rankedRegular = rankCandidates(regularTeaching);
+    const rankedSgtReserve = rankCandidates(sgtReserve);
+    const rankedEligible =
+      rankedRegular.length >= need.length
+        ? rankedRegular
+        : [...rankedRegular, ...rankedSgtReserve];
+
+    if (rankedEligible.length < need.length) {
       shortages.push({
         centreId: demand.centreId,
         required: need.length,
-        eligible: eligible.length,
-        shortage: need.length - eligible.length,
+        eligible: rankedEligible.length,
+        shortage: need.length - rankedEligible.length,
         message: "NO FEASIBLE ALLOCATION",
       });
       // Assign what we can without forcing beyond eligible
     }
 
-    const take = Math.min(eligible.length, need.length);
+    const take = Math.min(rankedEligible.length, need.length);
     for (let i = 0; i < take; i++) {
-      const t = eligible[i]!;
+      const t = rankedEligible[i]!;
       const n = need[i]!;
       assignments.push({
         centreId: demand.centreId,

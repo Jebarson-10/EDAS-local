@@ -203,7 +203,7 @@ export function ReportsPage() {
       <Tile span={4}>
         <TileHeader
           title="Theory duty order"
-          hint="One sheet for each centre. It shows the chief examiner, departmental officer, office helpers and all hall invigilators together."
+          hint="One sheet for each centre. It shows the chief examiner, departmental officer, non-teaching office helpers and all hall invigilators together."
         />
         <div className="mt-3 flex flex-wrap gap-2">
           <button

@@ -280,8 +280,8 @@ describe("adversarial cases", () => {
       [{ schoolId: "s1", subjectId: "phy", studentCount: 40 }],
       {
         teachers: [
-          t({ teacherId: "a", employeeCode: "A1", schoolId: "s1", designation: "PG" }),
-          t({ teacherId: "b", employeeCode: "B1", schoolId: "s2", designation: "PG" }),
+          t({ teacherId: "a", employeeCode: "A1", schoolId: "s1", designation: "PG", subject: "Physics" }),
+          t({ teacherId: "b", employeeCode: "B1", schoolId: "s2", designation: "PG", subject: "Physics" }),
         ],
         exemptions: [],
         calendar: [],

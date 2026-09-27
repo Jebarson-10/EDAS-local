@@ -121,7 +121,7 @@ describe("user-facing duty reports", () => {
     expect(sheet.getCell("C4").text).toContain("Chief Teacher");
     expect(sheet.getCell("A5").text).toBe("Departmental officer");
     expect(sheet.getCell("C5").text).toContain("Department One");
-    expect(sheet.getCell("A6").text).toBe("Office helpers");
+    expect(sheet.getCell("A6").text).toBe("Office helpers (non-teaching)");
     expect(sheet.getCell("C6").text).toContain("Office One");
     expect(sheet.getRow(8).values).toContain("Name of invigilator");
     expect(sheet.getRow(9).values).toContain("Hall Teacher");
