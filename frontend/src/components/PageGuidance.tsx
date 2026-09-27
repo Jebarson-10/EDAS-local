@@ -67,7 +67,7 @@ function ResultSummary({ path }: { path: string }) {
       for (const [code, count] of Object.entries(item.exclusionTallies ?? {})) {
         if (count <= 0) continue;
         const previous = reasons.get(code) ?? { duties: 0, checks: 0 };
-        reasons.set(code, { duties: previous.duties + 1, checks: previous.checks + count });
+        reasons.set(code, { duties: previous.duties + item.shortage, checks: previous.checks + count });
       }
     }
     return <>
