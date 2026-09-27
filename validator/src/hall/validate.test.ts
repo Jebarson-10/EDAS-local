@@ -150,4 +150,24 @@ describe("hall validator", () => {
     expect(validated.status).toBe("INVALID");
     expect(validated.issues.some((issue) => issue.ruleCode === "RULE-HALL-STAFF-CATEGORY")).toBe(true);
   });
+
+  it("independently rejects an unrelated teaching post for hall duty", () => {
+    const result = {
+      algorithmVersion: "test", requiredHallsByCentre: { c1: 1 }, standbyByCentre: { c1: 0 }, shortages: [], feasible: true,
+      assignments: [{ centreId: "c1", examDate: "2027-03-15", sessionCode: "MORNING" as const, roleCode: "HALL_INVIGILATOR" as const, slotIndex: 1, teacherId: "t1", employeeCode: "E1", score: 0 }],
+    };
+    const validated = validateHallAllocation(
+      result,
+      [{ centreId: "c1", totalStudents: 20 }],
+      { ...DEFAULT_RULE_PARAMETERS, hall_designation_allowlist: [] },
+      {
+        teachers: [{ teacherId: "t1", employeeCode: "E1", name: "Computer instructor", schoolId: "s2", designation: "COMPUTER INSTRUCTOR", staffCategory: "TEACHING", isActive: true, dataQuality: "Imported" }],
+        schools: [{ schoolId: "s2", schoolCode: "", schoolName: "School", blockId: "b1", latitude: 11.31, longitude: 77.71, active: true }],
+        centres: [{ centreId: "c1", centreCode: "C1", centreName: "Centre", blockId: "b1", latitude: 11.3, longitude: 77.7, active: true }],
+        exemptions: [], history: [], calendar: [], academicYear: "2027", centreSchoolIds: new Map(),
+      },
+    );
+    expect(validated.status).toBe("INVALID");
+    expect(validated.issues.some((issue) => issue.ruleCode === "RULE-HALL-POST")).toBe(true);
+  });
 });

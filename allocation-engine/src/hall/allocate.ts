@@ -12,7 +12,7 @@ import { haversineKm, roundKm } from "@exam-duty/shared";
 
 // 1.1 permits a teacher to be considered again on a different date/session,
 // while the dynamic workload score gives every eligible teacher a turn first.
-export const HALL_ALGORITHM_VERSION = "hall-1.3.0";
+export const HALL_ALGORITHM_VERSION = "hall-1.4.0";
 
 export interface HallCentreDemand {
   centreId: string;
@@ -75,10 +75,19 @@ function yearNum(y: string): number {
   return m ? Number(m[1]) : NaN;
 }
 
-/** SGT staff are held back for hall work until the regular teaching pool is short. */
-function isSgtTeacher(teacher: Teacher): boolean {
-  const compact = teacher.designation.toUpperCase().replace(/[\s._'’-]+/g, "");
-  return ["SGT", "SECONDARYGRADETEACHER"].includes(compact);
+/**
+ * The confirmed hall-duty pool. Never broaden this simply because a row is
+ * marked "teaching": for example, a computer instructor or a physical
+ * director is not a hall invigilator unless the officer first classifies the
+ * row as one of these approved categories in Master data.
+ */
+function isApprovedHallDesignation(teacher: Teacher): boolean {
+  return ["PG", "SENIOR_PG", "BT", "SGT", "SPECIAL_TEACHER"].includes(teacher.designation);
+}
+
+/** SGT and SPL staff are reserves, used only after PG/BT staff are insufficient. */
+function isReserveHallTeacher(teacher: Teacher): boolean {
+  return ["SGT", "SPECIAL_TEACHER"].includes(teacher.designation);
 }
 
 export function allocateHall(
@@ -134,6 +143,7 @@ export function allocateHall(
     const eligible = dataset.teachers.filter((t) => {
       if (!t.isActive) return false;
       if ((t.staffCategory ?? "TEACHING") !== "TEACHING") return false;
+      if (!isApprovedHallDesignation(t)) return false;
       if (
         dataset.exemptions.some(
           (e) =>
@@ -233,17 +243,17 @@ export function allocateHall(
       return candidates;
     };
 
-    // SGT is a hall-only reserve. PG, BT and special-subject teachers get
-    // their normal turn first; an SGT teacher is considered only when that
-    // regular teaching pool cannot fill the centre/session requirement.
-    const regularTeaching = eligible.filter((teacher) => !isSgtTeacher(teacher));
-    const sgtReserve = eligible.filter(isSgtTeacher);
+    // SGT and special teachers are hall-only reserves. PG and BT teachers get
+    // their normal turn first; reserve staff are considered only if the regular
+    // pool cannot fill the centre/session requirement.
+    const regularTeaching = eligible.filter((teacher) => !isReserveHallTeacher(teacher));
+    const reserveTeaching = eligible.filter(isReserveHallTeacher);
     const rankedRegular = rankCandidates(regularTeaching);
-    const rankedSgtReserve = rankCandidates(sgtReserve);
+    const rankedReserve = rankCandidates(reserveTeaching);
     const rankedEligible =
       rankedRegular.length >= need.length
         ? rankedRegular
-        : [...rankedRegular, ...rankedSgtReserve];
+        : [...rankedRegular, ...rankedReserve];
 
     if (rankedEligible.length < need.length) {
       shortages.push({

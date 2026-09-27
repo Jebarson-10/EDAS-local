@@ -103,7 +103,9 @@ export const DEFAULT_RULE_PARAMETERS: RuleParameters = {
     role_balance: 1,
   },
   role_switch_mode: "soft",
-  hall_designation_allowlist: [],
+  // Hall work is for teaching staff only. SGT and special teachers are held
+  // back until the regular PG/BT pool cannot meet the centre's requirement.
+  hall_designation_allowlist: ["PG", "SENIOR_PG", "BT", "SGT", "SPECIAL_TEACHER"],
   missing_coordinates_policy: "INELIGIBLE",
   department_officer_second_threshold: 500,
   office_staff_per_centre: 2,

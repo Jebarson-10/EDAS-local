@@ -49,7 +49,7 @@ INSERT INTO rule_parameters (id, rule_version_id, param_key, param_value, value_
   ('rp-14', 'rv-2027-1', 'chief_fallback_designations', '["SENIOR_PG"]', 'json'),
   ('rp-15', 'rv-2027-1', 'scoring_weights', '{"recent_duty":5,"repeated_duty":3,"distance":1,"workload":2,"role_balance":1}', 'json'),
   ('rp-16', 'rv-2027-1', 'role_switch_mode', '"soft"', 'string'),
-  ('rp-17', 'rv-2027-1', 'hall_designation_allowlist', '[]', 'json'),
+  ('rp-17', 'rv-2027-1', 'hall_designation_allowlist', '["PG","SENIOR_PG","BT","SGT","SPECIAL_TEACHER"]', 'json'),
   ('rp-18', 'rv-2027-1', 'missing_coordinates_policy', '"INELIGIBLE"', 'string'),
   ('rp-19', 'rv-2027-1', 'department_officer_second_threshold', '500', 'number'),
   ('rp-20', 'rv-2027-1', 'office_staff_per_centre', '2', 'number'),

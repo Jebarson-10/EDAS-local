@@ -54,7 +54,7 @@ const seedRows = [
   { param_key: "role_switch_mode", param_value: '"soft"', value_type: "string" },
   {
     param_key: "hall_designation_allowlist",
-    param_value: "[]",
+    param_value: '["PG","SENIOR_PG","BT","SGT","SPECIAL_TEACHER"]',
     value_type: "json",
   },
   {

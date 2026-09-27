@@ -37,6 +37,11 @@ function academicYearNumber(value: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+/** Keep this check independent from the allocator: only approved teaching posts may invigilate. */
+function isApprovedHallDesignation(designation: string): boolean {
+  return ["PG", "SENIOR_PG", "BT", "SGT", "SPECIAL_TEACHER"].includes(designation);
+}
+
 function hallEligibilityProblems(
   assignment: HallResult["assignments"][number],
   dataset: HallValidationDataset,
@@ -51,6 +56,9 @@ function hallEligibilityProblems(
   if (!teacher.isActive) problems.push({ ruleCode: "RULE-HALL-INACTIVE", message: "Hall staff member is inactive" });
   if ((teacher.staffCategory ?? "TEACHING") !== "TEACHING") {
     problems.push({ ruleCode: "RULE-HALL-STAFF-CATEGORY", message: "Hall invigilator must be teaching staff" });
+  }
+  if (!isApprovedHallDesignation(teacher.designation)) {
+    problems.push({ ruleCode: "RULE-HALL-POST", message: "Only PG, Senior PG, BT, SGT or special teachers may be used for hall duty" });
   }
   if (rules.hall_designation_allowlist.length && !rules.hall_designation_allowlist.includes(teacher.designation)) {
     problems.push({ ruleCode: "RULE-HALL-POST", message: "Staff post is not allowed for hall duty" });

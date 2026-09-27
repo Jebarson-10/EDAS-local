@@ -80,6 +80,23 @@ describe("hall allocation", () => {
     expect(result.assignments.map((assignment) => assignment.teacherId)).toEqual(["teacher"]);
   });
 
+  it("does not use an unrelated teaching post even when an older rule setting has no allowlist", () => {
+    const unrelated = { ...teacher("computer", "C1", 1), designation: "COMPUTER INSTRUCTOR" };
+    const result = allocateHall(
+      [{ centreId: "centre", totalStudents: 20, examDate: "2027-03-01", sessionCode: "MORNING" }],
+      {
+        teachers: [unrelated],
+        schools: [{ schoolId: "outside", schoolCode: "OUT", schoolName: "Outside school", blockId: "b1", latitude: 11.34, longitude: 77.72, active: true }],
+        centres: [{ centreId: "centre", centreCode: "C1", centreName: "Centre", blockId: "b1", latitude: 11.34, longitude: 77.72, active: true }],
+        exemptions: [], history: [], calendar: [], academicYear: "2027", asOfDate: "2027-03-01",
+        centreSchoolIds: new Map([["centre", new Set<string>()]]),
+      },
+      { ...DEFAULT_RULE_PARAMETERS, hall_designation_allowlist: [], standby_percentage: 0 },
+    );
+    expect(result.assignments).toHaveLength(0);
+    expect(result.shortages[0]).toMatchObject({ eligible: 0, shortage: 1 });
+  });
+
   it("uses SGT teachers only after the regular hall pool is not enough", () => {
     const regular = teacher("regular", "R1", 9);
     const sgt: Teacher = {
