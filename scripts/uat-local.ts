@@ -3657,6 +3657,7 @@ async function main() {
   );
 
   const smokeSrc = readFileSync("scripts/ui-smoke.mjs", "utf8");
+  const currentSmokeSrc = readFileSync("scripts/current-ui-smoke.mjs", "utf8");
   record(
     "UAT-58",
     "Practical/hall generate disable while persist is in flight; smoke waits for Generating… and a pipeline run-id change after theory generate",
@@ -3710,22 +3711,22 @@ async function main() {
   const reportsSrc = readFileSync("frontend/src/pages/ReportsPage.tsx", "utf8");
   record(
     "UAT-60",
-    "Settings rule-version create/activate and report/duty-letter exports disable until persist settles; smoke waits for Creating…/Activating…/Exporting…",
+    "Settings rule-version create/activate and the three simple report downloads disable until their source duties are ready or a download is being prepared",
     settingsSrc.includes('busyKind === "create"') &&
       settingsSrc.includes("Creating…") &&
       settingsSrc.includes('busyKind === "activate"') &&
       settingsSrc.includes("Activating…") &&
       settingsSrc.includes("disabled={role !== \"ADMIN\" || busy}") &&
-      reportsSrc.includes('busyKind === "dutyIn" ? "Preparing…"') &&
-      reportsSrc.includes('busyKind === "dutyOut" ? "Preparing…"') &&
-      reportsSrc.includes(
-        "disabled={!canExport || !practicalResult?.schedules.length || busy}",
-      ) &&
-      reportsSrc.includes("disabled={!canExport || !latest?.result || busy}") &&
-      smokeSrc.includes('createRule.getByText("Creating…")') &&
-      smokeSrc.includes('activateRule.getByText("Activating…")') &&
-      smokeSrc.includes('exportDutyIn.getByText("Preparing…")'),
-    `settingsCreate=${settingsSrc.includes("Creating…")} settingsActivate=${settingsSrc.includes("Activating…")} dutyIn=${reportsSrc.includes("dutyIn")} smokeExport=${smokeSrc.includes("Exporting…")}`,
+      reportsSrc.includes('busyKind === "theory" ? "Preparing…"') &&
+      reportsSrc.includes('busyKind === "officers" ? "Preparing…"') &&
+      reportsSrc.includes('busyKind === "practical" ? "Preparing…"') &&
+      reportsSrc.includes("disabled={!theoryReady || !hallReady || busy}") &&
+      reportsSrc.includes("disabled={!theoryReady || busy}") &&
+      reportsSrc.includes("disabled={!practicalReady || busy}") &&
+      currentSmokeSrc.includes("Download centre-wise theory duty order") &&
+      currentSmokeSrc.includes("Chief and departmental officers only") &&
+      currentSmokeSrc.includes("Download practical examiner list"),
+    `settingsCreate=${settingsSrc.includes("Creating…")} settingsActivate=${settingsSrc.includes("Activating…")} centreOrder=${reportsSrc.includes("centre-wise theory duty order")} practical=${reportsSrc.includes("practical examiner list")}`,
   );
 
   const workerImportSrc = readFileSync("worker/src/index.ts", "utf8");
@@ -3998,7 +3999,7 @@ async function main() {
   }
   record(
     "UAT-63",
-    "POST /api/exports is a receipt write (master.write); VIEWER is 403; Reports/Audit do not claim the file is archived",
+    "POST /api/exports records a download (master.write); VIEWER is 403; Reports and Activity make clear that the file stays on the computer",
     viewerExportStatus === 403 &&
       officerExportOk &&
       viewerListHasReceipt &&
@@ -4009,14 +4010,11 @@ async function main() {
       /\/api\/exports" && req.method === "POST"[\s\S]{0,180}requirePerm\(a, "master.write"/.test(
         localApiSrc,
       ) &&
-      reportsSrc.includes("Receipt recorded") &&
-      reportsSrc.includes("receipt was not stored") &&
-      reportsSrc.includes("The download stays on this machine") &&
-      reportsSrc.includes("setReceipt") &&
-      auditSrc.includes("Downloaded reports") &&
-      auditSrc.includes("The files stay on your computer.") &&
-      smokeSrc.includes('export-receipt")') &&
-      smokeSrc.includes("Receipt recorded"),
+      reportsSrc.includes("Download noted in Activity.") &&
+      reportsSrc.includes("Activity could not be updated.") &&
+      reportsSrc.includes("setMessage") &&
+      auditSrc.includes("Downloaded files stay on this computer.") &&
+      currentSmokeSrc.includes("Download centre-wise theory duty order"),
     `viewer=${viewerExportStatus} officerOk=${officerExportOk} listed=${viewerListHasReceipt} id=${officerExportId || "none"} err=${exportReceiptErr || "none"}`,
   );
 

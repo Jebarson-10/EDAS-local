@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import ExcelJS from "exceljs";
 import {
+  buildCentreDutyOrder,
+  buildCentreWiseTheoryDutyWorkbook,
+  buildChiefAndDepartmentWorkbook,
   buildCompleteAllotmentWorkbook,
   buildOfficialStaffTemplateWorkbook,
+  buildPracticalExaminerWorkbook,
   buildTeacherWiseWorkbook,
   formatDutyRole,
   type WorkbookMeta,
 } from "./excelReports.js";
+import type { Centre, School, Teacher } from "./types.js";
 
 const meta: WorkbookMeta = {
   title: "Test report",
@@ -24,7 +29,139 @@ async function readSheet(buffer: ArrayBuffer, name: string) {
   return workbook.getWorksheet(name)!;
 }
 
+const reportSchool: School = {
+  schoolId: "school-1",
+  schoolCode: "220001",
+  schoolName: "Example Government Higher Secondary School",
+  blockId: "block-1",
+  active: true,
+};
+
+const reportCentre: Centre = {
+  centreId: "centre-1",
+  centreCode: "220001",
+  centreName: "Example Government Higher Secondary School",
+  blockId: "block-1",
+  capacity: 501,
+  active: true,
+};
+
+function reportTeacher(
+  teacherId: string,
+  name: string,
+  designation: string,
+  subject = "",
+): Teacher {
+  return {
+    teacherId,
+    employeeCode: teacherId,
+    name,
+    schoolId: reportSchool.schoolId,
+    designation,
+    subject,
+    isActive: true,
+    dataQuality: "Imported",
+    officialDetails: { "Mobile number": "9000000000" },
+  };
+}
+
+const reportTeachers = [
+  reportTeacher("chief", "Chief Teacher", "HM"),
+  reportTeacher("department-1", "Department One", "PG", "Physics"),
+  reportTeacher("department-2", "Department Two", "PG", "Chemistry"),
+  reportTeacher("office-1", "Office One", "Office staff"),
+  reportTeacher("office-2", "Office Two", "Office staff"),
+  reportTeacher("hall", "Hall Teacher", "BT", "Mathematics"),
+  reportTeacher("standby", "Standby Teacher", "SPL", "Tamil"),
+];
+
+const theoryDutyInput = {
+  title: "HSC 2027",
+  centres: [reportCentre],
+  schools: [reportSchool],
+  teachers: reportTeachers,
+  theoryAssignments: [
+    { centreId: "centre-1", teacherId: "chief", roleCode: "CHIEF_EXAMINATION" as const, examDate: "2027-03-01", sessionCode: "MORNING" },
+    { centreId: "centre-1", teacherId: "chief", roleCode: "CHIEF_EXAMINATION" as const, examDate: "2027-03-02", sessionCode: "AFTERNOON" },
+    { centreId: "centre-1", teacherId: "department-1", roleCode: "DEPARTMENT_OFFICER" as const, examDate: "2027-03-01", sessionCode: "MORNING" },
+    { centreId: "centre-1", teacherId: "department-2", roleCode: "DEPARTMENT_OFFICER" as const, examDate: "2027-03-01", sessionCode: "MORNING" },
+    { centreId: "centre-1", teacherId: "office-1", roleCode: "OFFICE_STAFF" as const, examDate: "2027-03-01", sessionCode: "MORNING" },
+    { centreId: "centre-1", teacherId: "office-2", roleCode: "OFFICE_STAFF" as const, examDate: "2027-03-01", sessionCode: "MORNING" },
+  ],
+  hallAssignments: [
+    { centreId: "centre-1", teacherId: "hall", roleCode: "HALL_INVIGILATOR" as const, examDate: "2027-03-01", sessionCode: "MORNING" },
+    { centreId: "centre-1", teacherId: "hall", roleCode: "HALL_INVIGILATOR" as const, examDate: "2027-03-02", sessionCode: "AFTERNOON" },
+    { centreId: "centre-1", teacherId: "standby", roleCode: "HALL_STANDBY" as const, examDate: "2027-03-01", sessionCode: "MORNING" },
+  ],
+};
+
 describe("user-facing duty reports", () => {
+  it("groups every required theory role under one centre without repeating staff by session", () => {
+    const centres = buildCentreDutyOrder(theoryDutyInput);
+    expect(centres).toHaveLength(1);
+    expect(centres[0]?.chiefExaminers).toHaveLength(1);
+    expect(centres[0]?.chiefExaminers[0]?.dutyTimes).toEqual([
+      "2027-03-01 Morning",
+      "2027-03-02 Afternoon",
+    ]);
+    expect(centres[0]?.departmentalOfficers).toHaveLength(2);
+    expect(centres[0]?.officeHelpers).toHaveLength(2);
+    expect(centres[0]?.hallTeam).toHaveLength(2);
+    expect(centres[0]?.hallTeam[0]?.teacherName).toBe("Hall Teacher");
+    expect(centres[0]?.hallTeam[1]?.roleCode).toBe("HALL_STANDBY");
+  });
+
+  it("creates a centre-by-centre duty order in the requested officer and hall layout", async () => {
+    const buffer = await buildCentreWiseTheoryDutyWorkbook(theoryDutyInput);
+    const sheet = await readSheet(buffer, "220001");
+    expect(sheet.getCell("A1").text).toBe("THEORY EXAMINATION - DUTY ORDER");
+    expect(sheet.getCell("A3").text).toBe("Centre");
+    expect(sheet.getCell("C3").text).toContain("220001");
+    expect(sheet.getCell("A4").text).toBe("Chief examiner");
+    expect(sheet.getCell("C4").text).toContain("Chief Teacher");
+    expect(sheet.getCell("A5").text).toBe("Departmental officer");
+    expect(sheet.getCell("C5").text).toContain("Department One");
+    expect(sheet.getCell("A6").text).toBe("Office helpers");
+    expect(sheet.getCell("C6").text).toContain("Office One");
+    expect(sheet.getRow(8).values).toContain("Name of invigilator");
+    expect(sheet.getRow(9).values).toContain("Hall Teacher");
+    expect(sheet.getRow(10).values).toContain("Standby Teacher");
+    expect(sheet.getRow(9).values).toContain("2027-03-01 Morning; 2027-03-02 Afternoon");
+  });
+
+  it("creates the optional chief and departmental officer reference without unrelated duty rows", async () => {
+    const buffer = await buildChiefAndDepartmentWorkbook(theoryDutyInput);
+    const sheet = await readSheet(buffer, "Chief and department");
+    expect(sheet.getRow(3).values).toEqual([
+      undefined,
+      "Centre code",
+      "Centre name",
+      "Chief examiner",
+      "Departmental officer",
+    ]);
+    expect(sheet.getRow(4).getCell(3).text).toContain("Chief Teacher");
+    expect(sheet.getRow(4).getCell(4).text).toContain("Department One");
+    expect(sheet.getRow(4).values).not.toContain("Hall Teacher");
+  });
+
+  it("creates one practical row per school and subject with examiner names and batch count", async () => {
+    const buffer = await buildPracticalExaminerWorkbook({
+      title: "HSC 2027",
+      schools: [reportSchool],
+      teachers: reportTeachers,
+      schedules: [
+        { batchKey: "physics-1", schoolId: "school-1", subjectId: "Physics", examDate: "2027-02-21", sessionCode: "MORNING", internalExaminerId: "department-1", externalExaminerId: "department-2" },
+        { batchKey: "physics-2", schoolId: "school-1", subjectId: "Physics", examDate: "2027-02-21", sessionCode: "AFTERNOON", internalExaminerId: "department-1", externalExaminerId: "department-2" },
+      ],
+    });
+    const sheet = await readSheet(buffer, "Practical examiners");
+    expect(sheet.getRow(3).values).toContain("Batches");
+    expect(sheet.getRow(4).values).toContain(2);
+    expect(sheet.getRow(4).values).toContain("Department One");
+    expect(sheet.getRow(4).values).toContain("Department Two");
+    expect(sheet.getRow(4).values).not.toContain("department-1");
+  });
+
   it("uses simple duty names for known and future role codes", () => {
     expect(formatDutyRole("CHIEF_EXAMINATION")).toBe("Chief examiner");
     expect(formatDutyRole("DEPARTMENT_OFFICER")).toBe("Departmental officer");

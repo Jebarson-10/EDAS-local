@@ -183,7 +183,7 @@ export function ImportPage() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Import your examination data"><p>1. Upload OVER ALL to save staff and schools. 2. Upload 13A to review centres and student numbers. 3. Add the timetable and practical subject counts. Then generate duties and download school-wise Duty-In and Duty-Out lists.</p></Panel>
+      <Panel title="Import your examination data"><p>1. Upload OVER ALL to save staff and schools. 2. Upload 13A to review centres and student numbers. 3. Add the timetable and practical subject counts. Then generate Theory, Hall and Practical duties and download the centre-wise duty lists.</p></Panel>
       <details><summary className="cursor-pointer p-2">Other spreadsheets and column matching</summary><ColumnImportPanel onTeachers={(rows) => {
         clearArchivedImport();
         setText(rows.length ? JSON.stringify(rows) : "");

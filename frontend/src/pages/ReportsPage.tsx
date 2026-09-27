@@ -1,106 +1,90 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { buildSchoolDutyRows, formatDutyRole, latestRunForModuleInCycle } from "@exam-duty/shared";
-import { useApp, isTheoryRun } from "../state/AppContext";
-import { Badge, Bento, EmptyState, Tile, TileHeader } from "../components/ui";
+import {
+  type CentreDutyOrderAssignment,
+  type PracticalExaminerSchedule,
+  latestRunForModuleInCycle,
+} from "@exam-duty/shared";
+import { isTheoryRun, useApp } from "../state/AppContext";
+import { Bento, Tile, TileHeader } from "../components/ui";
 import type { HallResult, PracticalResult } from "@exam-duty/allocation-engine";
 import { recordExportApi } from "../lib/api";
 
-function downloadBuffer(buf: ArrayBuffer, filename: string) {
-  const blob = new Blob([buf], {
+function downloadBuffer(buffer: ArrayBuffer, filename: string) {
+  const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
   URL.revokeObjectURL(url);
 }
 
-function downloadCsv(filename: string, rows: string[][]) {
-  const csv = rows
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+function theoryDutyAssignments(
+  assignments: Array<{
+    centreId: string;
+    teacherId: string;
+    roleCode: string;
+    examDate: string;
+    sessionCode: string;
+  }>,
+): CentreDutyOrderAssignment[] {
+  const result: CentreDutyOrderAssignment[] = [];
+  for (const assignment of assignments) {
+    if (
+      assignment.roleCode === "CHIEF_EXAMINATION" ||
+      assignment.roleCode === "DEPARTMENT_OFFICER" ||
+      assignment.roleCode === "OFFICE_STAFF"
+    ) {
+      result.push({ ...assignment, roleCode: assignment.roleCode });
+    }
+  }
+  return result;
 }
 
-async function noteExport(
+function hallDutyAssignments(
+  assignments: Array<{
+    centreId: string;
+    teacherId: string;
+    roleCode: "HALL_INVIGILATOR" | "HALL_STANDBY";
+    examDate: string;
+    sessionCode: string;
+    slotIndex: number;
+  }>,
+): CentreDutyOrderAssignment[] {
+  return assignments.map((assignment) => ({ ...assignment }));
+}
+
+async function noteDownload(
   role: Parameters<typeof recordExportApi>[0],
   exportType: string,
   examCycleId: string,
   runId?: string,
   meta?: Record<string, unknown>,
 ) {
-  const rec = await recordExportApi(role, {
-    exportType,
-    examCycleId,
-    runId,
-    meta,
-  });
-  if (rec?.ok && rec.exportId) {
-    return {
-      ok: true as const,
-      text: `Receipt recorded (${exportType})`,
-    };
-  }
-  return {
-    ok: false as const,
-    text: `Downloaded ${exportType} — receipt was not stored${
-      rec?.error ? ` (${rec.error})` : ""
-    }. Audit will not list this download.`,
-  };
+  const saved = await recordExportApi(role, { exportType, examCycleId, runId, meta });
+  return saved?.ok
+    ? { ok: true as const, text: "Download noted in Activity." }
+    : {
+        ok: false as const,
+        text: "The file downloaded, but Activity could not be updated.",
+      };
 }
 
 export function ReportsPage() {
   const { runs, examCycle, role, logAudit, dataset } = useApp();
-  const latestPicked = latestRunForModuleInCycle(
-    runs,
-    "THEORY",
-    examCycle.examCycleId,
-  );
-  const latest =
-    latestPicked && isTheoryRun(latestPicked) ? latestPicked : undefined;
-  const practical = latestRunForModuleInCycle(
-    runs,
-    "PRACTICAL",
-    examCycle.examCycleId,
-  );
-  const hall = latestRunForModuleInCycle(
-    runs,
-    "HALL",
-    examCycle.examCycleId,
-  );
-  const practicalResult = practical?.result as
-    PracticalResult | null | undefined;
+  const selectedTheory = latestRunForModuleInCycle(runs, "THEORY", examCycle.examCycleId);
+  const theory = selectedTheory && isTheoryRun(selectedTheory) ? selectedTheory : undefined;
+  const practical = latestRunForModuleInCycle(runs, "PRACTICAL", examCycle.examCycleId);
+  const hall = latestRunForModuleInCycle(runs, "HALL", examCycle.examCycleId);
+  const practicalResult = practical?.result as PracticalResult | null | undefined;
   const hallResult = hall?.result as HallResult | null | undefined;
-  const canExport = role !== "VIEWER";
-  const [busyKind, setBusyKind] = useState<
-    | null
-    | "teacher"
-    | "exception"
-    | "complete"
-    | "pdf"
-    | "practical"
-    | "dutyIn"
-    | "dutyOut"
-    | "hall"
-    | "schoolIn"
-    | "schoolOut"
-    | "schoolExcel"
-  >(null);
+  const [busyKind, setBusyKind] = useState<"theory" | "officers" | "practical" | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const busyRef = useRef(false);
   const busy = busyKind !== null;
-  const [receipt, setReceipt] = useState<{
-    ok: boolean;
-    text: string;
-  } | null>(null);
 
   function startBusy(kind: NonNullable<typeof busyKind>) {
     if (busyRef.current) return false;
@@ -108,660 +92,185 @@ export function ReportsPage() {
     setBusyKind(kind);
     return true;
   }
+
   function stopBusy() {
     busyRef.current = false;
     setBusyKind(null);
   }
 
-  const metaBase = {
-    title: "Erode Examination Duty Allotment",
-    examCycle: examCycle.name,
-    generatedAt: new Date().toISOString(),
-    ruleVersion: examCycle.ruleVersionLabel,
-    allocationRun: latest?.runId ?? "none",
-    officer: role,
-    dataVersion: dataset?.meta.slice ?? "demo",
-  };
-
-  async function exportSchoolLists(kind:"schoolIn"|"schoolOut"|"schoolExcel") {
-    if (!dataset || !startBusy(kind)) return;
-    try {
-      const rows=buildSchoolDutyRows({schools:dataset.schools,centres:dataset.centres,teachers:dataset.teachers,relationships:dataset.relationships,assignments:[...(latest?.result?.assignments??[]),...(hallResult?.assignments??[])],practical:practicalResult?.schedules??[]});
-      if (kind==="schoolExcel") {
-        const ExcelJS=(await import("exceljs")).default;
-        const book=new ExcelJS.Workbook();
-        for (const [name,list] of [["Duty-In",rows.dutyIn],["Duty-Out",rows.dutyOut]] as const) {
-          const sheet=book.addWorksheet(name);
-          sheet.addRow([examCycle.name]);
-          sheet.addRow(["School","School reference","Teacher","Post","Duty","Subject","Teacher school","Duty school","Centre code","Date","Session","Batch"]);
-          list.forEach(r=>sheet.addRow([r.schoolName,r.schoolReference,r.teacherName,r.designation,r.duty,r.subject,r.teacherSchool,r.dutySchool,r.centreCode,r.examDate,r.session,r.batch]));
-          sheet.getRow(2).font={bold:true};sheet.views=[{state:"frozen",ySplit:2}];
-          sheet.columns.forEach((c,i)=>{c.width=[0,2,6,7].includes(i)?32:18;});
-          sheet.eachRow(r=>{r.alignment={vertical:"top",wrapText:true};});
-        }
-        downloadBuffer(await book.xlsx.writeBuffer() as ArrayBuffer,`School-duty-lists-${examCycle.academicYear}.xlsx`);
-      } else {
-        const {schoolDutyDocx}=await import("../lib/schoolDutyDocuments");
-        const list=kind==="schoolIn"?rows.dutyIn:rows.dutyOut;
-        if (!list.length) throw new Error("There are no duties for this list yet.");
-        downloadBlob(await schoolDutyDocx(kind==="schoolIn"?"in":"out",list,examCycle.name),`${kind==="schoolIn"?"Duty-In":"Duty-Out"}-${examCycle.academicYear}.docx`);
-      }
-      setReceipt(await noteExport(role,kind,examCycle.examCycleId,undefined,{runIds:[latest?.runId,hall?.runId,practical?.runId].filter(Boolean)}));
-    } catch(e) {setReceipt({ok:false,text:e instanceof Error?e.message:"The duty list could not be prepared."});}
-    finally {stopBusy();}
-  }
-
-  function downloadBlob(blob:Blob,filename:string) {
-    const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;link.click();URL.revokeObjectURL(url);
-  }
-
-  async function exportTeacherWise() {
-    if (!latest?.result || !dataset) return;
-    if (!startBusy("teacher")) return;
-    try {
-      const { buildTeacherWiseWorkbook } = await import("@exam-duty/shared");
-      const schoolById = new Map(dataset.schools.map((s) => [s.schoolId, s]));
-      const teacherById = new Map(dataset.teachers.map((t) => [t.teacherId, t]));
-      const rows = latest.result.assignments.map((a) => {
-        const t = teacherById.get(a.teacherId);
-        return {
-          Teacher: t?.name ?? "Selected teacher",
-          School: t
-            ? (schoolById.get(t.schoolId)?.schoolName ?? "")
-            : "",
-          Duty: "Theory examination",
-          Centre: a.centreId,
-          Date: a.examDate,
-          Session: a.sessionCode,
-          "Duty role": formatDutyRole(a.roleCode),
-          Subject: "",
-        };
-      });
-      const buf = await buildTeacherWiseWorkbook(
-        { ...metaBase, title: "Teacher-wise duty list" },
-        rows,
-      );
-      downloadBuffer(buf, `teacher-wise-${latest.runId}.xlsx`);
-      logAudit("EXPORT", `teacher-wise.xlsx for run ${latest.runId}`);
-      setReceipt(
-        await noteExport(
-          role,
-          "teacher-wise-xlsx",
-          examCycle.examCycleId,
-          latest.runId,
-        ),
-      );
-    } finally {
-      stopBusy();
-    }
-  }
-
-  async function exportException() {
-    if (!latest?.result) return;
-    if (!startBusy("exception")) return;
-    try {
-      const { buildExceptionWorkbook } = await import("@exam-duty/shared");
-      const teacherNameById = new Map(
-        (dataset?.teachers ?? []).map((teacher) => [teacher.teacherId, teacher.name]),
-      );
-      const rows = [
-        ...latest.result.shortages.map((s) => ({
-          Kind: "SHORTAGE",
-          Key: s.requirementKey,
-          Message: s.message,
-          Severity: "ERROR",
-        })),
-        ...latest.result.assignments
-          .filter((a) => a.usedFallbackBand)
-          .map((a) => ({
-            Kind: "FALLBACK",
-            Key: a.requirementKey,
-            Message: `${teacherNameById.get(a.teacherId) ?? "Selected teacher"} was chosen using the fallback eligibility group for ${formatDutyRole(a.roleCode)}.`,
-            Severity: "WARN",
-          })),
-      ];
-      const buf = await buildExceptionWorkbook(
-        { ...metaBase, title: "Exception report" },
-        rows,
-      );
-      downloadBuffer(buf, `exception-${latest.runId}.xlsx`);
-      logAudit("EXPORT", `exception-report.xlsx for run ${latest.runId}`);
-      setReceipt(
-        await noteExport(
-          role,
-          "exception-xlsx",
-          examCycle.examCycleId,
-          latest.runId,
-        ),
-      );
-    } finally {
-      stopBusy();
-    }
-  }
-
-  async function exportComplete() {
-    if (!latest?.result || !dataset) return;
-    if (!startBusy("complete")) return;
-    try {
-      const { buildCompleteAllotmentWorkbook } =
-        await import("@exam-duty/shared");
-    const schoolById = new Map(dataset.schools.map((s) => [s.schoolId, s]));
-    const teacherById = new Map(dataset.teachers.map((t) => [t.teacherId, t]));
-    const centreById = new Map(dataset.centres.map((centre) => [centre.centreId, centre]));
-    const teacherRows = latest.result.assignments.map((a) => {
-      const t = teacherById.get(a.teacherId);
-      return {
-        Teacher: t?.name ?? "Selected teacher",
-        School: t ? (schoolById.get(t.schoolId)?.schoolName ?? "") : "",
-        Duty: "Theory examination",
-        Centre: a.centreId,
-        Date: a.examDate,
-        Session: a.sessionCode,
-        "Duty role": formatDutyRole(a.roleCode),
-        Subject: "",
-      };
-    });
-    const bySchool = new Map<string, typeof latest.result.assignments>();
-    for (const a of latest.result.assignments) {
-      const schoolId = teacherById.get(a.teacherId)?.schoolId ?? "unknown";
-      const list = bySchool.get(schoolId) ?? [];
-      list.push(a);
-      bySchool.set(schoolId, list);
-    }
-    const schoolRows = [...bySchool.entries()].map(
-      ([schoolId, assignments]) => {
-        const school = schoolById.get(schoolId);
-        return {
-          School: school?.schoolName ?? "School not found",
-          Centre: [...new Set(assignments.map((a) => a.centreId))].join(", "),
-          Teachers: String(new Set(assignments.map((a) => a.teacherId)).size),
-          Date: [...new Set(assignments.map((a) => a.examDate))].join(", "),
-          Session: [...new Set(assignments.map((a) => a.sessionCode))].join(
-            ", ",
-          ),
-          Duty: "Theory examination",
-        };
-      },
-    );
-    const centreRows: Array<Record<string, string>> = [];
-    const centreRowKeys = new Set<string>();
-    const addCentreRow = (row: Record<string, string>) => {
-      const key = Object.values(row).join("|");
-      if (centreRowKeys.has(key)) return;
-      centreRowKeys.add(key);
-      centreRows.push(row);
+  function centreDutyInput() {
+    if (!dataset || !theory?.result) return undefined;
+    return {
+      title: examCycle.name,
+      centres: dataset.centres,
+      schools: dataset.schools,
+      teachers: dataset.teachers,
+      theoryAssignments: theoryDutyAssignments(theory.result.assignments),
+      hallAssignments: hallDutyAssignments(hallResult?.assignments ?? []),
     };
-    for (const a of latest.result.assignments) {
-      const teacher = teacherById.get(a.teacherId);
-      const teacherSchool = teacher
-        ? schoolById.get(teacher.schoolId)?.schoolName ?? "School not found"
-        : "School not found";
-      const dutyCentre = centreById.get(a.centreId)?.centreName ?? a.centreId;
-      const base = {
-        Teacher: teacher?.name ?? "Selected teacher",
-        "Teacher school": teacherSchool,
-        "Duty role": formatDutyRole(a.roleCode),
-        "Duty centre": dutyCentre,
-        Date: a.examDate,
-        Session: a.sessionCode,
-      };
-      addCentreRow({
-        Centre: dutyCentre,
-        Movement: "Coming to this centre",
-        ...base,
-      });
-
-      if (!teacher) continue;
-      for (const relationship of dataset.relationships) {
-        if (
-          relationship.schoolId !== teacher.schoolId ||
-          relationship.centreId === a.centreId ||
-          relationship.effectiveFrom > a.examDate ||
-          (relationship.effectiveTo && relationship.effectiveTo < a.examDate)
-        ) continue;
-        const homeCentre = centreById.get(relationship.centreId)?.centreName;
-        if (!homeCentre) continue;
-        addCentreRow({
-          Centre: homeCentre,
-          Movement: "Going out from this centre",
-          ...base,
-        });
-      }
-    }
-    const buf = await buildCompleteAllotmentWorkbook(
-      { ...metaBase, title: "Complete allotment" },
-      teacherRows,
-      schoolRows,
-      centreRows,
-    );
-    downloadBuffer(buf, `complete-allotment-${latest.runId}.xlsx`);
-    logAudit("EXPORT", `complete-allotment.xlsx for run ${latest.runId}`);
-    setReceipt(
-      await noteExport(
-        role,
-        "complete-allotment-xlsx",
-        examCycle.examCycleId,
-        latest.runId,
-      ),
-    );
-    } finally {
-      stopBusy();
-    }
   }
 
-  async function exportPdf() {
-    if (!latest?.result || !dataset) return;
-    if (!startBusy("pdf")) return;
+  async function exportCentreDutyOrder() {
+    const input = centreDutyInput();
+    if (!input || !hallResult?.assignments.length || !startBusy("theory")) return;
     try {
-      const { buildTeacherDutyPdf } = await import("../lib/pdfReports");
-      const teacherById = new Map(dataset.teachers.map((t) => [t.teacherId, t]));
-      const blob = await buildTeacherDutyPdf(
-        {
-          title: "Teacher-wise duty list (printable)",
-          examCycle: examCycle.name,
-          ruleVersion: examCycle.ruleVersionLabel,
-          runId: latest.runId,
-          officer: role,
-          generatedAt: new Date().toISOString(),
-        },
-        latest.result.assignments.map((a) => ({
-          name: teacherById.get(a.teacherId)?.name ?? "Selected teacher",
-          centre: a.centreId,
-          date: a.examDate,
-          session: a.sessionCode,
-          role: a.roleCode,
-        })),
+      const { buildCentreWiseTheoryDutyWorkbook } = await import("@exam-duty/shared");
+      downloadBuffer(
+        await buildCentreWiseTheoryDutyWorkbook(input),
+        `Theory-duty-order-${examCycle.academicYear}.xlsx`,
       );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `teacher-duty-${latest.runId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      logAudit("EXPORT", `teacher-duty.pdf for run ${latest.runId}`);
-      setReceipt(
-        await noteExport(
-          role,
-          "teacher-duty-pdf",
-          examCycle.examCycleId,
-          latest.runId,
-        ),
-      );
-    } finally {
-      stopBusy();
-    }
-  }
-
-  async function exportPracticalCsv() {
-    if (!practicalResult) return;
-    if (!startBusy("practical")) return;
-    try {
-      const rows = [
-        [
-          "batchKey",
-          "schoolId",
-          "subjectId",
-          "examDate",
-          "session",
-          "internal",
-          "external",
-          "roleSwitch",
-        ],
-        ...practicalResult.schedules.map((s) => [
-          s.batchKey,
-          s.schoolId,
-          s.subjectId,
-          s.examDate,
-          s.sessionCode,
-          s.internalExaminerId,
-          s.externalExaminerId,
-          s.roleSwitchApplied ? "yes" : "no",
-        ]),
-      ];
-      downloadCsv(`practical-${practical?.runId ?? "run"}.csv`, rows);
-      logAudit("EXPORT", `practical CSV for ${practical?.runId}`);
-      setReceipt(
-        await noteExport(
-          role,
-          "practical-csv",
-          examCycle.examCycleId,
-          practical?.runId,
-        ),
-      );
-    } finally {
-      stopBusy();
-    }
-  }
-
-  async function exportHallCsv() {
-    if (!hallResult || !dataset) return;
-    if (!startBusy("hall")) return;
-    try {
-      const teacherById = new Map(dataset.teachers.map((t) => [t.teacherId, t]));
-      const schoolById = new Map(dataset.schools.map((s) => [s.schoolId, s]));
-      const rows = [
-        [
-          "Centre",
-          "Duty",
-          "Duty number",
-          "Teacher",
-          "School",
-          "Date",
-          "Session",
-        ],
-        ...hallResult.assignments.map((a) => [
-          a.centreId,
-          formatDutyRole(a.roleCode),
-          String(a.slotIndex),
-          teacherById.get(a.teacherId)?.name ?? "Selected teacher",
-          teacherById.get(a.teacherId)
-            ? (schoolById.get(teacherById.get(a.teacherId)!.schoolId)?.schoolName ?? "")
-            : "",
-          a.examDate,
-          a.sessionCode,
-        ]),
-      ];
-      downloadCsv(`hall-${hall?.runId ?? "run"}.csv`, rows);
-      logAudit("EXPORT", `hall CSV for ${hall?.runId}`);
-      setReceipt(
-        await noteExport(role, "hall-csv", examCycle.examCycleId, hall?.runId),
-      );
-    } finally {
-      stopBusy();
-    }
-  }
-
-  async function exportDutyIn() {
-    if (!practicalResult?.schedules.length || !dataset) return;
-    if (!startBusy("dutyIn")) return;
-    try {
-      const { groupDutyInLetters } =
-        await import("@exam-duty/shared");
-      const schoolById = new Map(
-        dataset.schools.map((s) => [
-          s.schoolId,
-          {
-            schoolCode: s.sourceSchoolCode || s.schoolCode,
-            schoolName: s.schoolName,
-            place: "",
-          },
-        ]),
-      );
-      const teacherById = new Map(
-        dataset.teachers.map((t) => [
-          t.teacherId,
-          { name: t.name, schoolId: t.schoolId },
-        ]),
-      );
-      const letters = groupDutyInLetters({
-        academicYearLabel: `${examCycle.standard === "10" ? "SSLC" : "HIGHER SECONDARY"} PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
-        districtLabel: "ERODE DISTRICT",
-        signatoryTitle: "CHIEF EDUCATIONAL OFFICER",
-        signatoryPlace: "ERODE",
-        schedules: practicalResult.schedules,
-        schoolById,
-        teacherById,
-      });
-      const {practicalLettersDocx}=await import("../lib/schoolDutyDocuments");
-      downloadBlob(await practicalLettersDocx("in",letters),`Practical-Duty-In-${examCycle.academicYear}.docx`);
-      logAudit(
-        "EXPORT",
-        `Duty-In letters (${letters.length}) for ${practical?.runId}`,
-      );
-      setReceipt(
-        await noteExport(
-          role,
-          "duty-in-letters",
-          examCycle.examCycleId,
-          practical?.runId,
-          {
-            letterCount: letters.length,
-          },
-        ),
+      logAudit("EXPORT", `Centre-wise theory duty order for ${theory?.runId ?? "run"}`);
+      setMessage(
+        await noteDownload(role, "centre-theory-duty-order-xlsx", examCycle.examCycleId, theory?.runId, {
+          hallRunId: hall?.runId,
+        }),
       );
     } catch (error) {
-      setReceipt({ ok: false, text: error instanceof Error ? error.message : "Could not create the Duty-In document. Please try again." });
+      setMessage({
+        ok: false,
+        text: error instanceof Error ? error.message : "Could not prepare the theory duty order.",
+      });
     } finally {
       stopBusy();
     }
   }
 
-  async function exportDutyOut() {
-    if (!practicalResult?.schedules.length || !dataset) return;
-    if (!startBusy("dutyOut")) return;
+  async function exportOfficerReference() {
+    const input = centreDutyInput();
+    if (!input || !startBusy("officers")) return;
     try {
-      const { groupDutyOutLetters } =
-        await import("@exam-duty/shared");
-      const schoolById = new Map(
-        dataset.schools.map((s) => [
-          s.schoolId,
-          {
-            schoolCode: s.sourceSchoolCode || s.schoolCode,
-            schoolName: s.schoolName,
-            place: "",
-          },
-        ]),
+      const { buildChiefAndDepartmentWorkbook } = await import("@exam-duty/shared");
+      downloadBuffer(
+        await buildChiefAndDepartmentWorkbook(input),
+        `Chief-and-departmental-officers-${examCycle.academicYear}.xlsx`,
       );
-      const teacherById = new Map(
-        dataset.teachers.map((t) => [
-          t.teacherId,
-          { name: t.name, schoolId: t.schoolId },
-        ]),
-      );
-      const letters = groupDutyOutLetters({
-        academicYearLabel: `${examCycle.standard === "10" ? "SSLC" : "HIGHER SECONDARY SECOND YEAR"} PRACTICAL EXAMINATION - ${examCycle.academicYear}`,
-        districtLabel: "ERODE DISTRICT",
-        signatoryTitle: "CHIEF EDUCATIONAL OFFICER",
-        signatoryPlace: "ERODE",
-        schedules: practicalResult.schedules,
-        schoolById,
-        teacherById,
-      });
-      const {practicalLettersDocx}=await import("../lib/schoolDutyDocuments");
-      downloadBlob(await practicalLettersDocx("out",letters),`Practical-Duty-Out-${examCycle.academicYear}.docx`);
-      logAudit(
-        "EXPORT",
-        `Duty-Out letters (${letters.length}) for ${practical?.runId}`,
-      );
-      setReceipt(
-        await noteExport(
-          role,
-          "duty-out-letters",
-          examCycle.examCycleId,
-          practical?.runId,
-          {
-            letterCount: letters.length,
-          },
-        ),
+      logAudit("EXPORT", `Chief and departmental officer reference for ${theory?.runId ?? "run"}`);
+      setMessage(
+        await noteDownload(role, "chief-department-reference-xlsx", examCycle.examCycleId, theory?.runId),
       );
     } catch (error) {
-      setReceipt({ ok: false, text: error instanceof Error ? error.message : "Could not create the Duty-Out document. Please try again." });
+      setMessage({
+        ok: false,
+        text: error instanceof Error ? error.message : "Could not prepare the officer reference list.",
+      });
     } finally {
       stopBusy();
     }
   }
 
-  const readiness = [
-    { label: "Theory", ready: Boolean(latest?.result), to: "/theory" },
-    {
-      label: "Practical",
-      ready: Boolean(practicalResult?.schedules.length),
-      to: "/practical",
-    },
-    {
-      label: "Hall",
-      ready: Boolean(hallResult?.assignments.length),
-      to: "/hall",
-    },
-  ];
+  async function exportPracticalExaminers() {
+    if (!dataset || !practicalResult?.schedules.length || !startBusy("practical")) return;
+    try {
+      const { buildPracticalExaminerWorkbook } = await import("@exam-duty/shared");
+      const schedules: PracticalExaminerSchedule[] = practicalResult.schedules.map((schedule) => ({
+        batchKey: schedule.batchKey,
+        schoolId: schedule.schoolId,
+        subjectId: schedule.subjectId,
+        examDate: schedule.examDate,
+        sessionCode: schedule.sessionCode,
+        internalExaminerId: schedule.internalExaminerId,
+        externalExaminerId: schedule.externalExaminerId,
+      }));
+      downloadBuffer(
+        await buildPracticalExaminerWorkbook({
+          title: examCycle.name,
+          schools: dataset.schools,
+          teachers: dataset.teachers,
+          schedules,
+        }),
+        `Practical-examiner-list-${examCycle.academicYear}.xlsx`,
+      );
+      logAudit("EXPORT", `Practical examiner list for ${practical?.runId ?? "run"}`);
+      setMessage(
+        await noteDownload(role, "practical-examiner-list-xlsx", examCycle.examCycleId, practical?.runId),
+      );
+    } catch (error) {
+      setMessage({
+        ok: false,
+        text: error instanceof Error ? error.message : "Could not prepare the practical examiner list.",
+      });
+    } finally {
+      stopBusy();
+    }
+  }
+
+  const theoryReady = Boolean(theory?.result);
+  const hallReady = Boolean(hallResult?.assignments.length);
+  const practicalReady = Boolean(practicalResult?.schedules.length);
 
   return (
     <Bento>
-      <Tile span={6}>
-        <TileHeader title="School-wise Duty-In and Duty-Out" hint="Duty-In lists staff appointed at each school. Duty-Out lists staff leaving each school and where they are going. Includes the latest theory, hall and practical duties for this examination." />
-        <div className="flex flex-wrap gap-2 mt-3">{([['schoolIn','Duty-In (Word)'],['schoolOut','Duty-Out (Word)'],['schoolExcel','Both lists (Excel)']] as const).map(([kind,label])=><button key={kind} disabled={busy||!canExport||!runs.some(r=>r.examCycleId===examCycle.examCycleId)} onClick={()=>void exportSchoolLists(kind)} className="rounded border px-3 py-2 disabled:opacity-40">{busyKind===kind?"Preparing…":label}</button>)}</div>
-        <p className="text-sm mt-3">Check shortages and validation before issuing the lists. A generated list may be incomplete when suitable staff are unavailable.</p>
+      <Tile span={4}>
+        <TileHeader
+          title="Theory duty order"
+          hint="One sheet for each centre. It shows the chief examiner, departmental officer, office helpers and all hall invigilators together."
+        />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={!theoryReady || !hallReady || busy}
+            onClick={() => void exportCentreDutyOrder()}
+            className="rounded bg-[var(--color-brand)] px-3 py-2 text-sm text-white disabled:opacity-40"
+          >
+            {busyKind === "theory" ? "Preparing…" : "Download centre-wise theory duty order"}
+          </button>
+          <button
+            type="button"
+            disabled={!theoryReady || busy}
+            onClick={() => void exportOfficerReference()}
+            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
+          >
+            {busyKind === "officers" ? "Preparing…" : "Chief and departmental officers only"}
+          </button>
+        </div>
+        {!theoryReady ? (
+          <p className="mt-3 text-sm text-[var(--color-ink-muted)]">Generate the theory duty first.</p>
+        ) : !hallReady ? (
+          <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
+            Generate hall invigilation too, then download the complete centre duty order.
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
+            A second departmental officer is shown automatically for centres with more than 500 students. Standby teachers appear in the hall list.
+          </p>
+        )}
+        <Link to="/theory" className="mt-3 inline-block text-sm text-[var(--color-brand)] underline">
+          Open theory duty
+        </Link>
+        <span className="px-2 text-[var(--color-ink-muted)]">·</span>
+        <Link to="/hall" className="text-sm text-[var(--color-brand)] underline">
+          Open hall invigilation
+        </Link>
       </Tile>
+
       <Tile span={2}>
         <TileHeader
-          title="Available duty lists"
-          hint="Download the generated lists below. Each download is recorded in Activity."
+          title="Practical examiner list"
+          hint="One line for each school and subject, with the number of batches and the internal and external examiners."
         />
-        <ul className="space-y-2 text-sm">
-          {readiness.map((r) => (
-            <li
-              key={r.label}
-              className="flex items-center justify-between gap-2 rounded-xl border border-[var(--color-line)] px-3 py-2"
-            >
-              <span>{r.label}</span>
-              <Badge tone={r.ready ? "ok" : "neutral"}>
-                {r.ready ? "ready" : "no run"}
-              </Badge>
-            </li>
-          ))}
-        </ul>
-        {role === "VIEWER" ? (
-          <p className="mt-3 text-xs text-[var(--color-warn)]">
-            VIEWER cannot download or record exports. Use DATA_OPERATOR, OFFICER
-            or ADMIN.
-          </p>
+        <button
+          type="button"
+          disabled={!practicalReady || busy}
+          onClick={() => void exportPracticalExaminers()}
+          className="mt-3 rounded bg-[var(--color-brand)] px-3 py-2 text-sm text-white disabled:opacity-40"
+        >
+          {busyKind === "practical" ? "Preparing…" : "Download practical examiner list"}
+        </button>
+        {!practicalReady ? (
+          <p className="mt-3 text-sm text-[var(--color-ink-muted)]">Generate the practical duty first.</p>
         ) : null}
-        {receipt ? (
-          <p
-            data-testid="export-receipt"
-            className={`mt-3 text-sm ${
-              receipt.ok
-                ? "text-[var(--color-ok)]"
-                : "text-[var(--color-err)]"
-            }`}
-          >
-            {receipt.text}
-          </p>
-        ) : null}
+        <Link to="/practical" className="mt-3 block text-sm text-[var(--color-brand)] underline">
+          Open practical duty
+        </Link>
       </Tile>
 
-      <Tile span={4}>
-          <TileHeader
-            title="Theory duty lists"
-          hint="Download school-wise and teacher-wise duty lists. Check the details before issuing them."
-        />
-        {!latest?.result && (
-          <EmptyState
-            title="No theory run to export"
-            body="Generate a theory allocation first. The download stays on this machine; Audit lists a receipt (type, cycle, run) only when the API accepts it."
-            action={
-              <Link
-                to="/theory"
-                className="rounded-full bg-[var(--color-brand)] px-4 py-1.5 text-xs text-white"
-              >
-                Open theory generator
-              </Link>
-            }
-          />
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={!canExport || !latest?.result || busy}
-            onClick={() => void exportTeacherWise()}
-            className="rounded bg-[var(--color-brand)] text-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "teacher" ? "Preparing…" : "Teacher-wise list (Excel)"}
-          </button>
-          <button
-            type="button"
-            disabled={!canExport || !latest?.result || busy}
-            onClick={() => void exportException()}
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "exception" ? "Preparing…" : "Shortages and exceptions (Excel)"}
-          </button>
-          <button
-            type="button"
-            disabled={!canExport || !latest?.result || busy}
-            onClick={() => void exportComplete()}
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "complete" ? "Preparing…" : "Centre and school list (Excel)"}
-          </button>
-          <button
-            type="button"
-            disabled={!canExport || !latest?.result || busy}
-            onClick={() => void exportPdf()}
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "pdf" ? "Preparing…" : "Teacher duty list (PDF)"}
-          </button>
-        </div>
-      </Tile>
-
-      <Tile span={6}>
-        <TileHeader
-          title="Practical / hall exports"
-          hint="Download duty letters for schools and teachers."
-        />
-        {!practicalResult?.schedules.length &&
-        !hallResult?.assignments.length ? (
-          <EmptyState
-            title="No practical or hall run yet"
-            body="Generate practical schedules or hall invigilation to enable these downloads."
-            action={
-              <div className="flex justify-center gap-2">
-                <Link
-                  to="/practical"
-                  className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-xs"
-                >
-                  Practical
-                </Link>
-                <Link
-                  to="/hall"
-                  className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-xs"
-                >
-                  Hall
-                </Link>
-              </div>
-            }
-          />
-        ) : null}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={!canExport || !practicalResult?.schedules.length || busy}
-            onClick={() => void exportPracticalCsv()}
-            data-testid="export-practical-csv"
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "practical" ? "Exporting…" : "practical-schedules.csv"}
-          </button>
-          <button
-            type="button"
-            disabled={!canExport || !practicalResult?.schedules.length || busy}
-            onClick={() => void exportDutyIn()}
-            data-testid="export-duty-in"
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "dutyIn" ? "Preparing…" : "Practical Duty-In (Word)"}
-          </button>
-          <button
-            type="button"
-            disabled={!canExport || !practicalResult?.schedules.length || busy}
-            onClick={() => void exportDutyOut()}
-            data-testid="export-duty-out"
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "dutyOut" ? "Preparing…" : "Practical Duty-Out (Word)"}
-          </button>
-          <button
-            type="button"
-            disabled={!canExport || !hallResult?.assignments.length || busy}
-            onClick={() => void exportHallCsv()}
-            data-testid="export-hall-csv"
-            className="rounded border border-[var(--color-line)] bg-white px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {busyKind === "hall" ? "Exporting…" : "hall-assignments.csv"}
-          </button>
-        </div>
-      </Tile>
+      {message ? (
+        <Tile span={6}>
+          <p className={`text-sm ${message.ok ? "text-[var(--color-ok)]" : "text-[var(--color-err)]"}`}>
+            {message.text}
+          </p>
+        </Tile>
+      ) : null}
     </Bento>
   );
 }

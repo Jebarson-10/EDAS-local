@@ -339,7 +339,7 @@ export function AuditPage() {
         {exports.length === 0 ? (
           <EmptyState
             title="No downloaded reports yet"
-            body="Downloading a report from Reports records type, cycle and run here. The workbook, PDF or CSV is not uploaded or archived."
+            body="Downloaded files stay on this computer. This page only lists the date and type of each download."
           />
         ) : (
           <ul

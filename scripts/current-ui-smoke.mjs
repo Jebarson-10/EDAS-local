@@ -87,9 +87,10 @@ try {
   assert.equal(practicalBook.worksheets[0].getCell('A2').text, 'Synthetic UI School');
 
   await page.getByTestId('nav-reports').click();
-  await page.getByRole('heading', { name: 'School-wise Duty-In and Duty-Out' }).waitFor();
-  assert(await page.getByRole('button', { name: 'Duty-In (Word)', exact: true }).isDisabled());
-  assert(await page.getByRole('button', { name: 'Duty-Out (Word)', exact: true }).isDisabled());
+  await page.getByRole('heading', { name: 'Theory duty order' }).waitFor();
+  assert(await page.getByRole('button', { name: 'Download centre-wise theory duty order', exact: true }).isDisabled());
+  assert(await page.getByRole('button', { name: 'Chief and departmental officers only', exact: true }).isDisabled());
+  assert(await page.getByRole('button', { name: 'Download practical examiner list', exact: true }).isDisabled());
   await page.getByTestId('nav-settings').click();
   const diagnosisDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download app check file' }).click();

@@ -32,9 +32,11 @@ shortages stay visible. Save the setup before generating. No saved points means
 no custodian duties. Custodian setup, centre memberships and practical student
 counts are saved per examination and included in backups.
 
-In **Reports**, download school-wise incoming/outgoing Word lists or an Excel
-workbook. Incoming lists group staff by receiving school; outgoing lists group
-them by their current home school. Practical letters include subjects, batches,
+In **Reports**, download one centre-wise Theory duty order. Each centre gets its
+own sheet with the chief examiner, departmental officer, two office helpers and
+hall team together. A separate short list contains only chief and departmental
+officers. The practical list has one line per school and subject with batches,
+internal examiner and external examiner.
 internal/external examiners and the actual generated dates. Sample document
 dates and places are not reused. Published history is preserved.
 
