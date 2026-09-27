@@ -73,7 +73,7 @@ async function noteDownload(
       };
 }
 
-export function ReportsPage() {
+export function ReportsPage({ module }: { module?: "THEORY" | "PRACTICAL" } = {}) {
   const { runs, examCycle, role, logAudit, dataset } = useApp();
   const selectedTheory = latestRunForModuleInCycle(runs, "THEORY", examCycle.examCycleId);
   const theory = selectedTheory && isTheoryRun(selectedTheory) ? selectedTheory : undefined;
@@ -197,6 +197,23 @@ export function ReportsPage() {
   const theoryReady = Boolean(theory?.result);
   const hallReady = Boolean(hallResult?.assignments.length);
   const practicalReady = Boolean(practicalResult?.schedules.length);
+
+  if (module) return (
+    <section className="mb-4 rounded-xl border border-[var(--color-line)] bg-white p-4" aria-label="Download duty lists">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 className="font-semibold">Download duty lists</h2><p className="mt-1 text-xs text-[var(--color-ink-muted)]">Downloads use the latest saved duty list for this examination.</p></div>
+        <div className="flex flex-wrap gap-2">
+          {module === "THEORY" ? <>
+            <button className="rounded-lg bg-[var(--color-brand)] px-3 py-2 text-sm text-white disabled:opacity-40" disabled={!theoryReady || !hallReady || busy} onClick={() => void exportCentreDutyOrder()}>{busyKind === "theory" ? "Preparing…" : "Download centre-wise theory duty order"}</button>
+            <button className="rounded-lg border border-[var(--color-line)] px-3 py-2 text-sm disabled:opacity-40" disabled={!theoryReady || busy} onClick={() => void exportOfficerReference()}>{busyKind === "officers" ? "Preparing…" : "Chief and departmental officers only"}</button>
+          </> : <button className="rounded-lg bg-[var(--color-brand)] px-3 py-2 text-sm text-white disabled:opacity-40" disabled={!practicalReady || busy} onClick={() => void exportPracticalExaminers()}>{busyKind === "practical" ? "Preparing…" : "Download practical examiner list"}</button>}
+        </div>
+      </div>
+      {module === "THEORY" && !hallReady && <p className="mt-2 text-xs text-[var(--color-ink-muted)]">The complete centre list becomes available after theory and hall duties are generated. <Link to="/hall" className="underline">Open hall duty</Link>.</p>}
+      {module === "PRACTICAL" && !practicalReady && <p className="mt-2 text-xs text-[var(--color-ink-muted)]">Generate practical duties below to enable the download.</p>}
+      {message && <p role="status" className={`mt-2 text-sm ${message.ok ? "text-[var(--color-ok)]" : "text-[var(--color-err)]"}`}>{message.text}</p>}
+    </section>
+  );
 
   return (
     <Bento>

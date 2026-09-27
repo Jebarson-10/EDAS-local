@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+.guided-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.guidance-panel { align-self: start; background: #f8fafc; border: 1px solid var(--color-line); border-radius: 16px; padding: 1.25rem; }
+.guidance-eyebrow { color: var(--color-brand); font-size: .65rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+@media (min-width: 1280px) {
+  .guided-page { grid-template-columns: minmax(0, 1fr) 280px; }
+  .guidance-panel { position: sticky; top: 100px; max-height: calc(100dvh - 120px); overflow-y: auto; }
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--color-brand-soft); outline-offset: 3px; }
+
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "IBM Plex Serif", Georgia, serif;

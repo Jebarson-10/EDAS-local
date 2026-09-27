@@ -27,6 +27,7 @@ const FALLBACK_PRACTICAL_START = "2027-03-01";
 import { fetchExaminerPairs, practicalStudentsApi, type PracticalStudentRow } from "../lib/api";
 import { crossModuleCalendar } from "../lib/crossModuleCalendar";
 import { useApp } from "../state/AppContext";
+import { ReportsPage } from "./ReportsPage";
 import {
   Badge,
   Bento,
@@ -363,6 +364,9 @@ export function PracticalPage() {
             schedules: result.schedules.length,
             batches: result.batches.length,
             feasible: result.feasible,
+            message: result.message,
+            diagnostics: result.diagnostics,
+            plannedBatches: result.batches,
             valid: validation.valid,
             warnings: validation.warnings,
             errors: validation.errors,
@@ -503,6 +507,8 @@ export function PracticalPage() {
   }
 
   return (
+    <>
+    <ReportsPage module="PRACTICAL" />
     <Bento>
       <Tile span={6}>
         <TileHeader
@@ -784,6 +790,7 @@ export function PracticalPage() {
         </Tile>
       )}
     </Bento>
+    </>
   );
 }
 

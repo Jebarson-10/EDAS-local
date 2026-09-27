@@ -92,10 +92,12 @@ export function MasterEntryPanel({
       const index = places ?? (await fetch("/offline-geocode-index.json").then((r) => r.ok ? r.json() : Promise.reject(new Error("index missing")))).records as OfflinePlace[];
       setPlaces(index);
       const words = query.split(/\s+/).filter(Boolean);
-      setMatches(index.filter((p) => {
+      const found = index.filter((p) => {
         const haystack = `${p.name} ${p.address ?? ""} ${p.place ?? ""}`.toLocaleLowerCase();
         return words.every((word) => haystack.includes(word));
-      }).slice(0, 8));
+      }).slice(0, 8);
+      setMatches(found);
+      setMessage(found.length ? "Select the matching school or place below, check it, then save." : "No offline match found. Try a shorter school name or its locality. You can also copy coordinates from a map.");
     } catch { setMessage("Offline maps are not installed. Enter latitude and longitude below."); }
   }
 

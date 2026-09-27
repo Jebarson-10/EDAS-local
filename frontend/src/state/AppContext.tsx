@@ -44,6 +44,7 @@ import {
   hallShortagesFromPersisted,
   issuesFromPersisted,
   practicalBatchesFromPersistedResults,
+  practicalRunDetails,
   practicalIdentityFromDecisionTrace,
   practicalSchedulesFromPersistedResults,
   practicalSubjectFromBatchOrTrace,
@@ -990,6 +991,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     };
                   })
                 : practicalSchedulesFromPersistedResults(rows);
+            const recordedDetails = practicalRunDetails(r.summary_json);
             const batchRows =
               runSchedules.length > 0 && batchesByCycle.length > 0
                 ? batchesByCycle
@@ -1018,13 +1020,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
               },
               result: {
                 algorithmVersion: r.algorithm_version,
-                batches: batchRows,
+                batches: recordedDetails.batches.length
+                  ? recordedDetails.batches
+                  : batchRows,
                 schedules,
                 feasible: feasibleFromPersistedSummary(
                   r.summary_json,
                   schedules.length,
                 ),
-                message: "Hydrated from API",
+                message: recordedDetails.message,
+                diagnostics: recordedDetails.diagnostics,
               } satisfies PracticalResult,
             });
           }

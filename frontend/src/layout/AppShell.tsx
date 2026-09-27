@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "../state/AppContext";
 import { apiHealth } from "../lib/api";
 import { Badge, Dot } from "../components/ui";
+import { PageGuidance } from "../components/PageGuidance";
 
 const groups: Array<{
   label: string;
@@ -272,7 +273,7 @@ export function AppShell() {
                   : "saved data ready"}
             </Badge>
           </div>
-          <Outlet />
+          <PageGuidance key={location.pathname} path={location.pathname}><Outlet /></PageGuidance>
         </main>
       </div>
     </div>

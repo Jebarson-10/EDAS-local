@@ -18,6 +18,17 @@ const teacher = (
 });
 
 describe("practical scheduling", () => {
+  it("explains a missing external examiner using actual staff and remaining sessions", () => {
+    const result = schedulePractical(
+      [{ schoolId: "host", subjectId: "physics", studentCount: 50 }],
+      { teachers: [teacher("inside", "I", "host"), { ...teacher("wrong-post", "W", "outside"), designation: "BT" }, teacher("occupied", "O", "outside")], exemptions: [], calendar: [{ teacherId: "occupied", date: "2027-03-01", session: "MORNING", dutyType: "THEORY" }, { teacherId: "occupied", date: "2027-03-01", session: "AFTERNOON", dutyType: "THEORY" }], pairHistory: [], availableDates: ["2027-03-01"], asOfDate: "2027-03-01", academicYear: "2027", standard: "12", internalEligible: (t, school) => t.schoolId === school, externalEligible: (t, school) => t.schoolId !== school },
+      DEFAULT_RULE_PARAMETERS,
+    );
+    expect(result.feasible).toBe(false);
+    expect(result.diagnostics?.[0]?.message).toContain("external examiner");
+    expect(result.diagnostics?.[0]?.message).not.toContain("No available PG internal examiner");
+    expect(result.diagnostics?.[0]?.exclusionTallies).toEqual({ "Wrong staff post (needs PG)": 1, "Already occupied in every remaining session": 1 });
+  });
   it("stagger schools so the same subject teachers can exchange examiner duties", () => {
     const result = schedulePractical(
       [{schoolId:"a",subjectId:"physics",studentCount:50},{schoolId:"b",subjectId:"physics",studentCount:50}],

@@ -12,7 +12,7 @@ import { teachesSubject } from "@exam-duty/shared";
 // 1.2 schedules different subjects in parallel.  A subject's own batches
 // still remain in morning/afternoon order, which models the 50 + 50 pattern
 // without incorrectly treating all subjects in one school as one queue.
-export const PRACTICAL_ALGORITHM_VERSION = "practical-1.5.0";
+export const PRACTICAL_ALGORITHM_VERSION = "practical-1.6.0";
 
 /** The confirmed examiner post rule for public practical examinations. */
 export function requiredPracticalDesignation(
@@ -80,6 +80,14 @@ export interface PracticalResult {
   schedules: PracticalScheduleItem[];
   feasible: boolean;
   message?: string;
+  /** Observations at the first unresolved batch; later batches may not have been assessed. */
+  diagnostics?: Array<{
+    schoolId: string;
+    subjectId: string;
+    batchKey: string;
+    message: string;
+    exclusionTallies: Record<string, number>;
+  }>;
 }
 
 /** Balance student counts into near-equal batches around target size (OQ-006 interim). */
@@ -236,12 +244,14 @@ export function schedulePractical(
       ...[...batchesBySubject.values()].map((subjectBatches) => subjectBatches.length),
     );
     if (longestSubjectRun > windowSlots.length) {
+      const unresolved = schoolBatches.find(batch => (batchesBySubject.get(batch.subjectId)?.length ?? 0) === longestSubjectRun)!;
       return {
         algorithmVersion: PRACTICAL_ALGORITHM_VERSION,
         batches,
         schedules,
         feasible: false,
         message: `NO VALID SCHEDULE — school ${schoolId} has a subject requiring ${longestSubjectRun} sessions but only ${windowSlots.length} within ${rules.practical_completion_days} days`,
+        diagnostics: [{ schoolId, subjectId: unresolved.subjectId, batchKey: unresolved.batchKey, message: `This subject needs ${longestSubjectRun} morning/afternoon sessions, but only ${windowSlots.length} are available within ${rules.practical_completion_days} days. Review student strength and the allowed practical dates.`, exclusionTallies: {} }],
       };
     }
 
@@ -310,12 +320,39 @@ export function schedulePractical(
       const {slot,internals,externals}=chosen??{slot:windowSlots[0]!,internals:[],externals:[]};
 
       if (internals.length === 0 || externals.length === 0) {
+        const remainingSlots = windowSlots.slice((previousSlotBySubject.get(batch.subjectId) ?? -1) + 1);
+        const exclusionTallies: Record<string, number> = {};
+        const add = (reason: string) => { exclusionTallies[reason] = (exclusionTallies[reason] ?? 0) + 1; };
+        const internalAvailable = new Set<string>();
+        const externalAvailable = new Set<string>();
+        for (const candidateSlot of remainingSlots) {
+          const pool = candidatesAt(candidateSlot);
+          pool.internals.forEach(t => internalAvailable.add(t.teacherId));
+          pool.externals.forEach(t => externalAvailable.add(t.teacherId));
+        }
+        for (const teacher of dataset.teachers) {
+          // Count actual matching-subject staff and their observed exclusions.
+          // Missing subject records cannot be assumed to teach this subject.
+          if (!teacher.isActive || !isTeachingStaff(teacher) || !teachesPracticalSubject(teacher, batch.subjectId)) continue;
+          if (!matchesPracticalDesignation(teacher, dataset.standard)) { add(`Wrong staff post (needs ${requiredDesignation})`); continue; }
+          if (!dataset.internalEligible(teacher, schoolId, batch.subjectId) && !dataset.externalEligible(teacher, schoolId, batch.subjectId)) continue;
+          if (remainingSlots.length && remainingSlots.every(s => dataset.exemptions.some(e => e.teacherId === teacher.teacherId && exemptionActive(e, s.date)))) add("Exempt throughout the remaining dates");
+          if (remainingSlots.length && remainingSlots.every(s => conflicted(teacher.teacherId, s.date, s.session, dataset.calendar, occupied))) add("Already occupied in every remaining session");
+        }
+        const gaps = [];
+        if (!remainingSlots.length) gaps.push("No sessions remain within the school's completion window.");
+        else {
+          if (!internalAvailable.size) gaps.push(`No available ${requiredDesignation} internal examiner recorded as handling this subject at the school.`);
+          if (!externalAvailable.size) gaps.push(`No available ${requiredDesignation} external examiner recorded as handling this subject outside the school.`);
+          if (internalAvailable.size && externalAvailable.size) gaps.push("No two distinct eligible examiners are free together in a remaining session.");
+        }
         return {
           algorithmVersion: PRACTICAL_ALGORITHM_VERSION,
           batches,
           schedules,
           feasible: false,
           message: `NO VALID SCHEDULE — insufficient examiners for ${batch.batchKey}`,
+          diagnostics: [{ schoolId, subjectId: batch.subjectId, batchKey: batch.batchKey, message: gaps.join(" "), exclusionTallies }],
         };
       }
 

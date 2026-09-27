@@ -320,6 +320,28 @@ Open Database Licence (ODbL).
 
 ## Verification
 
+The Imports, Schools & teachers, Exam & timetable, Theory, Practical and Hall
+pages include an instruction panel beside the working area. Hover over a field
+or heading, or focus a control with the keyboard, to read its explanation. On
+smaller screens the instructions follow the form.
+
+Theory and Practical have report download controls at the top of their own
+pages. Theory's complete centre report needs both the latest theory and hall
+results. The original Reports page remains available for the same downloads.
+
+The right panel shows the latest saved result. Theory breaks unfilled duties
+down by role and displays recorded candidate exclusion counts (distance, post,
+own/clubbed school, history, exemptions and conflicts). Counts overlap and are
+not a claim that each shortage has one exclusive cause. Practical records the
+first unresolved school/subject's examiner or session problem and all planned
+batches in the run summary, so diagnostics and unscheduled batches survive a
+reload and backup. Older runs without diagnostics are not given invented counts.
+
+Location search uses the bundled offline OpenStreetMap index at no operating
+cost. Search a school name or locality, select a verified result and save the
+record. Public online services may have limits and incomplete coverage; the
+app has no paid map subscription or automatic online address upload.
+
 ```bash
 npm run typecheck
 npm test

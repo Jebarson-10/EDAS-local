@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { CustodianSetup } from "../components/CustodianSetup";
+import { ReportsPage } from "./ReportsPage";
 import type { CustodianPoint } from "../lib/api";
 import type { TheoryAllocationResult } from "@exam-duty/allocation-engine";
 import { validateTheoryAllocation } from "@exam-duty/validator";
@@ -549,6 +550,8 @@ export function TheoryPage() {
   if (!dataset) return <Panel title="Theory duty">Loading…</Panel>;
 
   return (
+    <>
+    <ReportsPage module="THEORY" />
     <Bento>
       <Tile span={6}><CustodianSetup onChange={setCustodianPlan}/></Tile>
       <Tile span={6}>
@@ -886,6 +889,7 @@ export function TheoryPage() {
         </Tile>
       )}
     </Bento>
+    </>
   );
 }
 
