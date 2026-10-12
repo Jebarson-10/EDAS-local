@@ -650,8 +650,8 @@ export type ManualMasterRecord =
       schoolCode: string;
       schoolName: string;
       blockId: string;
-      latitude: number;
-      longitude: number;
+      latitude?: number;
+      longitude?: number;
       active?: boolean;
     }
   | {
@@ -659,8 +659,8 @@ export type ManualMasterRecord =
       centreCode: string;
       centreName: string;
       blockId: string;
-      latitude: number;
-      longitude: number;
+      latitude?: number;
+      longitude?: number;
       capacity: number;
       active?: boolean;
     }
@@ -675,8 +675,8 @@ export type ManualMasterRecord =
       subject?: string | null;
       seniorityRank?: number | null;
       joiningDate?: string | null;
-      homeLatitude: number;
-      homeLongitude: number;
+      homeLatitude?: number;
+      homeLongitude?: number;
       isActive?: boolean;
       staffCategory?: "TEACHING" | "NON_TEACHING";
     };

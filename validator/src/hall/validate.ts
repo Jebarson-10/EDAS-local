@@ -1,5 +1,5 @@
 import type { HallDataset, HallResult } from "@exam-duty/allocation-engine";
-import { haversineKm, roundKm, type RuleParameters, type ValidationStatus } from "@exam-duty/shared";
+import { type RuleParameters, type ValidationStatus } from "@exam-duty/shared";
 import { calculateHallRequirements } from "@exam-duty/allocation-engine";
 import { detectSessionConflicts } from "../conflict/engine.js";
 import type { ValidationIssue, ValidationResult } from "../theory/validate.js";
@@ -15,22 +15,6 @@ type HallValidationDataset = Pick<
   | "academicYear"
   | "centreSchoolIds"
 >;
-
-function validCoordinates(
-  latitude: number | null | undefined,
-  longitude: number | null | undefined,
-): boolean {
-  return (
-    typeof latitude === "number" &&
-    Number.isFinite(latitude) &&
-    latitude >= -90 &&
-    latitude <= 90 &&
-    typeof longitude === "number" &&
-    Number.isFinite(longitude) &&
-    longitude >= -180 &&
-    longitude <= 180
-  );
-}
 
 function academicYearNumber(value: string): number | null {
   const match = String(value).match(/(\d{4})/);
@@ -99,27 +83,8 @@ function hallEligibilityProblems(
     problems.push({ ruleCode: "RULE-HALL-REPEAT-CENTRE", message: "Staff member served at this centre within the previous-year exclusion window" });
   }
   const school = dataset.schools.find((item) => item.schoolId === teacher.schoolId);
-  const homeDistance =
-    validCoordinates(teacher.homeLatitude, teacher.homeLongitude) && validCoordinates(centre.latitude, centre.longitude)
-      ? roundKm(haversineKm(teacher.homeLatitude!, teacher.homeLongitude!, centre.latitude!, centre.longitude!))
-      : null;
-  const schoolDistance =
-    validCoordinates(school?.latitude, school?.longitude) && validCoordinates(centre.latitude, centre.longitude)
-      ? roundKm(haversineKm(school!.latitude!, school!.longitude!, centre.latitude!, centre.longitude!))
-      : null;
-  const withinDistance =
-    rules.distance_policy === "HOME_ONLY"
-      ? homeDistance != null && homeDistance <= rules.maximum_distance_km
-      : rules.distance_policy === "SCHOOL_ONLY"
-        ? schoolDistance != null && schoolDistance <= rules.maximum_distance_km
-        : (homeDistance != null && homeDistance <= rules.maximum_distance_km) ||
-          (schoolDistance != null && schoolDistance <= rules.maximum_distance_km);
-  if (homeDistance == null && schoolDistance == null) {
-    if (rules.missing_coordinates_policy === "INELIGIBLE") {
-      problems.push({ ruleCode: "RULE-HALL-DISTANCE", message: "Cannot check the 10 km rule because location details are missing" });
-    }
-  } else if (!withinDistance) {
-    problems.push({ ruleCode: "RULE-HALL-DISTANCE", message: `Distance exceeds ${rules.maximum_distance_km} km` });
+  if (!school?.blockId?.trim() || !centre.blockId?.trim() || school.blockId !== centre.blockId) {
+    problems.push({ ruleCode: "RULE-HALL-BLOCK", message: "Staff member's current school and the centre must have the same saved block." });
   }
   return problems;
 }

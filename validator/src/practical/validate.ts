@@ -2,6 +2,7 @@ import {
   teachesSubject,
   type RuleParameters,
   type Teacher,
+  type School,
   type ValidationStatus,
 } from "@exam-duty/shared";
 import type { PracticalResult } from "@exam-duty/allocation-engine";
@@ -11,6 +12,7 @@ import type { ValidationIssue, ValidationResult } from "../theory/validate.js";
 export interface PracticalValidationDataset {
   /** The saved roster makes staff-group validation possible. */
   teachers?: Teacher[];
+  schools?: Pick<School, "schoolId" | "blockId">[];
   /** Public practical examiner post: BT for 10, PG for 12. */
   standard?: string;
 }
@@ -98,6 +100,15 @@ export function validatePracticalAllocation(
       ];
       for (const slot of staffSlots) {
         const teacher = teacherById.get(slot.teacherId);
+        const targetBlock = dataset.schools?.find(school => school.schoolId === s.schoolId)?.blockId;
+        const staffBlock = dataset.schools?.find(school => school.schoolId === teacher?.schoolId)?.blockId;
+        if (!targetBlock?.trim() || !staffBlock?.trim() || targetBlock !== staffBlock) {
+          errors += 1;
+          scheduleValid = false;
+          issues.push({ ruleCode: "RULE-PRACTICAL-BLOCK", severity: "ERROR",
+            message: "Examiner's current school and the practical school must have the same saved block.",
+            teacherId: slot.teacherId, duty: s.batchKey });
+        }
         if (!teacher) {
           errors += 1;
           scheduleValid = false;

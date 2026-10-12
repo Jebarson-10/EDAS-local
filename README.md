@@ -23,7 +23,7 @@ The revised Imports page follows the supplied documents:
    Download the template in this section for its headings.
 
 Health/leave remarks need an explicit available/exempt decision before generating
-duties. Missing coordinates must be entered; imports do not invent locations.
+duties. Every school and centre needs its correct block; imports do not guess missing blocks.
 
 In **Theory → Custodian points**, select a duty centre and the schools served.
 Only PG/BT Assistants (including stored Senior PG staff) are eligible. The
@@ -54,19 +54,18 @@ attention** to find those rows anywhere in a large workbook.
 ### Import by column heading
 
 In **Imports → Import Excel**, choose an `.xlsx` file.
-You can download **Template (all sheets)** in the app, or use
-[EDAS import template](frontend/public/templates/EDAS-import-template.xlsx).
+Download **Template (all sheets)** in the app. It is generated with the current headings.
 It contains empty Teachers, Schools and Blocks sheets plus a heading guide.
 No sample people, cell validation rules or sheet protection are included.
 Fill and import Blocks, then Schools, then Teachers. Codes may be text or numeric
 cells; numeric details may be entered as text, including `1,200`. Joining dates
 accept Excel dates, `15/06/2010` or `2010-06-15`. Real invalid values are explained
-in plain language; coordinate ranges and whole student counts are still checked.
+in plain language; whole student counts and valid dates are still checked.
 
 The first non-empty row
 contains the headings; the columns can be in any order. For example, `Teacher`,
-`Teacher Post`, `School`, `Centre Code`, `Block`, `Subject`, `Seniority`,
-`School Latitude` and `School Longitude` are recognised automatically.
+`Teacher Post`, `School`, `Centre Code`, `Block`, `Subject` and `Seniority`
+are recognised automatically. Older coordinate columns are ignored.
 Each row stays together. Common Tamil headings are recognised too.
 
 Check the **Save as** dropdown beside each heading. Choose a field for unfamiliar
@@ -79,11 +78,11 @@ The **Upload teacher workbook** action in Teacher review also recognises the
 official multi-sheet staff return: `HM`, `PG`, `BT`, `BT NON`, `SGT`, `SPL` and
 `NON TEACHING`. It reads those sheets together, keeps office staff separate from
 teaching staff, and uses the saved school name to link each person. Add schools,
-blocks and their coordinates first. The source workbook's school code is not
+and their blocks first. The source workbook's school code is not
 used as a centre code, because it may identify a school that is not an exam
 centre in this app.
 
-New schools need a block and coordinates. New blocks need both their name and
+New schools need a block. New blocks need both their name and
 code. Existing schools are matched by centre code or school name (and block
 where supplied). Blank cells keep saved details unchanged. New schools without
 a centre code remain ordinary schools. A supplied centre code automatically
@@ -112,8 +111,8 @@ shortages and reasons, approve auditable changes, and export school-wise and
 teacher-wise outputs.
 
 - **Theory:** prevents own/clubbed-school and recent-centre conflicts; uses a
-  straight-line 10 km home-or-current-school radius; chooses HM/Principal first
-  and Senior PG fallback block-first, then district-wide. Each marked centre
+  the current school’s block only; chooses HM/Principal first
+  and eligible Senior PG fallback within that same block. Each marked centre
   session also plans one Chief, one Departmental Officer (two only when student
   strength is above 500), and two non-teaching office-helper duties. The official `PG` roster
   is treated as the Senior PG candidate pool and is ordered by appointment date
@@ -220,8 +219,8 @@ configured as a GitHub secret.
 ### Operator workflow
 
 1. Start in **Master data**. Add/update blocks, then schools and centres, then
-   teachers. The teacher form filters schools by the chosen block. Coordinates,
-   capacity/student strength, designation, subject and seniority are required so
+   teachers. The teacher form filters schools by the chosen block. Check blocks,
+   capacity/student strength, designation, subject and seniority so
    incomplete records do not silently enter the allocator.
 2. Import any current spreadsheet data if available; inspect the preview and
    correct issues. Imports update current master data only — never prior duty
@@ -301,22 +300,24 @@ npm run load:theory      # 5k teachers / 350 centres
 
 Fixtures and seeds contain no real teacher PII or government credentials.
 
-## Offline OpenStreetMap coordinate lookup
+## Block-only allotment (12 October 2026)
 
-`frontend/public/offline-geocode-index.json` is a compact Erode-area search
-index derived from OpenStreetMap data. In **Master data**, enter a school name,
-locality or address and choose a suggested coordinate; the operator must verify
-the suggestion before saving. It works without internet after installation.
+All new theory, hall, office-helper, custodian and practical duties use the
+staff member's **current school's block**. The duty centre (or practical school)
+must be in the same block. Home address, coordinates and distance are not used.
+The app no longer includes map search or the map index, and no map service is needed.
 
-The raw GeoPackage is intentionally not committed. To refresh the index from a
-new OpenStreetMap GeoPackage extract:
+Set the block on each school and centre in **Schools & teachers** or during import.
+A missing block needs correction before that staff member or centre can be used.
+A shortage stays within the block: the app never silently borrows another block's
+staff. Existing post, subject, own/clubbed-school, previous-duty, timetable,
+exemption and fairness rules still apply.
 
-```bash
-npm run maps:build-index -- path/to/erode.osm.gpkg
-```
-
-Contains OpenStreetMap data © OpenStreetMap contributors, available under the
-Open Database Licence (ODbL).
+This replaces the former 10 km and district-fallback area rules. New runs record
+algorithm version 2.0.0 and area rule `BLOCK-2026-10-12` in their snapshot.
+Old distance parameters and stored coordinates are retained only for compatibility
+with historical data/backups; they cannot change new allocation eligibility or ranking.
+Published history is not rewritten. Regenerate unpublished duties to use this rule.
 
 ## Verification
 
@@ -330,17 +331,12 @@ pages. Theory's complete centre report needs both the latest theory and hall
 results. The original Reports page remains available for the same downloads.
 
 The right panel shows the latest saved result. Theory breaks unfilled duties
-down by role and displays recorded candidate exclusion counts (distance, post,
+down by role and displays recorded candidate exclusion counts (different/missing block, post,
 own/clubbed school, history, exemptions and conflicts). Counts overlap and are
 not a claim that each shortage has one exclusive cause. Practical records the
 first unresolved school/subject's examiner or session problem and all planned
 batches in the run summary, so diagnostics and unscheduled batches survive a
 reload and backup. Older runs without diagnostics are not given invented counts.
-
-Location search uses the bundled offline OpenStreetMap index at no operating
-cost. Search a school name or locality, select a verified result and save the
-record. Public online services may have limits and incomplete coverage; the
-app has no paid map subscription or automatic online address upload.
 
 ```bash
 npm run typecheck
@@ -361,10 +357,10 @@ checks mobile, tablet and desktop navigation. `npm run uat:local` exercises
 allocation, immutable history, restore and error handling on isolated test data.
 # Schools, teachers and app updates
 
-Teacher import also accepts older templates containing school names under `schoolCode`. Matching is exact against saved school names (case and repeated spaces are ignored); it never invents a school, block, location or centre code. Employee-code columns are ignored, so serial numbers do not become teacher identities. Common Headmaster and PG Assistant spellings are normalised; acting/in-charge posts are kept as written for confirmation. Missing subjects, seniority and home locations are listed before allotment. The original workbook is not changed.
+Teacher import also accepts older templates containing school names under `schoolCode`. Matching is exact against saved school names (case and repeated spaces are ignored); it never invents a school, block or centre code. Employee-code columns are ignored, so serial numbers do not become teacher identities. Common Headmaster and PG Assistant spellings are normalised; acting/in-charge posts are kept as written for confirmation. Missing subjects and seniority are listed before allotment. The original workbook is not changed.
 
 - Add blocks, then schools, then teachers in **Schools & teachers**.
-- **Centre code is the school code.** Leave it blank for a school that is not an exam centre. A coded school automatically creates its centre and host-school link. Names, locations and blocks stay in sync.
+- **Centre code is the school code.** Leave it blank for a school that is not an exam centre. A coded school automatically creates its centre and host-school link. Names and blocks stay in sync.
 - To stop using a school as a centre, select the school for editing and clear its centre code. The centre becomes inactive; earlier duty records remain available. Enter actual student counts for hall allotment.
 - Employee codes are not required. Select a teacher by name to edit them. The app keeps private identifiers so identical names do not overwrite each other.
 - The teacher Excel template uses **School name**, optional **Centre code**, and **Staff group** (Teaching or Office staff), with no employee-code column. Add the schools first. Imports match a teacher's name and school; duplicate names at the same school must be entered or edited individually. For a transfer or name change, edit the existing teacher rather than importing them as a new person. Older files may still contain employee-code columns; those values are ignored.

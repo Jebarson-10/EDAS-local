@@ -62,7 +62,7 @@ export function CentreChecklistImport() {
         centres:centres.centres.map(c=>({centreId:c.centre_id,centreCode:c.centre_code,centreName:c.centre_name,blockId:c.block_id??"",latitude:c.latitude??NaN,longitude:c.longitude??NaN,capacity:c.capacity??undefined,active:c.active!==0})),
         relationships:relationships.relationships.map(r=>({centreId:r.centre_id!,schoolId:r.school_id!,relationshipType:r.relationship_type as "HOST"|"CLUBBED",effectiveFrom:r.effective_from!,effectiveTo:r.effective_to})),
       });
-      setMessage(`Saved ${result.centres} centres, ${result.schools} school links and ${result.students} students for this examination. Add any missing school locations before allotment.`);
+      setMessage(`Saved ${result.centres} centres, ${result.schools} school links and ${result.students} students for this examination. Check that each school and centre has the correct block before allotment.`);
       setRows([]); setChecked(false);
     } catch(e) {setMessage(e instanceof Error ? e.message : "Could not save the list.");}
     finally {setBusy(false);}

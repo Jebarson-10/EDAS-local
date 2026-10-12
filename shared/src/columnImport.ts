@@ -7,8 +7,7 @@ export const importFields = {
   name: "Teacher name", designation: "Teacher post", subject: "Subject",
   schoolName: "School name", schoolCode: "Centre code", centreName: "Centre name",
   blockName: "Block name", blockCode: "Block code",
-  latitude: "School latitude", longitude: "School longitude", capacity: "Student count",
-  homeLatitude: "Home latitude", homeLongitude: "Home longitude",
+  capacity: "Student count",
   seniorityRank: "Seniority rank", joiningDate: "Joining date", isActive: "Teacher active",
   staffCategory: "Staff group",
   teacherCode: "Teacher code", employeeCode: "Old employee code", ignore: "Do not import this column",
@@ -29,12 +28,10 @@ for (const [field, titles] of Object.entries({
   blockName: ["block", "name of block", "ஒன்றியம்"],
   subject: ["teacher subject", "பாடம்"],
   capacity: ["students", "strength", "student strength", "total students"],
-  homeLatitude: ["home lat"], homeLongitude: ["home lon", "home lng"],
-  latitude: ["lat", "centre latitude"], longitude: ["lon", "lng", "centre longitude"],
   seniorityRank: ["seniority", "rank"], isActive: ["active"],
   staffCategory: ["staff category", "staff group", "staff type", "teaching or non teaching", "teaching/non teaching"],
   teacherCode: ["teacher code", "ஆசிரியர் குறியீடு", "emis code", "tch code"],
-  ignore: ["s no", "sl no", "serial number", "serial no"],
+  ignore: ["latitude", "longitude", "home latitude", "home longitude", "school latitude", "school longitude", "centre latitude", "centre longitude", "home lat", "home lon", "home lng", "lat", "lon", "lng", "s no", "sl no", "serial number", "serial no"],
 })) for (const title of titles) aliases[key(title)] = field as ImportField;
 
 export function guessImportColumns(headers: unknown[], kind: "teacher" | "school" | "block" = "teacher") {
@@ -70,7 +67,7 @@ export function mapImportColumns(lines: unknown[][], mapping: (ImportField | "")
         if (!field || field === "ignore") return;
         const value = cellValue(line[col]);
         if (value == null || String(value).trim() === "") return;
-        if (["latitude", "longitude", "homeLatitude", "homeLongitude", "capacity", "seniorityRank"].includes(field)) {
+        if (["capacity", "seniorityRank"].includes(field)) {
           row[field] = normalizeImportValue(field,value);
         } else if (field === "isActive" || field === "staffCategory") {
           row[field] = normalizeImportValue(field,value);
@@ -85,7 +82,7 @@ export function mapImportColumns(lines: unknown[][], mapping: (ImportField | "")
 }
 
 type MasterRecord = z.infer<typeof manualMasterRecordSchema>;
-type SchoolRef = {schoolId: string; schoolCode: string; schoolName: string; blockId: string; latitude: number; longitude: number; active: boolean};
+type SchoolRef = {schoolId: string; schoolCode: string; schoolName: string; blockId: string; latitude?: number; longitude?: number; active: boolean};
 type BlockRef = {blockId: string; blockCode: string; blockName: string};
 const matchName = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 
@@ -107,7 +104,7 @@ export function planColumnImport(rows: Record<string, unknown>[], data: {blocks:
   rows.forEach((row, i) => {
     try {
       const str = (f: string) => String(row[f] ?? "").trim();
-      if (["designation","subject","seniorityRank","joiningDate","homeLatitude","homeLongitude","isActive","staffCategory","teacherCode","employeeCode"].some((f) => row[f] !== undefined) && !str("name")) throw new Error("Add Teacher name for this row, or leave out the teacher-only columns.");
+      if (["designation","subject","seniorityRank","joiningDate","isActive","staffCategory","teacherCode","employeeCode"].some((f) => row[f] !== undefined) && !str("name")) throw new Error("Add Teacher name for this row, or leave out the teacher-only columns.");
       let block: BlockRef | undefined;
       if (str("blockCode") || str("blockName")) {
         const hits = blocks.filter((b) => str("blockCode") ? b.blockCode === str("blockCode") : matchName(b.blockName) === matchName(row.blockName));
@@ -132,22 +129,19 @@ export function planColumnImport(rows: Record<string, unknown>[], data: {blocks:
       if (hits.length > 1) throw new Error("More than one school matches. Add Block or Centre code.");
       let school = hits[0];
       if (school && name && matchName(school.schoolName) !== matchName(name)) throw new Error("School name and Centre code do not match.");
-      const schoolDetails = ["latitude","longitude","capacity"].some((f) => row[f] !== undefined);
+      const schoolDetails = ["capacity"].some((f) => row[f] !== undefined);
       const changesCode = school && code && code !== school.schoolCode && matchName(code) !== matchName(school.schoolName);
       if (!school || schoolDetails || changesCode || (!str("name") && name)) {
         if (!school && !name) throw new Error("Add School name.");
         const blockId = block?.blockId ?? school?.blockId;
         if (!blockId) throw new Error("Add the school's Block name or Block code.");
-        const latitude = row.latitude ?? school?.latitude;
-        const longitude = row.longitude ?? school?.longitude;
-        if (latitude == null || longitude == null) throw new Error("Add School latitude and School longitude. Coordinates are required for new schools.");
         // In old teacher sheets schoolCode sometimes contains the school name, not a centre code.
         const schoolCode = school && code && matchName(code) === matchName(school.schoolName) ? school.schoolCode : code || school?.schoolCode || "";
         if (row.capacity != null && !schoolCode) throw new Error("Student count needs a Centre code. Leave it out for a school that is not a centre.");
         const id = school?.schoolId ?? `import-school:${blockId}:${matchName(name)}`;
-        const record = {kind:"school", schoolId:school?.schoolId.startsWith("import-school:") ? undefined : school?.schoolId, schoolName:name || school!.schoolName, schoolCode, blockId, latitude, longitude, capacity:row.capacity, active:school?.active ?? true};
+        const record = {kind:"school", schoolId:school?.schoolId.startsWith("import-school:") ? undefined : school?.schoolId, schoolName:name || school!.schoolName, schoolCode, blockId, capacity:row.capacity, active:school?.active ?? true};
         add(id, record);
-        if (!school) { school = {schoolId:id,schoolName:name,schoolCode,blockId,latitude:Number(latitude),longitude:Number(longitude),active:true}; schools.push(school); }
+        if (!school) { school = {schoolId:id,schoolName:name,schoolCode,blockId,active:true}; schools.push(school); }
         else school = {...school,schoolCode};
       }
       if (str("name")) {

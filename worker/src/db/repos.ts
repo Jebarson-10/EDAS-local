@@ -2475,8 +2475,8 @@ export async function upsertMasterRecord(
         capacity?: number;
         schoolName: string;
         blockId: string;
-        latitude: number;
-        longitude: number;
+        latitude?: number;
+        longitude?: number;
         active?: boolean;
       }
     | {
@@ -2485,8 +2485,8 @@ export async function upsertMasterRecord(
         centreCode: string;
         centreName: string;
         blockId: string;
-        latitude: number;
-        longitude: number;
+        latitude?: number;
+        longitude?: number;
         capacity: number;
         active?: boolean;
       }
@@ -2501,8 +2501,8 @@ export async function upsertMasterRecord(
         subject?: string | null;
         seniorityRank?: number | null;
         joiningDate?: string | null;
-        homeLatitude: number;
-        homeLongitude: number;
+        homeLatitude?: number;
+        homeLongitude?: number;
         isActive?: boolean;
         staffCategory?: "TEACHING" | "NON_TEACHING";
       },
@@ -2549,9 +2549,9 @@ export async function upsertMasterRecord(
     if (existing) {
       statements.push(db
         .prepare(
-          `UPDATE schools SET school_code=?, school_name=?, block_id=?, latitude=?, longitude=?, active=?, data_quality='ManuallyCorrected', updated_at=? WHERE school_id=?`,
+          `UPDATE schools SET school_code=?, school_name=?, block_id=?, latitude=COALESCE(?,latitude), longitude=COALESCE(?,longitude), active=?, data_quality='ManuallyCorrected', updated_at=? WHERE school_id=?`,
         )
-        .bind(schoolCode, record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, id)
+        .bind(schoolCode, record.schoolName.trim(), record.blockId, record.latitude ?? null, record.longitude ?? null, record.active !== false ? 1 : 0, now, id)
       );
     } else {
       statements.push(db
@@ -2559,7 +2559,7 @@ export async function upsertMasterRecord(
           `INSERT INTO schools (school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, 'ManuallyCorrected', ?, ?)`,
         )
-        .bind(id, schoolCode, record.schoolName.trim(), record.blockId, record.latitude, record.longitude, record.active !== false ? 1 : 0, now, now)
+        .bind(id, schoolCode, record.schoolName.trim(), record.blockId, record.latitude ?? null, record.longitude ?? null, record.active !== false ? 1 : 0, now, now)
       );
     }
     // School and centre changes commit together; published duty rows are never changed.
@@ -2574,9 +2574,9 @@ export async function upsertMasterRecord(
         (centre_id, centre_code, centre_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'ManuallyCorrected', ?, ?)
         ON CONFLICT(centre_code) DO UPDATE SET centre_name=excluded.centre_name, block_id=excluded.block_id,
-        latitude=excluded.latitude, longitude=excluded.longitude, active=excluded.active, updated_at=excluded.updated_at`)
+        latitude=COALESCE(excluded.latitude,centres.latitude), longitude=COALESCE(excluded.longitude,centres.longitude), active=excluded.active, updated_at=excluded.updated_at`)
         .bind(`ctr_${crypto.randomUUID()}`, schoolCode, record.schoolName.trim(), record.blockId,
-          record.latitude, record.longitude, record.active !== false ? 1 : 0, now, now));
+          record.latitude ?? null, record.longitude ?? null, record.active !== false ? 1 : 0, now, now));
       statements.push(db.prepare(`INSERT INTO centre_school_relationships
         (id, centre_id, school_id, relationship_type, effective_from, created_at)
         SELECT ?, centre_id, ?, 'HOST', ?, ? FROM centres c WHERE centre_code=? AND NOT EXISTS
@@ -2662,9 +2662,10 @@ export async function upsertMasterRecord(
     }]);
   }
   if (
+    record.homeLatitude !== undefined && record.homeLongitude !== undefined && (
     !existing ||
     existing.home_latitude !== record.homeLatitude ||
-    existing.home_longitude !== record.homeLongitude
+    existing.home_longitude !== record.homeLongitude)
   ) {
     await db
       .prepare(`UPDATE teacher_location_history SET effective_to=? WHERE teacher_id=? AND location_type='HOME' AND effective_to IS NULL`)

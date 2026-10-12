@@ -16,7 +16,7 @@ import {
   shouldApplySessionAfterApi,
   pendingStaffHealthReviews,
   buildHallDemands,
-  distanceReadiness,
+  blockReadiness,
 } from "@exam-duty/shared";
 import {
   Bento,
@@ -128,11 +128,9 @@ export function HallPage() {
   function run() {
     if (!dataset || busy) return;
     if(pendingStaffHealthReviews(dataset.teachers,exemptions).length){setText("Review health and leave remarks in Imports before generating duties.");return;}
-    const distanceGaps = distanceReadiness(dataset);
-    if (distanceGaps.centreIdsMissingCoordinates.length || distanceGaps.teacherIdsWithoutDistanceLocation.length) {
-      setText(
-        `Add locations before allotment: ${distanceGaps.centreIdsMissingCoordinates.length} centre(s) need coordinates and ${distanceGaps.schoolIdsMissingCoordinates.length} school(s) need coordinates for ${distanceGaps.teacherIdsWithoutDistanceLocation.length} active staff. Use Schools & teachers to find and save each location.`,
-      );
+    const blockGaps = blockReadiness(dataset);
+    if (blockGaps.centreIdsMissingBlock.length || blockGaps.teacherIdsMissingSchoolBlock.length) {
+      setText(`Choose blocks before allotment: ${blockGaps.centreIdsMissingBlock.length} centre(s) and ${blockGaps.teacherIdsMissingSchoolBlock.length} staff school(s) need a block. Update Schools & teachers.`);
       return;
     }
     if (timetableState !== "ready" || hallSessions.length === 0) {
@@ -289,6 +287,8 @@ export function HallPage() {
         validationIssues: validation.issues,
         conflicts: validation.conflicts,
         snapshot: {
+          allotmentArea: rules.allotment_area,
+          areaRuleVersion: rules.area_rule_version,
           examCycleId: examCycle.examCycleId,
           ruleVersionId: examCycle.ruleVersionId,
           algorithmVersion: result.algorithmVersion,

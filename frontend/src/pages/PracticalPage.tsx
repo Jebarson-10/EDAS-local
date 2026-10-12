@@ -322,6 +322,7 @@ export function PracticalPage() {
       demand,
       {
         teachers: dataset.teachers,
+        schools: dataset.schools,
         exemptions,
         calendar: crossModuleCalendar(runs, "PRACTICAL", examCycle.examCycleId),
         pairHistory,
@@ -345,6 +346,7 @@ export function PracticalPage() {
     );
     const validation = validatePracticalAllocation(result, rules, {
       teachers: dataset.teachers,
+        schools: dataset.schools,
       standard: examCycle.standard ?? "",
     });
     const runId = `run_${crypto.randomUUID()}`;
@@ -375,6 +377,8 @@ export function PracticalPage() {
           validationIssues: validation.issues,
           conflicts: validation.conflicts,
           snapshot: {
+            allotmentArea: rules.allotment_area,
+            areaRuleVersion: rules.area_rule_version,
             examCycleId: examCycle.examCycleId,
             ruleVersionId: examCycle.ruleVersionId,
             algorithmVersion: result.algorithmVersion,

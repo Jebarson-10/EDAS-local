@@ -3,6 +3,7 @@ import type {
   RuleParameters,
   SessionCode,
   Teacher,
+  School,
   TeacherExemption,
   DutyCalendarEvent,
   HistoricalDuty,
@@ -12,7 +13,7 @@ import { teachesSubject } from "@exam-duty/shared";
 // 1.2 schedules different subjects in parallel.  A subject's own batches
 // still remain in morning/afternoon order, which models the 50 + 50 pattern
 // without incorrectly treating all subjects in one school as one queue.
-export const PRACTICAL_ALGORITHM_VERSION = "practical-1.6.0";
+export const PRACTICAL_ALGORITHM_VERSION = "practical-2.0.0";
 
 /** The confirmed examiner post rule for public practical examinations. */
 export function requiredPracticalDesignation(
@@ -38,6 +39,7 @@ export interface PracticalSchoolDemand {
 }
 
 export interface PracticalDataset {
+  schools: Pick<School, "schoolId" | "blockId">[];
   teachers: Teacher[];
   exemptions: TeacherExemption[];
   calendar: DutyCalendarEvent[];
@@ -219,6 +221,8 @@ export function schedulePractical(
     bySchool.set(b.schoolId, list);
   }
 
+  const schoolBlocks = new Map(dataset.schools.map(s => [s.schoolId, s.blockId]));
+  const sameBlock = (teacher: Teacher, schoolId: string) => Boolean(schoolBlocks.get(schoolId)?.trim() && schoolBlocks.get(teacher.schoolId) === schoolBlocks.get(schoolId));
   const schedules: PracticalScheduleItem[] = [];
   const occupied = new Set<string>();
   const workload = new Map<string,number>();
@@ -285,6 +289,7 @@ export function schedulePractical(
         .filter(
           (t) =>
             t.isActive &&
+            sameBlock(t, schoolId) &&
             isTeachingStaff(t) &&
             matchesPracticalDesignation(t, dataset.standard) &&
             teachesPracticalSubject(t, batch.subjectId) &&
@@ -300,6 +305,7 @@ export function schedulePractical(
         .filter(
           (t) =>
             t.isActive &&
+            sameBlock(t, schoolId) &&
             isTeachingStaff(t) &&
             matchesPracticalDesignation(t, dataset.standard) &&
             teachesPracticalSubject(t, batch.subjectId) &&
@@ -334,6 +340,7 @@ export function schedulePractical(
           // Count actual matching-subject staff and their observed exclusions.
           // Missing subject records cannot be assumed to teach this subject.
           if (!teacher.isActive || !isTeachingStaff(teacher) || !teachesPracticalSubject(teacher, batch.subjectId)) continue;
+          if (!sameBlock(teacher, schoolId)) { add("Different block or missing school block"); continue; }
           if (!matchesPracticalDesignation(teacher, dataset.standard)) { add(`Wrong staff post (needs ${requiredDesignation})`); continue; }
           if (!dataset.internalEligible(teacher, schoolId, batch.subjectId) && !dataset.externalEligible(teacher, schoolId, batch.subjectId)) continue;
           if (remainingSlots.length && remainingSlots.every(s => dataset.exemptions.some(e => e.teacherId === teacher.teacherId && exemptionActive(e, s.date)))) add("Exempt throughout the remaining dates");
@@ -343,7 +350,7 @@ export function schedulePractical(
         if (!remainingSlots.length) gaps.push("No sessions remain within the school's completion window.");
         else {
           if (!internalAvailable.size) gaps.push(`No available ${requiredDesignation} internal examiner recorded as handling this subject at the school.`);
-          if (!externalAvailable.size) gaps.push(`No available ${requiredDesignation} external examiner recorded as handling this subject outside the school.`);
+          if (!externalAvailable.size) gaps.push(`No available ${requiredDesignation} external examiner recorded as handling this subject at another school in the same block.`);
           if (internalAvailable.size && externalAvailable.size) gaps.push("No two distinct eligible examiners are free together in a remaining session.");
         }
         return {

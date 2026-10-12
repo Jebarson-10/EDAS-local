@@ -135,7 +135,7 @@ export function ImportPage() {
             blocks: blocks.blocks.map((block) => ({ blockId: block.block_id, blockCode: block.block_code, blockName: block.block_name })),
             schools: schools.schools.map((school) => ({ schoolId: school.school_id, schoolCode: school.school_code, sourceSchoolCode:school.source_school_code??undefined, schoolName: school.school_name, blockId: school.block_id, latitude: school.latitude ?? Number.NaN, longitude: school.longitude ?? Number.NaN, active: school.active !== 0 })),
           });
-          officialMasterMessage = ` Created ${master.createdBlocks ?? 0} blocks and ${master.createdSchools ?? 0} schools; matched ${master.matchedSchools ?? 0} existing schools.${master.missingLocations?.length ? ` ${master.missingLocations.length} school locations still need to be added.` : ""}${master.skippedNoBlock?.length ? ` ${master.skippedNoBlock.length} schools had no block and were not created.` : ""}`;
+          officialMasterMessage = ` Created ${master.createdBlocks ?? 0} blocks and ${master.createdSchools ?? 0} schools; matched ${master.matchedSchools ?? 0} existing schools.${master.skippedNoBlock?.length ? ` ${master.skippedNoBlock.length} schools had no block and were not created.` : ""}`;
         }
         setFileName(file.name);
         setText(JSON.stringify(parsed.rows, null, 2));

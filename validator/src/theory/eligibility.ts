@@ -1,6 +1,4 @@
 import {
-  haversineKm,
-  roundKm,
   type Centre,
   type DecisionReason,
   type RuleParameters,
@@ -95,34 +93,6 @@ function priorCentreDuty(
       historicYear >= currentYear - repeatYears
     );
   });
-}
-
-function validCoordinates(
-  latitude: number | null | undefined,
-  longitude: number | null | undefined,
-): boolean {
-  return (
-    latitude != null &&
-    longitude != null &&
-    Number.isFinite(latitude) &&
-    Number.isFinite(longitude)
-  );
-}
-
-function calculateDistanceKm(
-  latitude: number | null | undefined,
-  longitude: number | null | undefined,
-  centre: Centre,
-): number | null {
-  if (
-    !validCoordinates(latitude, longitude) ||
-    !validCoordinates(centre.latitude, centre.longitude)
-  ) {
-    return null;
-  }
-  return roundKm(
-    haversineKm(latitude!, longitude!, centre.latitude!, centre.longitude!),
-  );
 }
 
 function roleBand(
@@ -241,55 +211,11 @@ export function validateTheoryCandidateEligibility(
     }
   }
 
-  const centreCoordinatesValid = validCoordinates(centre.latitude, centre.longitude);
-  if (!centreCoordinatesValid) {
-    hardReasons.push({
-      ruleCode: "RULE-THEORY-DISTANCE",
-      severity: "ERROR",
-      message: "Centre coordinates missing",
-    });
-  } else {
-    const school = schoolById.get(teacher.schoolId);
-    const distanceHomeKm = calculateDistanceKm(
-      teacher.homeLatitude,
-      teacher.homeLongitude,
-      centre,
-    );
-    const distanceSchoolKm = calculateDistanceKm(
-      school?.latitude,
-      school?.longitude,
-      centre,
-    );
-
-    let distanceAllowed = false;
-    if (rules.distance_policy === "HOME_OR_SCHOOL") {
-      distanceAllowed =
-        (distanceHomeKm != null && distanceHomeKm <= rules.maximum_distance_km) ||
-        (distanceSchoolKm != null && distanceSchoolKm <= rules.maximum_distance_km);
-    } else if (rules.distance_policy === "HOME_ONLY") {
-      distanceAllowed =
-        distanceHomeKm != null && distanceHomeKm <= rules.maximum_distance_km;
-    } else {
-      distanceAllowed =
-        distanceSchoolKm != null && distanceSchoolKm <= rules.maximum_distance_km;
-    }
-
-    if (distanceHomeKm == null && distanceSchoolKm == null) {
-      if (rules.missing_coordinates_policy === "INELIGIBLE") {
-        hardReasons.push({
-          ruleCode: "RULE-THEORY-DISTANCE",
-          severity: "ERROR",
-          message: "MISSING_COORDINATES — cannot evaluate distance policy (OQ-001)",
-        });
-      }
-    } else if (!distanceAllowed) {
-      hardReasons.push({
-        ruleCode: "RULE-THEORY-DISTANCE",
-        severity: "ERROR",
-        message: `Distance exceeds ${rules.maximum_distance_km} km under policy ${rules.distance_policy}`,
-        details: { distanceHomeKm, distanceSchoolKm },
-      });
-    }
+  // Independently enforce the current-school block, including missing block data.
+  const school = schoolById.get(teacher.schoolId);
+  if (!school?.blockId?.trim() || !centre.blockId?.trim() || school.blockId !== centre.blockId) {
+    hardReasons.push({ ruleCode: "RULE-THEORY-BLOCK", severity: "ERROR",
+      message: "Staff member's current school and the centre must have the same saved block." });
   }
 
   const allowedDesignations = roleBand(requirement, designationBand);

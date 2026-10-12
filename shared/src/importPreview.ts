@@ -66,8 +66,11 @@ export function previewTeacherImport(
   rawRows.forEach((raw, idx) => {
     const rowNumber = idx + 1;
     const input = raw && typeof raw === "object" ? { ...raw } as Record<string, unknown> : {};
+    // Obsolete location columns do not participate in block-based imports.
+    delete input.homeLatitude;
+    delete input.homeLongitude;
     try {
-      for (const field of ["employeeCode","teacherCode","name","schoolCode","schoolName","designation","subject","seniorityRank","homeLatitude","homeLongitude","joiningDate","isActive","staffCategory","sourceSchoolCode"]) {
+      for (const field of ["employeeCode","teacherCode","name","schoolCode","schoolName","designation","subject","seniorityRank","joiningDate","isActive","staffCategory","sourceSchoolCode"]) {
         if (input[field] != null) input[field] = normalizeImportValue(field,input[field]);
       }
     } catch (e) {
@@ -90,7 +93,7 @@ export function previewTeacherImport(
       // name only after code lookup fails; never create a centre from that text.
       if (!matches.length && code && !name) matches = schools.filter((s) => normal(s.schoolName) === code);
       if (matches.length !== 1) {
-        rows.push({ rowNumber, teacherName, status: "INVALID", message: matches.length ? "More than one school matches. Select the school in Schools & teachers instead." : `School "${input.schoolName || input.schoolCode || "not provided"}" not found. Add it in Schools & teachers with its block and location, then upload again.` });
+        rows.push({ rowNumber, teacherName, status: "INVALID", message: matches.length ? "More than one school matches. Select the school in Schools & teachers instead." : `School "${input.schoolName || input.schoolCode || "not provided"}" not found. Add it in Schools & teachers with its block, then upload again.` });
         return;
       }
       input.schoolCode = matches[0]!.schoolId;

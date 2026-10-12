@@ -47,7 +47,7 @@ describe("practical validator", () => {
         availableDates: ["2027-03-01", "2027-03-02", "2027-03-03"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
-        standard: "12",
+        schools: ["s1", "s2"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         internalEligible: (t, schoolId) => t.schoolId === schoolId,
         externalEligible: (t, schoolId) => t.schoolId !== schoolId,
       },
@@ -81,7 +81,7 @@ describe("practical validator", () => {
         availableDates: ["2027-03-01"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
-        standard: "12",
+        schools: ["s1", "s2"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         internalEligible: (t, schoolId) => t.schoolId === schoolId,
         externalEligible: (t, schoolId) => t.schoolId !== schoolId,
       },
@@ -126,7 +126,7 @@ describe("practical validator", () => {
     };
 
     const validation = validatePracticalAllocation(result, rules, {
-      standard: "12",
+      schools: ["s1", "s2"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
       teachers: [
         {
           teacherId: "office",
@@ -193,7 +193,7 @@ describe("practical validator", () => {
     };
 
     const validation = validatePracticalAllocation(result, rules, {
-      standard: "12",
+      schools: ["s1", "s2"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
       teachers: [
         {
           teacherId: "physics-internal",
@@ -239,7 +239,7 @@ describe("practical validator", () => {
       feasible: true,
     };
     const validation = validatePracticalAllocation(result, rules, {
-      standard: "12",
+      schools: ["s1", "s2"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
       teachers: [
         { teacherId: "bt", employeeCode: "B", name: "BT", schoolId: "s1", designation: "BT ASST", subject: "Physics", isActive: true, dataQuality: "Confirmed" },
         { teacherId: "spl", employeeCode: "S", name: "Special", schoolId: "s2", designation: "SPECIAL_TEACHER", subject: "Physics", isActive: true, dataQuality: "Confirmed" },

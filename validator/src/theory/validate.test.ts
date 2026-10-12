@@ -336,7 +336,7 @@ describe("independent theory validator", () => {
     }
   });
 
-  it("rechecks active, exemption, calendar, clubbed-school and distance constraints", () => {
+  it("rechecks active, exemption, calendar, clubbed-school and same-block constraints", () => {
     const requirement = makeRequirement();
     const cases: Array<{ dataset: TheoryDataset; ruleCode: string }> = [
       {
@@ -389,8 +389,8 @@ describe("independent theory validator", () => {
             {
               schoolId: "s1",
               schoolCode: "S1",
-              schoolName: "Far teacher school",
-              blockId: "b1",
+              schoolName: "Other block school",
+              blockId: "b2",
               latitude: 12,
               longitude: 78,
               active: true,
@@ -406,7 +406,7 @@ describe("independent theory validator", () => {
             },
           ],
         }),
-        ruleCode: "RULE-THEORY-DISTANCE",
+        ruleCode: "RULE-THEORY-BLOCK",
       },
     ];
 
@@ -595,7 +595,7 @@ describe("practical validator", () => {
         availableDates: ["2027-03-01"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
-        standard: "12",
+        schools: ["s1", "s2", "s3"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         internalEligible: (t, schoolId) => t.schoolId === schoolId,
         externalEligible: (t, schoolId) => t.schoolId !== schoolId,
       },

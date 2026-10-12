@@ -21,7 +21,7 @@ describe("practical scheduling", () => {
   it("explains a missing external examiner using actual staff and remaining sessions", () => {
     const result = schedulePractical(
       [{ schoolId: "host", subjectId: "physics", studentCount: 50 }],
-      { teachers: [teacher("inside", "I", "host"), { ...teacher("wrong-post", "W", "outside"), designation: "BT" }, teacher("occupied", "O", "outside")], exemptions: [], calendar: [{ teacherId: "occupied", date: "2027-03-01", session: "MORNING", dutyType: "THEORY" }, { teacherId: "occupied", date: "2027-03-01", session: "AFTERNOON", dutyType: "THEORY" }], pairHistory: [], availableDates: ["2027-03-01"], asOfDate: "2027-03-01", academicYear: "2027", standard: "12", internalEligible: (t, school) => t.schoolId === school, externalEligible: (t, school) => t.schoolId !== school },
+      { teachers: [teacher("inside", "I", "host"), { ...teacher("wrong-post", "W", "outside"), designation: "BT" }, teacher("occupied", "O", "outside")], exemptions: [], calendar: [{ teacherId: "occupied", date: "2027-03-01", session: "MORNING", dutyType: "THEORY" }, { teacherId: "occupied", date: "2027-03-01", session: "AFTERNOON", dutyType: "THEORY" }], pairHistory: [], availableDates: ["2027-03-01"], asOfDate: "2027-03-01", academicYear: "2027", schools: ["host", "outside", "a", "b"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12", internalEligible: (t, school) => t.schoolId === school, externalEligible: (t, school) => t.schoolId !== school },
       DEFAULT_RULE_PARAMETERS,
     );
     expect(result.feasible).toBe(false);
@@ -32,7 +32,7 @@ describe("practical scheduling", () => {
   it("stagger schools so the same subject teachers can exchange examiner duties", () => {
     const result = schedulePractical(
       [{schoolId:"a",subjectId:"physics",studentCount:50},{schoolId:"b",subjectId:"physics",studentCount:50}],
-      {teachers:[teacher("ta","A","a"),teacher("tb","B","b")],exemptions:[],calendar:[],pairHistory:[],availableDates:["2027-03-01"],asOfDate:"2027-03-01",academicYear:"2027",standard:"12",internalEligible:(t,s)=>t.schoolId===s,externalEligible:(t,s)=>t.schoolId!==s},
+      {teachers:[teacher("ta","A","a"),teacher("tb","B","b")],exemptions:[],calendar:[],pairHistory:[],availableDates:["2027-03-01"],asOfDate:"2027-03-01",academicYear:"2027",schools: ["host", "outside", "a", "b"].map(schoolId => ({ schoolId, blockId: "b1" })), standard:"12",internalEligible:(t,s)=>t.schoolId===s,externalEligible:(t,s)=>t.schoolId!==s},
       DEFAULT_RULE_PARAMETERS,
     );
     expect(result.feasible).toBe(true);
@@ -64,7 +64,7 @@ describe("practical scheduling", () => {
         availableDates: ["2027-03-01"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
-        standard: "12",
+        schools: ["host", "outside", "a", "b"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         // These callbacks intentionally only check school. The scheduler must
         // still enforce staff group independently of a caller's callback.
         internalEligible: (candidate, schoolId) => candidate.schoolId === schoolId,
@@ -99,7 +99,7 @@ describe("practical scheduling", () => {
         availableDates: ["2027-03-01", "2027-03-02"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
-        standard: "12",
+        schools: ["host", "outside", "a", "b"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         internalEligible: (candidate, schoolId, subjectId) =>
           candidate.teacherId === `i-${subjectId}` && candidate.schoolId === schoolId,
         externalEligible: (candidate, _schoolId, subjectId) =>
@@ -128,7 +128,7 @@ describe("practical scheduling", () => {
       [{ schoolId: "host", subjectId: "bio", studentCount: 20 }],
       {
         teachers: [pg, bt, outsideBt], exemptions: [], calendar: [], pairHistory: [],
-        availableDates: ["2027-03-01"], asOfDate: "2027-03-01", academicYear: "2027", standard: "10",
+        availableDates: ["2027-03-01"], asOfDate: "2027-03-01", academicYear: "2027", schools: ["host", "outside", "a", "b"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "10",
         internalEligible: (candidate, schoolId) => candidate.schoolId === schoolId,
         externalEligible: (candidate, schoolId) => candidate.schoolId !== schoolId,
       },
@@ -152,7 +152,7 @@ describe("practical scheduling", () => {
           { ...teacher("spl-external", "B4", "outside"), designation: "SPECIAL_TEACHER", subject: "chemistry" },
         ],
         exemptions: [], calendar: [], pairHistory: [], availableDates: ["2027-03-01"],
-        asOfDate: "2027-03-01", academicYear: "2027", standard: "12",
+        asOfDate: "2027-03-01", academicYear: "2027", schools: ["host", "outside", "a", "b"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         // The scheduler must still enforce its subject and post rules when a
         // caller accidentally supplies a broad school-only callback.
         internalEligible: (candidate, schoolId) => candidate.schoolId === schoolId,

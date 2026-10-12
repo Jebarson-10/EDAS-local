@@ -9,9 +9,8 @@ import type {
   Teacher,
   TeacherExemption,
 } from "@exam-duty/shared";
-import { haversineKm, roundKm } from "@exam-duty/shared";
 
-export const ALGORITHM_VERSION = "theory-1.3.0";
+export const ALGORITHM_VERSION = "theory-2.0.0";
 
 export interface TheoryRequirement {
   requirementKey: string;
@@ -45,8 +44,6 @@ export interface CandidateEvaluation {
   eligible: boolean;
   hardReasons: DecisionReason[];
   softNotes: DecisionReason[];
-  distanceHomeKm: number | null;
-  distanceSchoolKm: number | null;
   score: number;
   designation: string;
   employeeCode: string;
@@ -304,86 +301,14 @@ export function evaluateTheoryCandidate(
     }
   }
 
-  let distanceHomeKm: number | null = null;
-  let distanceSchoolKm: number | null = null;
-  const centreOk =
-    centre.latitude != null &&
-    centre.longitude != null &&
-    Number.isFinite(centre.latitude) &&
-    Number.isFinite(centre.longitude);
-
-  if (!centreOk) {
+  if (!school?.blockId?.trim() || !centre.blockId?.trim() || school.blockId !== centre.blockId) {
     hardReasons.push({
-      ruleCode: "RULE-THEORY-DISTANCE",
+      ruleCode: "RULE-THEORY-BLOCK",
       severity: "ERROR",
-      message: "Centre coordinates missing",
+      message: !school?.blockId?.trim() || !centre.blockId?.trim()
+        ? "Choose a block for the staff member's current school and the centre."
+        : "Staff member's current school belongs to a different block.",
     });
-  } else {
-    if (
-      teacher.homeLatitude != null &&
-      teacher.homeLongitude != null &&
-      Number.isFinite(teacher.homeLatitude) &&
-      Number.isFinite(teacher.homeLongitude)
-    ) {
-      distanceHomeKm = roundKm(
-        haversineKm(
-          teacher.homeLatitude,
-          teacher.homeLongitude,
-          centre.latitude!,
-          centre.longitude!,
-        ),
-      );
-    }
-    if (
-      school?.latitude != null &&
-      school.longitude != null &&
-      Number.isFinite(school.latitude) &&
-      Number.isFinite(school.longitude)
-    ) {
-      distanceSchoolKm = roundKm(
-        haversineKm(
-          school.latitude,
-          school.longitude,
-          centre.latitude!,
-          centre.longitude!,
-        ),
-      );
-    }
-
-    const max = rules.maximum_distance_km;
-    let distanceOk = false;
-    if (rules.distance_policy === "HOME_OR_SCHOOL") {
-      distanceOk =
-        (distanceHomeKm != null && distanceHomeKm <= max) ||
-        (distanceSchoolKm != null && distanceSchoolKm <= max);
-    } else if (rules.distance_policy === "HOME_ONLY") {
-      distanceOk = distanceHomeKm != null && distanceHomeKm <= max;
-    } else {
-      distanceOk = distanceSchoolKm != null && distanceSchoolKm <= max;
-    }
-
-    if (distanceHomeKm == null && distanceSchoolKm == null) {
-      if (rules.missing_coordinates_policy === "INELIGIBLE") {
-        hardReasons.push({
-          ruleCode: "RULE-THEORY-DISTANCE",
-          severity: "ERROR",
-          message: "MISSING_COORDINATES — cannot evaluate distance policy (OQ-001)",
-        });
-      }
-    } else if (!distanceOk) {
-      hardReasons.push({
-        ruleCode: "RULE-THEORY-DISTANCE",
-        severity: "ERROR",
-        message: `Distance exceeds ${max} km under policy ${rules.distance_policy}`,
-        details: { distanceHomeKm, distanceSchoolKm },
-      });
-    } else {
-      softNotes.push({
-        ruleCode: "INFO-DISTANCE",
-        severity: "INFO",
-        message: `Within ${max} km (home=${distanceHomeKm ?? "n/a"} school=${distanceSchoolKm ?? "n/a"})`,
-      });
-    }
   }
 
   if (requirement.roleCode === "CUSTODIAN" && !["PG", "SENIOR_PG", "BT"].includes(teacher.designation)) {
@@ -409,12 +334,6 @@ export function evaluateTheoryCandidate(
   };
   const recentPenalty = fairness.recentPenalty;
   const repeatedPenalty = fairness.repeatedPenalty;
-  const minDist = Math.min(
-    distanceHomeKm ?? Number.POSITIVE_INFINITY,
-    distanceSchoolKm ?? Number.POSITIVE_INFINITY,
-  );
-  const distancePenalty =
-    Number.isFinite(minDist) ? minDist / Math.max(rules.maximum_distance_km, 1) : 10;
   const seniority =
     teacher.seniorityRank == null ? 9999 : teacher.seniorityRank;
   const seniorPgDuty =
@@ -426,7 +345,6 @@ export function evaluateTheoryCandidate(
   const score =
     weights.recent_duty * recentPenalty +
     weights.repeated_duty * Math.min(repeatedPenalty, 5) +
-    weights.distance * distancePenalty +
     weights.workload * 0 +
     weights.role_balance * (designationBand === "fallback" ? 2 : 0) +
     seniority * (seniorPgDuty ? 1 : 0.0001);
@@ -443,8 +361,6 @@ export function evaluateTheoryCandidate(
     eligible: hardReasons.length === 0,
     hardReasons,
     softNotes,
-    distanceHomeKm,
-    distanceSchoolKm,
     score,
     designation: teacher.designation,
     employeeCode: teacher.employeeCode,

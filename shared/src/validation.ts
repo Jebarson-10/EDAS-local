@@ -567,8 +567,8 @@ export const centreCapacityBodySchema = z.object({
 
 /**
  * Direct master-data maintenance. These rows are intentionally stricter than
- * old spreadsheet imports: required location and capacity fields prevent an
- * operator from saving data that the 10 km and student-strength rules cannot
+ * old spreadsheet imports: required block and capacity fields prevent an
+ * operator from saving data that the block and student-strength rules cannot
  * use. Updates are upserts; no historical duty data is deleted.
  */
 export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
@@ -586,8 +586,8 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
     capacity: z.number().int().positive().optional(),
     schoolName: z.string().min(1).max(200),
     blockId: z.string().min(1),
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
     active: z.boolean().optional().default(true),
   }),
   z.object({
@@ -596,8 +596,8 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
     centreCode: z.string().min(1).max(64),
     centreName: z.string().min(1).max(200),
     blockId: z.string().min(1),
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
     capacity: z.number().int().positive(),
     active: z.boolean().optional().default(true),
   }),
@@ -614,8 +614,8 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
     subject: z.string().min(1).max(64).optional().nullable(),
     seniorityRank: z.number().int().nonnegative().optional().nullable(),
     joiningDate: isoDate.optional().nullable(),
-    homeLatitude: z.number().min(-90).max(90),
-    homeLongitude: z.number().min(-180).max(180),
+    homeLatitude: z.number().min(-90).max(90).optional(),
+    homeLongitude: z.number().min(-180).max(180).optional(),
     isActive: z.boolean().optional().default(true),
     staffCategory: z.enum(["TEACHING", "NON_TEACHING"]).optional(),
   }),

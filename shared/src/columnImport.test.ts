@@ -28,16 +28,16 @@ describe("heading-based imports", () => {
     expect(result.records.map((r) => r.kind)).toEqual(["block","school"]);
     expect(result.teachers[0]).toMatchObject({name:"Teacher A",schoolName:"New school",schoolCode:"001"});
   });
-  it("reuses saved school details and does not invent coordinates or block codes", () => {
+  it("reuses saved schools and accepts new schools using only their saved block", () => {
     const result=planColumnImport([{name:"A",designation:"PG",schoolName:"Test school"}],data);
     expect(result.errors).toEqual([]);expect(result.records).toEqual([]);
-    expect(planColumnImport([{schoolName:"New school",blockCode:"B1"}],data).errors.join()).toContain("latitude");
+    expect(planColumnImport([{schoolName:"New school",blockCode:"B1"}],data).errors).toEqual([]);
     expect(planColumnImport([{blockName:"Unknown"}],data).errors.join()).toContain("Block code");
   });
   it("deduplicates shared schools but rejects conflicting details", () => {
-    const row={schoolName:"New school",blockCode:"B1",latitude:11,longitude:77};
+    const row={schoolName:"New school",blockCode:"B1",schoolCode:"001",capacity:100};
     expect(planColumnImport([row,row],data).records).toHaveLength(1);
-    expect(planColumnImport([row,{...row,latitude:12}],data).errors.join()).toContain("different details");
+    expect(planColumnImport([row,{...row,capacity:200}],data).errors.join()).toContain("different details");
   });
   it("does not merge a current school with a different duty centre", () => {
     expect(planColumnImport([{schoolName:"Test school",centreName:"Other school"}],data).errors.join()).toContain("differ");
@@ -49,7 +49,7 @@ describe("heading-based imports", () => {
   });
   it("recognises Tamil headings and blocks invalid numeric/boolean values", () => {
     expect(guessImportColumns(["ஆசிரியர் பெயர்","பதவி","பள்ளி"])).toEqual(["name","designation","schoolName"]);
-    expect(mapImportColumns([["not a number"]],["latitude"]).errors.join()).toContain("11.34");
+    expect(guessImportColumns(["School latitude","Home longitude"])).toEqual(["ignore","ignore"]);
     expect(mapImportColumns([["perhaps"]],["isActive"]).errors.join()).toContain("Yes or No");
   });
   it("uses a supplied centre code for the teacher's existing school", () => {

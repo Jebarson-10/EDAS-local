@@ -97,6 +97,11 @@ export function applyStoredRuleParameters(
 
     let ok = false;
     switch (key) {
+      case "allotment_area":
+      case "area_rule_version":
+        // Current rule is fixed; saved historical settings cannot re-enable distance.
+        ok = parsed === DEFAULT_RULE_PARAMETERS[key];
+        break;
       case "maximum_distance_km":
       case "repeat_years":
       case "students_per_hall":

@@ -480,7 +480,7 @@ async function main() {
   const pairSchoolId = String(demo.schools[0]?.schoolId ?? "");
   const pairTeachers = [
     (demo.teachers as Teacher[]).find((t) => t.schoolId === pairSchoolId),
-    (demo.teachers as Teacher[]).find((t) => t.schoolId !== pairSchoolId),
+    (demo.teachers as Teacher[]).find((t) => t.schoolId !== pairSchoolId && demo.schools.some(s => s.schoolId === t.schoolId && s.blockId === demo.schools[0]?.blockId)),
   ].filter((t): t is Teacher => Boolean(t)).map(t => ({ ...t, designation: "PG" as const, staffCategory: "TEACHING" as const, subject: "PHYSICS" }));
   const pairIds = new Set(pairTeachers.map((t) => t.teacherId));
   const pairDemand = [
@@ -498,7 +498,7 @@ async function main() {
     availableDates: [examDate],
     asOfDate: examDate,
     academicYear,
-    standard: "12",
+    schools: demo.schools, standard: "12",
     internalEligible: (t: Teacher) => pairIds.has(t.teacherId),
     externalEligible: (t: Teacher) => pairIds.has(t.teacherId),
   });
@@ -769,7 +769,9 @@ async function main() {
   record(
     "UAT-19",
     "Seed rule_parameters rehydrate to the documented defaults",
-    seedParams.length === Object.keys(DEFAULT_RULE_PARAMETERS).length &&
+    seedParams.length === Object.keys(DEFAULT_RULE_PARAMETERS).filter(key => !["allotment_area", "area_rule_version"].includes(key)).length &&
+      appliedSeed.parameters.allotment_area === "SAME_BLOCK" &&
+      appliedSeed.parameters.area_rule_version === "BLOCK-2026-10-12" &&
       appliedSeed.applied.length === seedParams.length &&
       appliedSeed.invalid.length === 0 &&
       appliedSeed.parameters.maximum_distance_km ===

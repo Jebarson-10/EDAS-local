@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { assertMutable, guessImportColumns, importFields, mapImportColumns, planColumnImport, previewTeacherImport, type ImportField } from "@exam-duty/shared";
+import { assertMutable, buildColumnImportTemplateWorkbook, guessImportColumns, importFields, mapImportColumns, planColumnImport, previewTeacherImport, type ImportField } from "@exam-duty/shared";
 import { useApp } from "../state/AppContext";
 import { fetchMasterBlocks, fetchMasterSchools, fetchMasterCentres, fetchMasterRelationships, upsertManualMasterRecord } from "../lib/api";
 import { Panel } from "./ui";
@@ -112,16 +112,30 @@ export function ColumnImportPanel({onTeachers}: {onTeachers: (rows: Record<strin
     } finally {lock.current=false;setBusy(false);}
   }
 
+  async function downloadTemplate() {
+    try {
+      const bytes = await buildColumnImportTemplateWorkbook();
+      const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "EDAS-import-template.xlsx";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setMessage("The template could not be downloaded. Please try again.");
+    }
+  }
+
   return <Panel title="Import Excel">
     <p className="text-sm mb-3">Put headings in the first row. Columns can be in any order. Each teacher stays linked to the school and other details on the same row.</p>
     <div className="flex gap-3 flex-wrap items-center">
-      <a className={style} href="/templates/EDAS-import-template.xlsx" download="EDAS-import-template.xlsx">Download template (all sheets)</a>
+      <button type="button" className={style} disabled={busy} onClick={() => void downloadTemplate()}>Download template (all sheets)</button>
       <label className={style}>Choose .xlsx<input aria-label="Choose Excel file for automatic column matching" type="file" accept=".xlsx" disabled={busy || !allowed} className="block" onChange={(e) => {const f=e.target.files?.[0];if(f) void upload(f);e.target.value="";}} /></label>
       <label>File contains <select className={style} value={kind} disabled={busy} onChange={(e) => {const k=e.target.value as typeof kind;setKind(k);if(sheet)setMapping(guessImportColumns(sheet.lines[0]!,k));onTeachers([]);}}><option value="teacher">Teachers (with school details)</option><option value="school">Schools / centres</option><option value="block">Blocks</option></select></label>
       {sheets.length>1 && <label>Sheet <select className={style} value={sheetIndex} disabled={busy} onChange={(e) => {const n=Number(e.target.value);setSheetIndex(n);setMapping(guessImportColumns(sheets[n]!.lines[0]!,kind));onTeachers([]);}}>{sheets.map((s,i) => <option key={i} value={i}>{s.name}</option>)}</select></label>}
     </div>
     {sheet && <>
-      <p className="text-sm mt-3">Check what each column contains. Choose a field for an unfamiliar heading, or leave that column out. Blank cells keep saved details unchanged. New schools need a block and coordinates; a centre code makes the school an exam centre.</p>
+      <p className="text-sm mt-3">Check what each column contains. Choose a field for an unfamiliar heading, or leave that column out. Blank cells keep saved details unchanged. New schools need a block; a centre code makes the school an exam centre.</p>
       <div className="overflow-auto max-h-80 my-3"><table className="w-full text-sm"><thead><tr><th className="text-left">Your heading</th><th className="text-left">Save as</th><th className="text-left">First value</th></tr></thead><tbody>{mapping.map((field,i) => <tr key={i}><td>{String(sheet.lines[0]?.[i] ?? "") || `Column ${i+1} (no heading)`}</td><td><select aria-label={`Column ${i+1} field`} className={style} value={field} disabled={busy} onChange={(e) => {setMapping(mapping.map((f,j) => i===j ? e.target.value as ImportField : f));onTeachers([]);}}><option value="">Choose a field</option>{Object.entries(importFields).map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></td><td>{String(sheet.lines[1]?.[i] ?? "").slice(0,100)}</td></tr>)}</tbody></table></div>
       {plan && <p className="text-sm">{mapped?.rows.length} rows · {plan.records.length} school/block changes · {plan.teachers.length} teachers to review</p>}
       {errors.length>0 && <div role="alert" className="text-sm text-[var(--color-err)] max-h-48 overflow-auto">{errors.map((e,i) => <p key={i}>{e}</p>)}</div>}

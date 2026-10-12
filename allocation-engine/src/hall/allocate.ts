@@ -8,11 +8,10 @@ import type {
   Teacher,
   TeacherExemption,
 } from "@exam-duty/shared";
-import { haversineKm, roundKm } from "@exam-duty/shared";
 
 // 1.1 permits a teacher to be considered again on a different date/session,
 // while the dynamic workload score gives every eligible teacher a turn first.
-export const HALL_ALGORITHM_VERSION = "hall-1.4.0";
+export const HALL_ALGORITHM_VERSION = "hall-2.0.0";
 
 export interface HallCentreDemand {
   centreId: string;
@@ -180,35 +179,8 @@ export function allocateHall(
         }
       }
 
-      // distance
       const school = schoolById.get(t.schoolId);
-      let home: number | null = null;
-      let sch: number | null = null;
-      if (
-        centre.latitude != null &&
-        centre.longitude != null &&
-        t.homeLatitude != null &&
-        t.homeLongitude != null
-      ) {
-        home = roundKm(
-          haversineKm(t.homeLatitude, t.homeLongitude, centre.latitude, centre.longitude),
-        );
-      }
-      if (
-        centre.latitude != null &&
-        centre.longitude != null &&
-        school?.latitude != null &&
-        school.longitude != null
-      ) {
-        sch = roundKm(
-          haversineKm(school.latitude, school.longitude, centre.latitude, centre.longitude),
-        );
-      }
-      const max = rules.maximum_distance_km;
-      const ok =
-        (home != null && home <= max) || (sch != null && sch <= max);
-      if (!ok) return false;
-      return true;
+      return Boolean(school?.blockId?.trim() && centre.blockId?.trim() && school.blockId === centre.blockId);
     });
 
     const rankCandidates = (candidates: Teacher[]) => {

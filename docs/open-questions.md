@@ -1,3 +1,13 @@
+## Confirmed change — 12 October 2026: block-only allotment
+
+The user replaced all map, coordinate and distance features with same-block
+allotment. Staff use the block of their current school; the duty centre or
+practical school must match. Missing blocks must be completed. A shortage must
+not trigger district-wide fallback. This supersedes older distance-related
+questions below; other role, subject, history, exemption and fairness rules
+remain in force. New runs record area rule BLOCK-2026-10-12 and algorithm 2.0.0.
+Existing published records are preserved.
+
 # Open Questions
 
 **Rule:** Do not invent answers. Implementation must treat these as configurable placeholders or refuse to hard-code final behaviour until confirmed by the client / CEO office.

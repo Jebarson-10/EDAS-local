@@ -31,7 +31,7 @@ import {
   mergeOverrideIntoDecisionTrace,
   shouldApplySessionAfterApi,
   pendingStaffHealthReviews,
-  distanceReadiness,
+  blockReadiness,
 } from "@exam-duty/shared";
 
 export function TheoryPage() {
@@ -186,11 +186,9 @@ export function TheoryPage() {
     if (!custodianPlan.ready) { setProgress("Load or save the custodian setup before generating duties."); return; }
     if(dataset && pendingStaffHealthReviews(dataset.teachers,exemptions).length){setProgress("Review health and leave remarks in Imports before generating duties.");return;}
     if (!dataset || !canGenerate || !theoryDataset) return;
-    const distanceGaps = distanceReadiness(dataset);
-    if (distanceGaps.centreIdsMissingCoordinates.length || distanceGaps.teacherIdsWithoutDistanceLocation.length) {
-      setProgress(
-        `Add locations before allotment: ${distanceGaps.centreIdsMissingCoordinates.length} centre(s) need coordinates and ${distanceGaps.schoolIdsMissingCoordinates.length} school(s) need coordinates for ${distanceGaps.teacherIdsWithoutDistanceLocation.length} active staff. Use Schools & teachers to find and save each location.`,
-      );
+    const blockGaps = blockReadiness(dataset);
+    if (blockGaps.centreIdsMissingBlock.length || blockGaps.teacherIdsMissingSchoolBlock.length) {
+      setProgress(`Choose blocks before allotment: ${blockGaps.centreIdsMissingBlock.length} centre(s) and ${blockGaps.teacherIdsMissingSchoolBlock.length} staff school(s) need a block. Update Schools & teachers.`);
       return;
     }
     if (timetableState !== "ready" || chiefSessions.length === 0) {
@@ -336,6 +334,8 @@ export function TheoryPage() {
           validationIssues: data.validation.issues,
           conflicts: data.validation.conflicts,
           snapshot: {
+            allotmentArea: rules.allotment_area,
+            areaRuleVersion: rules.area_rule_version,
             examCycleId: examCycle.examCycleId,
             ruleVersionId: examCycle.ruleVersionId,
             ruleVersionLabel: examCycle.ruleVersionLabel,

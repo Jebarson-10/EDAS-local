@@ -37,7 +37,7 @@ export async function buildTeacherDutyPdf(
   );
   doc.text(`Generated: ${meta.generatedAt}`, 40, 102);
   doc.text(
-    "For office printing / signing / archival — home coordinates omitted",
+    "For office printing, signing and filing",
     40,
     118,
   );

@@ -194,7 +194,7 @@ describe("adversarial cases", () => {
         availableDates: ["2027-03-01"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
-        standard: "12",
+        schools: ["s1", "s2", "s3"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         internalEligible: (x, schoolId) => x.schoolId === schoolId,
         externalEligible: (x, schoolId) => x.schoolId !== schoolId,
       },
@@ -225,7 +225,7 @@ describe("adversarial cases", () => {
     expect(result.feasible).toBe(false);
   });
 
-  it("Case 3: every nearby centre prohibited by distance", () => {
+  it("Case 3: legacy distance does not exclude same-block staff", () => {
     const result = allocateTheory(
       req,
       ds({
@@ -253,7 +253,7 @@ describe("adversarial cases", () => {
       }),
       rules,
     );
-    expect(result.feasible).toBe(false);
+    expect(result.feasible).toBe(true);
   });
 
   it("Case 7/8: teacher transfer — current school used for clubbing, history retained separately", () => {
@@ -299,7 +299,7 @@ describe("adversarial cases", () => {
         availableDates: ["2027-03-01", "2027-03-02", "2027-03-03"],
         asOfDate: "2027-03-01",
         academicYear: "2027",
-        standard: "12",
+        schools: ["s1", "s2", "s3"].map(schoolId => ({ schoolId, blockId: "b1" })), standard: "12",
         internalEligible: (x, schoolId) => x.schoolId === schoolId || x.teacherId === "b",
         externalEligible: (x, schoolId) => x.schoolId !== schoolId || x.teacherId === "a",
       },

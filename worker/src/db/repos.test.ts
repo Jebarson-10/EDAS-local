@@ -9,6 +9,7 @@ import {
   listSubjects,
   listTeachers,
   upsertTeachers,
+  upsertMasterRecord,
   upsertExamCycle,
   updateExamCycleStatus,
   createRuleVersion,
@@ -40,6 +41,18 @@ describe("transactional restore", () => {
     sqlite.pragma("foreign_keys = ON");
     db = createSqliteClient(sqlite);
     await applyMigrations(db, join(process.cwd(), ".."));
+  });
+
+  it("saves schools and office staff using blocks without any coordinates", async () => {
+    const block = await upsertMasterRecord(db,{kind:"block",blockCode:"TEST",blockName:"Synthetic block"});
+    const saved = await upsertMasterRecord(db,{kind:"school",schoolCode:"TEST01",schoolName:"Synthetic school",blockId:block.id,capacity:20});
+    await upsertMasterRecord(db,{kind:"teacher",name:"Synthetic office helper",schoolId:saved.id,designation:"Record Clerk",staffCategory:"NON_TEACHING"});
+    const school = sqlite.prepare("SELECT block_id, latitude, longitude FROM schools WHERE school_id=?").get(saved.id);
+    expect(school).toEqual({block_id:block.id,latitude:null,longitude:null});
+    expect(sqlite.prepare("SELECT COUNT(*) AS n FROM centres WHERE block_id=?").get(block.id)).toEqual({n:1});
+    expect(sqlite.prepare("SELECT COUNT(*) AS n FROM teacher_location_history").get()).toEqual({n:0});
+    await upsertMasterRecord(db,{kind:"school",schoolId:saved.id,schoolCode:"TEST01",schoolName:"Renamed synthetic school",blockId:block.id});
+    expect(sqlite.prepare("SELECT school_name FROM schools WHERE school_id=?").get(saved.id)).toEqual({school_name:"Renamed synthetic school"});
   });
 
   it("rejects catalog receipts and non-array cores instead of wiping", async () => {

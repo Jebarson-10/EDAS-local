@@ -56,8 +56,6 @@ export function prepareTeacherUpload(rawRows: unknown[], useEmployeeCodes = fals
       .length;
   if (missing("subject")) notes.push(`${missing("subject")} teaching staff have no subject. Add it before practical allotment if needed.`);
   if (missing("seniorityRank")) notes.push(`${missing("seniorityRank")} teaching staff have no seniority rank. Add ranks before seniority-based allotment.`);
-  const locations = rows.filter((r) => r.homeLatitude == null || r.homeLongitude == null).length;
-  if (locations) notes.push(`${locations} teachers have no complete home location. Add missing locations before distance checks.`);
   const unconfirmed = [...new Set(teachingRows.map((r) => String(r.designation)).filter((d) => d && !["HM","PRINCIPAL","PG","SENIOR_PG","OTHER"].includes(d)))];
   if (unconfirmed.length) notes.push(`${unconfirmed.length} other teaching post name(s) were kept as written. Review them in Schools & teachers if they should receive a special duty.`);
   return { rows, notes };

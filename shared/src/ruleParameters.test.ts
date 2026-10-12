@@ -135,3 +135,17 @@ describe("applyStoredRuleParameters", () => {
     expect(out.parameters).toEqual(DEFAULT_RULE_PARAMETERS);
   });
 });
+
+
+it("keeps the new block area rule when older saved rules are loaded", () => {
+  const loaded = applyStoredRuleParameters(seedRows);
+  expect(loaded.parameters.allotment_area).toBe("SAME_BLOCK");
+  expect(loaded.parameters.area_rule_version).toBe("BLOCK-2026-10-12");
+  const invalid = applyStoredRuleParameters([
+    {param_key: "allotment_area", param_value: '"DISTRICT"', value_type: "string"},
+    {param_key: "area_rule_version", param_value: '"OLD"', value_type: "string"},
+  ]);
+  expect(invalid.invalid).toEqual(["allotment_area", "area_rule_version"]);
+  expect(invalid.parameters.allotment_area).toBe("SAME_BLOCK");
+  expect(invalid.parameters.area_rule_version).toBe("BLOCK-2026-10-12");
+});

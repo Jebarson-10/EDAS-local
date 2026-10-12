@@ -29,6 +29,17 @@ try {
   await page.getByRole('heading', { name: '3. Practical subject counts' }).waitFor();
   await page.getByRole('heading', { name: '4. Previous duty history' }).waitFor();
 
+  await page.getByText('Other spreadsheets and column matching', {exact: true}).click();
+  const columnTemplateDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download template (all sheets)', exact: true }).click();
+  const columnTemplate = await columnTemplateDownload;
+  const columnBook = new ExcelJS.Workbook();
+  await columnBook.xlsx.readFile(await columnTemplate.path());
+  assert.deepEqual(columnBook.worksheets.map(sheet => sheet.name), ['Teachers', 'Schools', 'Blocks', 'How to fill']);
+  for (const sheet of columnBook.worksheets.slice(0, 3)) {
+    assert.doesNotMatch(sheet.getRow(1).values.join(' '), /latitude|longitude|coordinates/i);
+  }
+
   const templateDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download official staff template' }).click();
   const template = await templateDownload;
@@ -109,8 +120,41 @@ try {
   await page.getByTestId('archive-server').click();
   await page.getByText('Server archive created', { exact: false }).waitFor();
   assert.equal((await get('/api/teachers')).teachers.length, 1, 'Backup must not change master data.');
+  await page.getByTestId('nav-master').click();
+  const entry = page.getByTestId('manual-master-entry');
+  await entry.getByLabel('Record type').selectOption('school');
+  await entry.getByLabel('Add new or choose to edit').selectOption(schools[0].school_id);
+  assert.equal(await entry.getByLabel(/latitude|longitude|coordinates|search.*place/i).count(), 0);
+  await entry.getByLabel('Centre code (optional)').fill('UI-CENTRE');
+  await entry.getByLabel(/Student/).fill('100');
+  await entry.getByRole('button', {name: /Save/, exact: false}).click();
+  await entry.getByText('Saved.', {exact: true}).waitFor();
+  const savedCentre = (await get('/api/centres')).centres.find(c => c.centre_code === 'UI-CENTRE');
+  assert(savedCentre);
+  assert.equal(savedCentre.block_id, schools[0].block_id);
+  assert.equal(savedCentre.latitude, null);
+  assert.equal(savedCentre.longitude, null);
+  await page.reload();
+  await page.getByTestId('hydrate-status').getByText('saved data ready').waitFor();
+  await entry.getByLabel('Record type').selectOption('teacher');
+  await entry.getByLabel('Block', {exact: true}).selectOption(schools[0].block_id);
+  await entry.getByLabel('School', {exact: true}).selectOption(schools[0].school_id);
+  await entry.getByLabel('Teacher name', {exact: true}).fill('Synthetic Office Helper');
+  await entry.getByLabel('Staff group').selectOption('NON_TEACHING');
+  await entry.getByLabel('Post or designation').fill('Record Clerk');
+  await entry.getByRole('button', {name: /Save/, exact: false}).click();
+  await entry.getByText('Saved.', {exact: true}).waitFor();
+  const helper = (await get('/api/teachers')).teachers.find(t => t.name === 'Synthetic Office Helper');
+  assert(helper);
+  assert.equal(helper.staff_category, 'NON_TEACHING');
+  assert.equal(helper.school_id, schools[0].school_id);
+  assert.equal(helper.home_latitude, null);
+  await page.reload();
+  await page.getByTestId('hydrate-status').getByText('saved data ready').waitFor();
+  assert.equal((await get('/api/teachers')).teachers.length, 2);
+  await page.screenshot({path: '.data/block-only-master.png', fullPage: true});
   assert.deepEqual(errors, []);
-  console.log('CURRENT_UI_SMOKE_OK: official template, import, school creation, reload, repeat import, practical counts, report controls, diagnosis and backup');
+  console.log('CURRENT_UI_SMOKE_OK: official template, import, school creation, reload, repeat import, practical counts, report controls, diagnosis, backup, block-only school/centre and office-helper entry');
 } finally {
   await browser.close();
 }

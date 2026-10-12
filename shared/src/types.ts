@@ -44,8 +44,12 @@ export interface LatLng {
 }
 
 export interface RuleParameters {
+  /** Fixed area rule for all new runs, independent of legacy distance settings. */
+  allotment_area: "SAME_BLOCK";
+  area_rule_version: "BLOCK-2026-10-12";
+  /** Legacy backup fields; ignored by all new allotment engines. */
   maximum_distance_km: number;
-  /** Provisional: HOME_OR_SCHOOL — see OQ-001 */
+  /** Legacy distance policy, retained for old rule records only. */
   distance_policy: "HOME_OR_SCHOOL" | "HOME_ONLY" | "SCHOOL_ONLY";
   repeat_years: number;
   students_per_hall: number;
@@ -81,6 +85,8 @@ export interface ScoringWeights {
 }
 
 export const DEFAULT_RULE_PARAMETERS: RuleParameters = {
+  allotment_area: "SAME_BLOCK",
+  area_rule_version: "BLOCK-2026-10-12",
   maximum_distance_km: 10,
   distance_policy: "HOME_OR_SCHOOL",
   repeat_years: 2,
