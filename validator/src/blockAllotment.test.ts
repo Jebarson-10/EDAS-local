@@ -46,7 +46,7 @@ describe("same-block allotment replaces every distance check", () => {
     const demand=[{centreId:"c",totalStudents:20,examDate:"2027-03-01",sessionCode:"MORNING" as const}];
     const hallRules={...rules,standby_percentage:10};
     const result=allocateHall(demand,dataset,hallRules);
-    expect(result.shortages[0]?.shortage).toBe(1);
+    expect(result.shortages[0]?.shortage).toBe(5);
     expect(result.assignments.map(a=>a.teacherId)).toEqual(["z-local"]);
     const forged={...result,assignments:result.assignments.map(a=>({...a,teacherId:"a-cross"}))};
     expect(validateHallAllocation(forged,demand,hallRules,dataset).issues.some(i=>i.ruleCode==="RULE-HALL-BLOCK")).toBe(true);

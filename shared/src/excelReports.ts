@@ -18,7 +18,7 @@ export interface WorkbookMeta {
  * their stable role codes; downloaded lists use the names staff recognise.
  */
 const DUTY_ROLE_LABELS: Record<string, string> = {
-  CHIEF_EXAMINATION: "Chief examiner",
+  CHIEF_EXAMINATION: "Chief superintendent",
   DEPARTMENT_OFFICER: "Departmental officer",
   OFFICE_STAFF: "Office staff",
   CUSTODIAN: "Custodian",
@@ -293,7 +293,7 @@ export async function buildCentreWiseTheoryDutyWorkbook(
     styleLabelRow(sheet, 3);
     sheet.mergeCells("A4:B4");
     sheet.mergeCells("C4:H4");
-    sheet.getCell("A4").value = "Chief examiner";
+    sheet.getCell("A4").value = "Chief superintendent";
     sheet.getCell("C4").value = officerCell(centre.chiefExaminers);
     styleLabelRow(sheet, 4);
     sheet.mergeCells("A5:B5");
@@ -364,7 +364,7 @@ export async function buildChiefAndDepartmentWorkbook(
   const header = sheet.addRow([
     "Centre code",
     "Centre name",
-    "Chief examiner",
+    "Chief superintendent",
     "Departmental officer",
   ]);
   header.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -557,7 +557,7 @@ export async function buildColumnImportTemplateWorkbook(): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook();
   const sheets = {
     Teachers: ["Teacher name", "School name", "Centre code", "Block name", "Block code", "Teacher post", "Subject", "Staff group", "Seniority rank", "Joining date", "Teacher active", "Teacher code"],
-    Schools: ["School name", "Centre code", "Block name", "Block code", "Student count"],
+    Schools: ["School name", "Centre code", "Block name", "Block code", "Student count", "School level"],
     Blocks: ["Block name", "Block code"],
   };
   for (const [name, headings] of Object.entries(sheets)) {
@@ -580,7 +580,9 @@ export async function buildColumnImportTemplateWorkbook(): Promise<Uint8Array> {
     "Teacher code is optional. Student count is the centre's total strength.",
     "Teacher post examples: HM, PG, BT, SPL, SGT, Lab assistant, Record clerk, Sweeper.",
     "Staff group: TEACHING or NON_TEACHING. Office helpers must be non-teaching staff.",
-    "Joining date: DD/MM/YYYY. Teacher active: Yes or No. Smaller seniority rank means more senior.",
+    "Joining date: DD/MM/YYYY. For PG staff use the first appointment as PG Assistant. Departmental officers use this date for seniority.",
+    "School level: HIGHER_SECONDARY, HIGH or OTHER. HSC chiefs must be higher-secondary HM/Principals.",
+    "Office posts: one Junior Assistant and one Office Assistant. Record Clerk may fill the Office Assistant shortage.",
     "Use the OVER ALL import for the full official staff return, including teaching and health details.",
     "Enter the timetable, centre strength, practical subject counts and previous duties separately before allotment.",
     "Blank cells keep existing saved details. New rows must include the required teacher, school and block details.",

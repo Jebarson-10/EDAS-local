@@ -5,6 +5,7 @@ import {
   type School,
   type Teacher,
 } from "@exam-duty/shared";
+import { inferSchoolLevel, officePost } from "@exam-duty/shared";
 import type {
   TheoryDataset,
   TheoryRequirement,
@@ -115,6 +116,13 @@ export function validateTheoryCandidateEligibility(
   designationBand: "preferred" | "fallback",
 ): TheoryEligibilityCheck {
   const hardReasons: DecisionReason[] = [];
+  const currentSchool = schoolById.get(teacher.schoolId);
+  if (requirement.requiredSchoolLevel && (currentSchool?.schoolLevel ?? inferSchoolLevel(currentSchool?.schoolName ?? "")) !== requirement.requiredSchoolLevel) {
+    hardReasons.push({ruleCode:"RULE-CHIEF-SCHOOL-LEVEL",severity:"ERROR",message:"Chief must be a higher-secondary HM/Principal."});
+  }
+  if (requirement.seniorityByJoiningDate && (!teacher.joiningDate || !/^\d{4}-\d{2}-\d{2}$/.test(teacher.joiningDate) || !Number.isFinite(Date.parse(teacher.joiningDate)) || teacher.joiningDate > requirement.examDate)) {
+    hardReasons.push({ruleCode:"RULE-DEPARTMENT-JOINING-DATE",severity:"ERROR",message:"PG appointment date is needed for departmental-officer seniority."});
+  }
   const warnings: DecisionReason[] = [];
   if (requirement.roleCode === "CUSTODIAN" && !["PG", "SENIOR_PG", "BT"].includes(teacher.designation)) {
     hardReasons.push({ruleCode: "RULE-CUSTODIAN-POST", severity: "ERROR", message: "Only PG and BT Assistants may be custodians."});
@@ -220,8 +228,8 @@ export function validateTheoryCandidateEligibility(
 
   const allowedDesignations = roleBand(requirement, designationBand);
   if (
-    allowedDesignations.length > 0 &&
-    !allowedDesignations.includes(teacher.designation)
+    (designationBand === "fallback" && allowedDesignations.length === 0) ||
+    (allowedDesignations.length > 0 && !allowedDesignations.includes(requirement.officeStaffPost ? officePost(teacher.designation) ?? "" : teacher.designation))
   ) {
     hardReasons.push({
       ruleCode: "RULE-THEORY-ROLE",

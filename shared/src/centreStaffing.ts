@@ -14,6 +14,10 @@ export type CentreStaffingRequirement = {
   preferredDesignations: string[];
   fallbackDesignations: string[];
   staffCategory?: "TEACHING" | "NON_TEACHING";
+  continuityKey?: string;
+  requiredSchoolLevel?: "HIGHER_SECONDARY";
+  seniorityByJoiningDate?: boolean;
+  officeStaffPost?: "JUNIOR_ASSISTANT" | "OFFICE_ASSISTANT";
 };
 
 export type CentreStaffingPlan = {
@@ -57,6 +61,7 @@ export function buildCentreStaffingRequirements(input: {
   centres: Centre[];
   relationships: CentreSchoolRelationship[];
   rules: RuleParameters;
+  standard?: string;
 }): CentreStaffingPlan {
   const requirements: CentreStaffingRequirement[] = [];
   const missingStudentStrengthCentreIds = new Set<string>();
@@ -81,10 +86,10 @@ export function buildCentreStaffingRequirements(input: {
         requirementKey: `${sessionKey}|CHIEF_EXAMINATION`,
         ...common,
         roleCode: "CHIEF_EXAMINATION",
-        preferredDesignations: input.rules.chief_preferred_designations,
-        fallbackDesignations: includeOfficialPgRoster(
-          input.rules.chief_fallback_designations,
-        ),
+        preferredDesignations: input.standard === "12" ? ["HM", "PRINCIPAL"] : input.rules.chief_preferred_designations,
+        fallbackDesignations: input.standard === "12" ? [] : includeOfficialPgRoster(input.rules.chief_fallback_designations),
+        continuityKey: `${centre.centreId}|CHIEF_EXAMINATION`,
+        ...(input.standard === "12" ? { requiredSchoolLevel: "HIGHER_SECONDARY" as const } : {}),
         staffCategory: "TEACHING",
       });
 
@@ -104,18 +109,20 @@ export function buildCentreStaffingRequirements(input: {
           requirementKey: `${sessionKey}|DEPARTMENT_OFFICER|${index}`,
           ...common,
           roleCode: "DEPARTMENT_OFFICER",
+          seniorityByJoiningDate: true,
           preferredDesignations: ["SENIOR_PG", "PG"],
           fallbackDesignations: [],
           staffCategory: "TEACHING",
         });
       }
-      for (let index = 1; index <= input.rules.office_staff_per_centre; index += 1) {
+      for (let index = 1; index <= 2; index += 1) {
         requirements.push({
           requirementKey: `${sessionKey}|OFFICE_STAFF|${index}`,
           ...common,
           roleCode: "OFFICE_STAFF",
-          preferredDesignations: [],
-          fallbackDesignations: [],
+          officeStaffPost: index === 1 ? "JUNIOR_ASSISTANT" : "OFFICE_ASSISTANT",
+          preferredDesignations: [index === 1 ? "JUNIOR_ASSISTANT" : "OFFICE_ASSISTANT"],
+          fallbackDesignations: index === 2 ? ["RECORD_CLERK"] : [],
           staffCategory: "NON_TEACHING",
         });
       }
@@ -141,10 +148,12 @@ export function calculateCustodianRequirementCount(
 
 /** Several subjects at one centre/session still need just one hall staffing set. */
 export function buildHallDemands(input:{timetable:ExamTimetableEntry[];centres:Centre[];relationships:CentreSchoolRelationship[]}) {
-  const demands=new Map<string,{centreId:string;totalStudents:number;examDate:string;sessionCode:"MORNING"|"AFTERNOON"}>();
+  const demands=new Map<string,{centreId:string;totalStudents:number;examDate:string;sessionCode:"MORNING"|"AFTERNOON"; subjects:string[]}>();
   for(const entry of input.timetable.filter(e=>e.requiresHall))for(const centre of input.centres){
     if(!centre.active||!centreAppliesToSession(centre.centreId,entry,input.relationships))continue;
-    demands.set(`${centre.centreId}|${entry.examDate}|${entry.sessionCode}`,{centreId:centre.centreId,totalStudents:centre.capacity??0,examDate:entry.examDate,sessionCode:entry.sessionCode});
+    const key=`${centre.centreId}|${entry.examDate}|${entry.sessionCode}`;
+    const previous=demands.get(key);
+    demands.set(key,{centreId:centre.centreId,totalStudents:centre.capacity??0,examDate:entry.examDate,sessionCode:entry.sessionCode,subjects:[...new Set([...(previous?.subjects ?? []),entry.subjectLabel])]});
   }
   return [...demands.values()];
 }

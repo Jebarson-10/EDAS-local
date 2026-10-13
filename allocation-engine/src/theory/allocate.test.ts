@@ -452,8 +452,8 @@ describe("practical batching", () => {
 describe("hall calculation", () => {
   it("computes halls and standby", () => {
     expect(calculateHallRequirements(200, 20, 10)).toEqual({
-      requiredHalls: 10,
-      standby: 1,
+      requiredHalls: 12,
+      standby: 3,
     });
   });
 });

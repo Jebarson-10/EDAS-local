@@ -115,6 +115,8 @@ export function HallPage() {
     200,
     rules.students_per_hall,
     rules.standby_percentage,
+    rules.extra_halls_per_centre,
+    rules.hall_backup_staff,
   );
   const latest = latestRunForModuleInCycle(
     runs,
@@ -289,6 +291,7 @@ export function HallPage() {
         snapshot: {
           allotmentArea: rules.allotment_area,
           areaRuleVersion: rules.area_rule_version,
+          staffingRuleVersion: rules.staffing_rule_version,
           examCycleId: examCycle.examCycleId,
           ruleVersionId: examCycle.ruleVersionId,
           algorithmVersion: result.algorithmVersion,
@@ -353,7 +356,7 @@ export function HallPage() {
           hint="Assigns hall and standby teachers using your saved student counts."
         />
         <p className="mb-3 text-sm text-[var(--color-ink-muted)]">
-          One teacher per hall of {rules.students_per_hall} students, plus {rules.standby_percentage}% standby.
+          One teacher per hall of {rules.students_per_hall} students, plus {rules.extra_halls_per_centre} extra halls and {rules.hall_backup_staff} backup staff. Teachers of the examined subject are excluded for that session.
           For example, 200 students need {demo.requiredHalls} halls and {demo.standby} standby teachers.
           Enter the actual student count for each centre first.
         </p>

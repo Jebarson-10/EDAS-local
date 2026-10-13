@@ -34,3 +34,5 @@ export * from "./schoolDutyReports.js";
 export * from "./staffReturnReview.js";
 export * from "./allocationReadiness.js";
 export * from "./historicalDutyImport.js";
+
+export * from "./staffPosts.js";

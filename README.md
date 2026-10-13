@@ -4,6 +4,41 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 **Correctness, auditability, and historical integrity take priority over UI polish.**
 
+## Confirmed staffing update — 13 October 2026
+
+New theory/hall runs use `STAFFING-2026-10-13` and algorithm version 3.0.0.
+For 200 students the count is 10 regular halls + 2 extra halls + 3 backup staff
+= 15 invigilators/backup staff. The three backup places are fixed, not a percentage.
+Old stored percentage/count settings do not replace these new confirmed counts.
+Regenerate draft duty lists after updating. Published history stays unchanged.
+
+`OVER ALL.xlsx` provides staff posts, school references, handling subjects and
+PG appointment dates (including split DD/MM/YYYY cells). That PG date, not a
+manual seniority rank or first appointment in another teaching post, determines
+departmental-officer seniority. Missing dates need correction. Ambiguous HM school
+names need a School level selection in Schools & teachers; explicit GHSS/HSS
+names are recognised as higher secondary.
+
+Every school needs its actual school block. Import groups staff rows by school
+reference and flags conflicting blocks instead of taking the first one. A missing
+school block is never replaced by a residential block. Existing saved school
+blocks remain authoritative. Staff sheets alone do not provide centre codes and
+strength (13A), dated/subject-wise timetable, practical students or dated prior
+duties. Enter those in their separate input sections.
+
+Office post aliases such as JA, JR ASST, OA, OFF ASST and RC are recognised.
+A bare Assistant/ASST still needs confirmation. Lab assistants, sweepers,
+watchmen and other support posts cannot fill the two specified office slots.
+
+To audit an operator return without importing it:
+
+```powershell
+npx tsx scripts/audit-staff-input.ts "C:\\path\\OVER ALL.xlsx"
+```
+
+The command reads the workbook and prints only counts and missing-data categories.
+It does not alter the workbook or app data.
+
 ## What this application does
 
 ### Official school returns and school-wise duty lists
@@ -33,7 +68,7 @@ no custodian duties. Custodian setup, centre memberships and practical student
 counts are saved per examination and included in backups.
 
 In **Reports**, download one centre-wise Theory duty order. Each centre gets its
-own sheet with the chief examiner, departmental officer, two non-teaching office helpers and
+own sheet with the chief superintendent, departmental officer, Junior Assistant, Office Assistant/Record Clerk and
 hall team together. A separate short list contains only chief and departmental
 officers. The practical list has one line per school and subject with batches,
 internal examiner and external examiner.
@@ -111,20 +146,22 @@ shortages and reasons, approve auditable changes, and export school-wise and
 teacher-wise outputs.
 
 - **Theory:** prevents own/clubbed-school and recent-centre conflicts; uses a
-  the current school’s block only; chooses HM/Principal first
-  and eligible Senior PG fallback within that same block. Each marked centre
-  session also plans one Chief, one Departmental Officer (two only when student
-  strength is above 500), and two non-teaching office-helper duties. The official `PG` roster
-  is treated as the Senior PG candidate pool and is ordered by appointment date
-  when seniority is needed.
+  current school’s block only. HSC chief duty requires a higher-secondary
+  HM/Principal who is available for every session at that centre. One PG
+  departmental officer is selected by earliest PG appointment date; above 500
+  students requires two. Office posts are one Junior Assistant and one Office
+  Assistant, with Record Clerk fallback only for an Office Assistant shortage.
 - **Practical:** Standard 10 uses BT Assistants and Standard 12 uses PG
   Assistants. Each examiner must match the recorded handling subject. SPL
   teachers are reserved for hall invigilation only.
 - **Practical:** creates balanced 50-student batches, supports distinct
   subjects in parallel, records internal/external examiners and retains annual
   role-switch history.
-- **Hall:** calculates one invigilator per 20 students plus 10% standby and
-  rotates eligible staff across dates/sessions.
+- **Hall:** rounds student strength up to halls of 20, adds two extra halls and
+  exactly three backup staff at each non-empty centre/session. A teacher of the
+  examined subject cannot receive invigilation or backup duty in that session.
+  The timetable includes all papers applicable to that centre; exclusions use
+  recorded teaching subjects and additional handling subjects.
 - **Fairness:** recent theory, practical and hall duties are a soft preference;
   a shortage is reported rather than hidden or force-assigned.
 

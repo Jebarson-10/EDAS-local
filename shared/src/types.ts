@@ -52,6 +52,9 @@ export interface RuleParameters {
   /** Legacy distance policy, retained for old rule records only. */
   distance_policy: "HOME_OR_SCHOOL" | "HOME_ONLY" | "SCHOOL_ONLY";
   repeat_years: number;
+  staffing_rule_version: "STAFFING-2026-10-13";
+  extra_halls_per_centre: number;
+  hall_backup_staff: number;
   students_per_hall: number;
   standby_percentage: number;
   practical_batch_size: number;
@@ -90,6 +93,9 @@ export const DEFAULT_RULE_PARAMETERS: RuleParameters = {
   maximum_distance_km: 10,
   distance_policy: "HOME_OR_SCHOOL",
   repeat_years: 2,
+  staffing_rule_version: "STAFFING-2026-10-13",
+  extra_halls_per_centre: 2,
+  hall_backup_staff: 3,
   students_per_hall: 20,
   standby_percentage: 10,
   practical_batch_size: 50,
@@ -143,6 +149,7 @@ export interface School {
   schoolId: string;
   schoolCode: string;
   schoolName: string;
+  schoolLevel?: "HIGHER_SECONDARY" | "HIGH" | "OTHER" | null;
   blockId: string;
   latitude?: number | null;
   longitude?: number | null;

@@ -32,6 +32,7 @@ import {
   shouldApplySessionAfterApi,
   pendingStaffHealthReviews,
   blockReadiness,
+  officePost,
 } from "@exam-duty/shared";
 
 export function TheoryPage() {
@@ -172,13 +173,14 @@ export function TheoryPage() {
             centres: dataset.centres,
             relationships: dataset.relationships,
             rules,
+            standard: examCycle.standard,
           })
         : {
             requirements: [],
             missingStudentStrengthCentreIds: [],
             centreSessions: 0,
           },
-    [dataset, rules, timetable],
+    [dataset, rules, timetable, examCycle.standard],
   );
   const requirements: TheoryRequirement[] = [...staffingPlan.requirements, ...buildCustodianRequirements(custodianPlan.rows, timetable)];
 
@@ -336,6 +338,7 @@ export function TheoryPage() {
           snapshot: {
             allotmentArea: rules.allotment_area,
             areaRuleVersion: rules.area_rule_version,
+            staffingRuleVersion: rules.staffing_rule_version,
             examCycleId: examCycle.examCycleId,
             ruleVersionId: examCycle.ruleVersionId,
             ruleVersionLabel: examCycle.ruleVersionLabel,
@@ -439,9 +442,11 @@ export function TheoryPage() {
       setOverrideMsg("Teacher not found in master data");
       return;
     }
+    const selectedRequirement = requirements.find(r=>r.requirementKey===overrideReq);
+    const targetKeys = new Set(selectedRequirement?.continuityKey ? requirements.filter(r=>r.continuityKey===selectedRequirement.continuityKey).map(r=>r.requirementKey) : [overrideReq]);
     const assignedElsewhere = latest.result.assignments.find(
       (a) =>
-        a.requirementKey !== overrideReq && a.teacherId === teacher.teacherId,
+        !targetKeys.has(a.requirementKey) && a.teacherId === teacher.teacherId,
     );
     if (assignedElsewhere) {
       setOverrideMsg(
@@ -450,12 +455,12 @@ export function TheoryPage() {
       return;
     }
     const nextAssignments = latest.result.assignments.map((a) => {
-      if (a.requirementKey !== overrideReq) return a;
+      if (!targetKeys.has(a.requirementKey)) return a;
       const nextTrace = JSON.parse(
         mergeOverrideIntoDecisionTrace(JSON.stringify(a.decisionTrace), {
           newTeacherId: teacher.teacherId,
           oldTeacherId: a.teacherId,
-          requirementKey: overrideReq,
+          requirementKey: a.requirementKey,
           reason: overrideReason.trim(),
         }),
       ) as {
@@ -473,7 +478,7 @@ export function TheoryPage() {
         teacherId: teacher.teacherId,
         employeeCode: teacher.employeeCode,
         score: a.score,
-        usedFallbackBand: true,
+        usedFallbackBand: !requirements.find(r=>r.requirementKey===a.requirementKey)?.preferredDesignations.includes(a.roleCode==="OFFICE_STAFF" ? officePost(teacher.designation) ?? "" : teacher.designation),
         decisionTrace: {
           teacherId: nextTrace.teacherId ?? teacher.teacherId,
           targetId: nextTrace.targetId ?? a.decisionTrace.targetId,
@@ -533,7 +538,7 @@ export function TheoryPage() {
         const base =
           validation.status === "INVALID"
             ? `Override applied but validation is INVALID — publish blocked until fixed`
-            : `Override applied · validation ${validation.status}`;
+            : `Replacement applied to ${targetKeys.size} timetable duty row(s) · validation ${validation.status}`;
         setOverrideMsg(
           api?.ok && api.overrideId
             ? `${base} · DB override ${api.overrideId}`
@@ -557,7 +562,7 @@ export function TheoryPage() {
       <Tile span={6}>
         <TileHeader
           title="Theory centre duties"
-          hint="Allots chief examiner, departmental officer and non-teaching office helpers from the saved staff list, timetable and previous duties."
+          hint="Allots chief superintendent, departmental officer and non-teaching office helpers from the saved staff list, timetable and previous duties."
         />
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -594,7 +599,7 @@ export function TheoryPage() {
         {chiefSessions.length > 0 && (
           <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
             Planned for {staffingPlan.centreSessions} centre session(s):{" "}
-            {requirements.filter((item) => item.roleCode === "CHIEF_EXAMINATION").length} chief examiner, {" "}
+            {requirements.filter((item) => item.roleCode === "CHIEF_EXAMINATION").length} chief superintendent, {" "}
             {requirements.filter((item) => item.roleCode === "DEPARTMENT_OFFICER").length} departmental officer, and {" "}
             {requirements.filter((item) => item.roleCode === "OFFICE_STAFF").length} non-teaching office-helper duties, plus {requirements.filter((item) => item.roleCode === "CUSTODIAN").length} custodian duties from your saved points. Unfilled duties are reported as shortages.
           </p>

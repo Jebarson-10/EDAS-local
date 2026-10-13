@@ -1,3 +1,23 @@
+## Confirmed staffing changes — 13 October 2026
+
+The user confirmed two additional halls and exactly three backup staff per
+non-empty centre, regardless of strength. Regular halls are ceil(students/20).
+HSC chiefs must be higher-secondary HM/Principals, fixed for the entire timetable.
+Departmental officers must be PG Assistants, selected by first appointment as PG
+Assistant (the existing OVER ALL date), not first appointment in another post or
+a manual rank. One officer is required through 500 students, two above 500.
+The chief continuity rule is explicit; departmental officers are selected per
+session by seniority and availability unless the client separately confirms
+that these postings must also be fixed for the whole timetable.
+
+Each centre needs one Junior Assistant and one Office Assistant. Record Clerk
+is the fallback only for the Office Assistant vacancy. Other support posts are
+not eligible. Invigilators and backup staff cannot teach the examined subject.
+These changes supersede the older 10% standby and generic office-pool rules
+below. New runs carry STAFFING-2026-10-13 / algorithm 3.0.0; earlier published
+duties remain immutable. Same-block, own/clubbed school, history, exemptions,
+conflict and practical-subject rules remain in effect.
+
 ## Confirmed change — 12 October 2026: block-only allotment
 
 The user replaced all map, coordinate and distance features with same-block

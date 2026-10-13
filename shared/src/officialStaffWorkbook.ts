@@ -1,3 +1,4 @@
+import { inferSchoolLevel } from "./staffPosts.js";
 import { normalizeImportValue } from "./importValues.js";
 import { normalizeImportedDesignation } from "./excelTeachers.js";
 
@@ -130,9 +131,9 @@ function designationForSheet(
 /** Keep the CEO return's spelling variations in one block for seniority. */
 function reportingBlock(
   reported: string | undefined,
-  residential: string | undefined,
+  _residential: string | undefined,
 ): string | undefined {
-  const source = reported || residential;
+  const source = reported;
   if (!source || /^(?:NIL|-+|_+)$/i.test(source.trim())) return undefined;
   const compact = source.toUpperCase().replace(/[^A-Z0-9]+/g, "");
   const aliases: Record<string, string> = {
@@ -318,5 +319,11 @@ export function parseOfficialStaffWorkbook(
     row.seniorityRank = index + 1;
   });
 
+  const pgMissingDates=rows.filter(row=>["PG","SENIOR_PG"].includes(String(row.designation)) && !row.joiningDate).length;
+  if(pgMissingDates) warnings.push(`${pgMissingDates} PG staff need their appointment date before departmental-officer allotment.`);
+  const unknownHmLevels=rows.filter(row=>["HM","PRINCIPAL"].includes(String(row.designation)) && !inferSchoolLevel(String(row.schoolName))).length;
+  if(unknownHmLevels) warnings.push(`${unknownHmLevels} HM/Principal rows have an unclear school level. Confirm Higher secondary or High school in Schools & teachers.`);
+  const unclearOfficePosts=rows.filter(row=>row.staffCategory==="NON_TEACHING" && /^(ASST|ASSISTANT)$/i.test(String(row.designation).trim())).length;
+  if(unclearOfficePosts) warnings.push(`${unclearOfficePosts} office posts say only Assistant. Confirm Junior Assistant, Office Assistant or the actual post in Schools & teachers.`);
   return { detectedSheetNames, rows, warnings };
 }

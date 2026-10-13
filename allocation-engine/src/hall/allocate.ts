@@ -11,11 +11,14 @@ import type {
 
 // 1.1 permits a teacher to be considered again on a different date/session,
 // while the dynamic workload score gives every eligible teacher a turn first.
-export const HALL_ALGORITHM_VERSION = "hall-2.0.0";
+import { teachesSubject, normalizeSubject } from "@exam-duty/shared";
+
+export const HALL_ALGORITHM_VERSION = "hall-3.0.0";
 
 export interface HallCentreDemand {
   centreId: string;
   totalStudents: number;
+  subjects?: string[];
   examDate: string;
   sessionCode: SessionCode;
 }
@@ -62,10 +65,12 @@ export interface HallResult {
 export function calculateHallRequirements(
   totalStudents: number,
   studentsPerHall: number,
-  standbyPercentage: number,
+  _standbyPercentage: number,
+  extraHalls = 2,
+  fixedBackupStaff = 3,
 ): { requiredHalls: number; standby: number } {
-  const requiredHalls = Math.ceil(totalStudents / Math.max(studentsPerHall, 1));
-  const standby = Math.ceil((requiredHalls * standbyPercentage) / 100);
+  const requiredHalls = totalStudents > 0 ? Math.ceil(totalStudents / Math.max(studentsPerHall, 1)) + extraHalls : 0;
+  const standby = totalStudents > 0 ? fixedBackupStaff : 0;
   return { requiredHalls, standby };
 }
 
@@ -117,6 +122,8 @@ export function allocateHall(
       demand.totalStudents,
       rules.students_per_hall,
       rules.standby_percentage,
+      rules.extra_halls_per_centre,
+      rules.hall_backup_staff,
     );
     requiredHallsByCentre[demand.centreId] = requiredHalls;
     standbyByCentre[demand.centreId] = standby;
@@ -139,7 +146,13 @@ export function allocateHall(
     const clubbed = dataset.centreSchoolIds.get(demand.centreId) ?? new Set();
     const cy = yearNum(dataset.academicYear);
 
+    const paperSubjects = demand.subjects;
+    const missingPaper = paperSubjects !== undefined && (!paperSubjects.length || paperSubjects.some(subject => !subject.trim()));
     const eligible = dataset.teachers.filter((t) => {
+      if (missingPaper) return false;
+      const recordedSubjects = [t.subject || t.officialDetails?.["Handling subject"] || t.officialDetails?.["Major subject"], t.officialDetails?.["Additional handling subjects"]].filter(Boolean).join(", ");
+      if (paperSubjects?.some(subject => teachesSubject(recordedSubjects, subject) || (normalizeSubject(subject).code === "SCI" && ["PHY","CHE","BIO"].some(science => teachesSubject(recordedSubjects,science))))) return false;
+      if (paperSubjects && !recordedSubjects && t.designation !== "SPECIAL_TEACHER") return false;
       if (!t.isActive) return false;
       if ((t.staffCategory ?? "TEACHING") !== "TEACHING") return false;
       if (!isApprovedHallDesignation(t)) return false;
@@ -233,7 +246,7 @@ export function allocateHall(
         required: need.length,
         eligible: rankedEligible.length,
         shortage: need.length - rankedEligible.length,
-        message: "NO FEASIBLE ALLOCATION",
+        message: missingPaper ? "Enter the timetable subject before hall allotment." : "Not enough eligible hall staff after block, exam-subject, post, previous-duty and availability checks.",
       });
       // Assign what we can without forcing beyond eligible
     }

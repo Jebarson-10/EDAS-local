@@ -27,6 +27,15 @@ describe("school centre codes and code-free teachers", () => {
     expect(await listSchools(db)).toHaveLength(2);
   });
 
+  it("saves school level and preserves it in a canonical backup and restore",async()=>{
+    const saved=await upsertMasterRecord(db,{kind:"school",schoolCode:"",schoolName:"Ambiguous name",schoolLevel:"HIGHER_SECONDARY",blockId});
+    expect((await listSchools(db))[0]).toMatchObject({school_level:"HIGHER_SECONDARY"});
+    const backup=await buildCanonicalBackup(db);
+    const restored=await transactionalRestore(db,backup,{adminConfirmed:true,includeHistory:true});
+    expect(restored.ok).toBe(true);
+    expect((await listSchools(db))[0]).toMatchObject({school_id:saved.id,school_level:"HIGHER_SECONDARY"});
+  });
+
   it("creates the centre and host link, then retires it when code is cleared", async () => {
     const first = await upsertMasterRecord(db, school(blockId, "350"));
     const centre = (await listCentres(db))[0]!;

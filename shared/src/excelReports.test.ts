@@ -117,7 +117,7 @@ describe("user-facing duty reports", () => {
     expect(sheet.getCell("A1").text).toBe("THEORY EXAMINATION - DUTY ORDER");
     expect(sheet.getCell("A3").text).toBe("Centre");
     expect(sheet.getCell("C3").text).toContain("220001");
-    expect(sheet.getCell("A4").text).toBe("Chief examiner");
+    expect(sheet.getCell("A4").text).toBe("Chief superintendent");
     expect(sheet.getCell("C4").text).toContain("Chief Teacher");
     expect(sheet.getCell("A5").text).toBe("Departmental officer");
     expect(sheet.getCell("C5").text).toContain("Department One");
@@ -136,7 +136,7 @@ describe("user-facing duty reports", () => {
       undefined,
       "Centre code",
       "Centre name",
-      "Chief examiner",
+      "Chief superintendent",
       "Departmental officer",
     ]);
     expect(sheet.getRow(4).getCell(3).text).toContain("Chief Teacher");
@@ -163,7 +163,7 @@ describe("user-facing duty reports", () => {
   });
 
   it("uses simple duty names for known and future role codes", () => {
-    expect(formatDutyRole("CHIEF_EXAMINATION")).toBe("Chief examiner");
+    expect(formatDutyRole("CHIEF_EXAMINATION")).toBe("Chief superintendent");
     expect(formatDutyRole("DEPARTMENT_OFFICER")).toBe("Departmental officer");
     expect(formatDutyRole("OFFICE_STAFF")).toBe("Office staff");
     expect(formatDutyRole("Office staff")).toBe("Office staff");
@@ -198,7 +198,7 @@ describe("user-facing duty reports", () => {
       "Duty role",
       "Subject",
     ]);
-    expect(values).toContain("Chief examiner");
+    expect(values).toContain("Chief superintendent");
     expect(values).not.toContain("INTERNAL-EMPLOYEE-CODE");
     expect(values).not.toContain("INTERNAL-TEACHER-CODE");
   });
@@ -255,7 +255,7 @@ describe("user-facing duty reports", () => {
     await workbookData.xlsx.load(workbook);
     const sheet = workbookData.getWorksheet("Centre-wise")!;
     expect(sheet.getRow(2).getCell(1).value).toBe("Centre A");
-    expect(sheet.getRow(2).getCell(5).value).toBe("Chief examiner");
+    expect(sheet.getRow(2).getCell(5).value).toBe("Chief superintendent");
   });
 
   it("creates the seven official staff-return sheets", async () => {

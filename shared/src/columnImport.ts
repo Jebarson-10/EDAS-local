@@ -5,7 +5,7 @@ import { normalizeImportValue, friendlyImportIssue } from "./importValues.js";
 
 export const importFields = {
   name: "Teacher name", designation: "Teacher post", subject: "Subject",
-  schoolName: "School name", schoolCode: "Centre code", centreName: "Centre name",
+  schoolName: "School name", schoolLevel: "School level", schoolCode: "Centre code", centreName: "Centre name",
   blockName: "Block name", blockCode: "Block code",
   capacity: "Student count",
   seniorityRank: "Seniority rank", joiningDate: "Joining date", isActive: "Teacher active",
@@ -23,6 +23,8 @@ for (const [field, titles] of Object.entries({
   name: ["teacher", "staff name", "name of teacher", "ஆசிரியர் பெயர்"],
   designation: ["post", "teacher designation", "staff post", "பதவி"],
   schoolName: ["school", "name of school", "பள்ளி", "பள்ளி பெயர்"],
+  schoolLevel: ["school type level", "school standard"],
+  joiningDate: ["date of appointment as pg asst", "PG appointment date", "appointment date"],
   schoolCode: ["school code", "center code", "centre no", "centre number", "centree code", "மைய எண்"],
   centreName: ["centre", "center", "centree", "center name", "மையம்"],
   blockName: ["block", "name of block", "ஒன்றியம்"],
@@ -69,6 +71,9 @@ export function mapImportColumns(lines: unknown[][], mapping: (ImportField | "")
         if (value == null || String(value).trim() === "") return;
         if (["capacity", "seniorityRank"].includes(field)) {
           row[field] = normalizeImportValue(field,value);
+        } else if (field === "schoolLevel") {
+          const level=String(value).trim().toUpperCase().replace(/[ -]+/g,"_");
+          row[field] = ["12","HSS","GHSS","HIGHER_SECONDARY"].includes(level) ? "HIGHER_SECONDARY" : ["10","HS","GHS","HIGH"].includes(level) ? "HIGH" : level;
         } else if (field === "isActive" || field === "staffCategory") {
           row[field] = normalizeImportValue(field,value);
         } else if (field === "joiningDate") row[field] = normalizeImportValue(field,value);
@@ -129,7 +134,7 @@ export function planColumnImport(rows: Record<string, unknown>[], data: {blocks:
       if (hits.length > 1) throw new Error("More than one school matches. Add Block or Centre code.");
       let school = hits[0];
       if (school && name && matchName(school.schoolName) !== matchName(name)) throw new Error("School name and Centre code do not match.");
-      const schoolDetails = ["capacity"].some((f) => row[f] !== undefined);
+      const schoolDetails = ["capacity", "schoolLevel"].some((f) => row[f] !== undefined);
       const changesCode = school && code && code !== school.schoolCode && matchName(code) !== matchName(school.schoolName);
       if (!school || schoolDetails || changesCode || (!str("name") && name)) {
         if (!school && !name) throw new Error("Add School name.");
@@ -139,7 +144,7 @@ export function planColumnImport(rows: Record<string, unknown>[], data: {blocks:
         const schoolCode = school && code && matchName(code) === matchName(school.schoolName) ? school.schoolCode : code || school?.schoolCode || "";
         if (row.capacity != null && !schoolCode) throw new Error("Student count needs a Centre code. Leave it out for a school that is not a centre.");
         const id = school?.schoolId ?? `import-school:${blockId}:${matchName(name)}`;
-        const record = {kind:"school", schoolId:school?.schoolId.startsWith("import-school:") ? undefined : school?.schoolId, schoolName:name || school!.schoolName, schoolCode, blockId, capacity:row.capacity, active:school?.active ?? true};
+        const record = {kind:"school", schoolId:school?.schoolId.startsWith("import-school:") ? undefined : school?.schoolId, schoolName:name || school!.schoolName, schoolLevel:row.schoolLevel, schoolCode, blockId, capacity:row.capacity, active:school?.active ?? true};
         add(id, record);
         if (!school) { school = {schoolId:id,schoolName:name,schoolCode,blockId,active:true}; schools.push(school); }
         else school = {...school,schoolCode};

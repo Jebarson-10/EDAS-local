@@ -18,6 +18,18 @@ describe("official examination input persistence",()=>{
     {centreCode:"990001",centreName:"Synthetic Host",sourceSchoolCode:"990ABCD0001",schoolName:"Synthetic Host",studentCount:300,blockId:block,hostSchoolKey:"990ABCD0001"},
     {centreCode:"990001",centreName:"Synthetic Host",sourceSchoolCode:"990ABCD0002",schoolName:"Synthetic Feeder",studentCount:201,blockId:block,hostSchoolKey:"990ABCD0001"},
   ]});
+  it("uses a consistent school block from other staff rows and flags contradictory blocks",async()=>{
+    const created=await importOfficialSchoolMasterData(db,[
+      {schoolName:"Synthetic consistent",sourceSchoolCode:"S1",blockCode:""},
+      {schoolName:"Synthetic consistent",sourceSchoolCode:"S1",blockCode:"TEST"},
+      {schoolName:"Synthetic conflict",sourceSchoolCode:"S2",blockCode:"ONE"},
+      {schoolName:"Synthetic conflict",sourceSchoolCode:"S2",blockCode:"TWO"},
+    ]);
+    expect(created.createdSchools).toBe(1);
+    expect(created.skippedNoBlock).toEqual([]);
+    expect(created.conflictingBlocks).toEqual(["Synthetic conflict"]);
+    expect((await listSchools(db)).map(s=>s.school_name)).toEqual(["Synthetic consistent"]);
+  });
   it("saves host/clubbed schools and derives the cycle strength without assigning invented coordinates",async()=>{
     expect(await saveCentreChecklist(db,payload(),"test")).toMatchObject({centres:1,schools:2,students:501});
     const centres=await listCentres(db);const selected=await checklistCentres(db,"sslc",centres);

@@ -10,7 +10,9 @@ import type {
   TeacherExemption,
 } from "@exam-duty/shared";
 
-export const ALGORITHM_VERSION = "theory-2.0.0";
+import { inferSchoolLevel, officePost } from "@exam-duty/shared";
+
+export const ALGORITHM_VERSION = "theory-3.0.0";
 
 export interface TheoryRequirement {
   requirementKey: string;
@@ -24,6 +26,10 @@ export interface TheoryRequirement {
   fallbackDesignations: string[];
   /** Keeps teaching and non-teaching duty pools separate. */
   staffCategory?: "TEACHING" | "NON_TEACHING";
+  continuityKey?: string;
+  requiredSchoolLevel?: "HIGHER_SECONDARY";
+  seniorityByJoiningDate?: boolean;
+  officeStaffPost?: "JUNIOR_ASSISTANT" | "OFFICE_ASSISTANT";
 }
 
 export interface TheoryDataset {
@@ -47,6 +53,7 @@ export interface CandidateEvaluation {
   score: number;
   designation: string;
   employeeCode: string;
+  seniorityDate?: string | null;
   usedFallbackBand: boolean;
 }
 
@@ -314,11 +321,17 @@ export function evaluateTheoryCandidate(
   if (requirement.roleCode === "CUSTODIAN" && !["PG", "SENIOR_PG", "BT"].includes(teacher.designation)) {
     hardReasons.push({ruleCode: "RULE-CUSTODIAN-POST", severity: "ERROR", message: "Custodian duty requires a PG or BT Assistant."});
   }
+  if (requirement.requiredSchoolLevel && (school?.schoolLevel ?? inferSchoolLevel(school?.schoolName ?? "")) !== requirement.requiredSchoolLevel) {
+    hardReasons.push({ruleCode:"RULE-CHIEF-SCHOOL-LEVEL",severity:"ERROR",message:"Chief superintendent must be HM/Principal at a higher secondary school. Check the school level."});
+  }
+  if (requirement.seniorityByJoiningDate && (!teacher.joiningDate || !/^\d{4}-\d{2}-\d{2}$/.test(teacher.joiningDate) || !Number.isFinite(Date.parse(teacher.joiningDate)) || teacher.joiningDate > requirement.examDate)) {
+    hardReasons.push({ruleCode:"RULE-DEPARTMENT-JOINING-DATE",severity:"ERROR",message:"Enter the PG appointment date before departmental-officer selection."});
+  }
   const band =
     designationBand === "preferred"
       ? requirement.preferredDesignations
       : requirement.fallbackDesignations;
-  if (band.length > 0 && !band.includes(teacher.designation)) {
+  if (band.length > 0 && !band.includes(requirement.officeStaffPost ? officePost(teacher.designation) ?? "" : teacher.designation)) {
     hardReasons.push({
       ruleCode: "RULE-THEORY-ROLE",
       severity: "ERROR",
@@ -364,6 +377,7 @@ export function evaluateTheoryCandidate(
     score,
     designation: teacher.designation,
     employeeCode: teacher.employeeCode,
+    seniorityDate: requirement.seniorityByJoiningDate ? teacher.joiningDate : null,
     usedFallbackBand: designationBand === "fallback",
   };
 }
@@ -417,6 +431,7 @@ export function allocateTheory(
 
   type Pool = {
     req: TheoryRequirement;
+    members?: Pool[];
     centre: Centre | null;
     preferred: CandidateEvaluation[];
     preferredTallies: Record<string, number>;
@@ -424,7 +439,7 @@ export function allocateTheory(
     fallbackTallies: Record<string, number>;
   };
 
-  const pools: Pool[] = requirements.map((req) => {
+  let pools: Pool[] = requirements.map((req) => {
     const centre = centreById.get(req.centreId) ?? null;
     const preferred: CandidateEvaluation[] = [];
     const preferredTallies: Record<string, number> = {};
@@ -489,6 +504,28 @@ export function allocateTheory(
     return { req, centre, preferred, preferredTallies, fallback, fallbackTallies };
   });
 
+  // A fixed officer is selected from staff eligible on every timetable session.
+  const groups = new Map<string, Pool[]>();
+  for (const pool of pools) {
+    const key = pool.req.continuityKey ?? pool.req.requirementKey;
+    const members = groups.get(key) ?? [];
+    members.push(pool);
+    groups.set(key, members);
+  }
+  pools = [...groups.values()].map(members => {
+    const first = members[0]!;
+    const intersection = (band: "preferred" | "fallback") => first[band].filter(candidate =>
+      members.every(member => member[band].some(other => other.teacherId === candidate.teacherId)));
+    const preferred = intersection("preferred");
+    const fallback = intersection("fallback");
+    return {...first, members, preferred, fallback,
+      preferredTallies: {...first.preferredTallies, ...(members.length > 1 && first.preferred.length > preferred.length ? {"RULE-THEORY-ALL-DATES": first.preferred.length - preferred.length} : {})},
+      fallbackTallies: {...first.fallbackTallies, ...(members.length > 1 && first.fallback.length > fallback.length ? {"RULE-THEORY-ALL-DATES": first.fallback.length - fallback.length} : {})}};
+  });
+  const recordShortage = (pool: Pool, shortage: TheoryAllocationResult["shortages"][number]) => {
+    for (const member of pool.members ?? [pool]) shortages.push({...shortage, requirementKey: member.req.requirementKey});
+  };
+
   pools.sort((a, b) => {
     if (a.preferred.length !== b.preferred.length) {
       return a.preferred.length - b.preferred.length;
@@ -499,7 +536,7 @@ export function allocateTheory(
   for (const pool of pools) {
     const { req, centre } = pool;
     if (!centre) {
-      shortages.push({
+      recordShortage(pool, {
         requirementKey: req.requirementKey,
         required: 1,
         eligible: 0,
@@ -513,13 +550,13 @@ export function allocateTheory(
     const eligibleNow = (list: CandidateEvaluation[]) =>
       list.filter(
         (candidate) =>
-          !hasSessionConflict(
+          (pool.members ?? [pool]).every(member => !hasSessionConflict(
             candidate.teacherId,
-            req.examDate,
-            req.sessionCode,
+            member.req.examDate,
+            member.req.sessionCode,
             dataset.calendar,
             occupied,
-          ),
+          )),
       );
     const rankForCurrentRun = (list: CandidateEvaluation[]) =>
       [...list]
@@ -531,9 +568,8 @@ export function allocateTheory(
               (assignmentCountByTeacher.get(candidate.teacherId) ?? 0),
         }))
         .sort((left, right) =>
-          left.score !== right.score
-            ? left.score - right.score
-            : left.employeeCode.localeCompare(right.employeeCode),
+          (req.seniorityByJoiningDate ? String(left.seniorityDate).localeCompare(String(right.seniorityDate)) : 0) ||
+          left.score - right.score || left.employeeCode.localeCompare(right.employeeCode),
         );
     const pick = (list: CandidateEvaluation[], blockFirst: boolean) => {
       const eligible = eligibleNow(list);
@@ -581,7 +617,7 @@ export function allocateTheory(
         fallbackDesignations: req.fallbackDesignations,
       };
       if (!chosen) {
-        shortages.push({
+        recordShortage(pool, {
           requirementKey: req.requirementKey,
           required: 1,
           eligible:
@@ -599,7 +635,7 @@ export function allocateTheory(
         continue;
       }
     } else if (!chosen) {
-      shortages.push({
+      recordShortage(pool, {
         requirementKey: req.requirementKey,
         required: 1,
         eligible: 0,
@@ -636,7 +672,7 @@ export function allocateTheory(
     reasons.push({
       ruleCode: "INFO-SELECTED",
       severity: "INFO",
-      message: "Selected because lowest eligible fairness score with deterministic tie-break",
+      message: req.seniorityByJoiningDate ? `Selected by earliest PG appointment date: ${teacher.joiningDate}` : "Selected because lowest eligible fairness score with deterministic tie-break",
     });
     const priorAssignmentsInRun = assignmentCountByTeacher.get(teacher.teacherId) ?? 0;
     if (priorAssignmentsInRun > 0) {
@@ -647,12 +683,14 @@ export function allocateTheory(
       });
     }
 
+    for (const member of pool.members ?? [pool]) {
+    const posting = member.req;
     assignments.push({
-      requirementKey: req.requirementKey,
-      centreId: req.centreId,
-      roleCode: req.roleCode,
-      examDate: req.examDate,
-      sessionCode: req.sessionCode,
+      requirementKey: posting.requirementKey,
+      centreId: posting.centreId,
+      roleCode: posting.roleCode,
+      examDate: posting.examDate,
+      sessionCode: posting.sessionCode,
       teacherId: teacher.teacherId,
       employeeCode: teacher.employeeCode,
       score: chosen.score,
@@ -663,15 +701,17 @@ export function allocateTheory(
         eligibility: "PASS",
         reasons,
         score: chosen.score,
-        selectedBecause: "lowest eligible fairness score",
+        selectedBecause: req.seniorityByJoiningDate ? "earliest eligible PG appointment date" : "lowest eligible fairness score",
       },
     });
 
+    occupied.add(`${teacher.teacherId}|${posting.examDate}|${posting.sessionCode}`);
+    }
     assignmentCountByTeacher.set(
       teacher.teacherId,
       priorAssignmentsInRun + 1,
     );
-    occupied.add(`${teacher.teacherId}|${req.examDate}|${req.sessionCode}`);
+
   }
 
   return {

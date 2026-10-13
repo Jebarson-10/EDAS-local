@@ -8,6 +8,7 @@ export interface DemoDataset {
     schoolCode: string;
     sourceSchoolCode?: string;
     schoolName: string;
+    schoolLevel?: "HIGHER_SECONDARY" | "HIGH" | "OTHER" | null;
     blockId: string;
     latitude: number;
     longitude: number;

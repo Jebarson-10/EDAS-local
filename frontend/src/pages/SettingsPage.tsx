@@ -195,7 +195,7 @@ export function SettingsPage() {
                 ? "Saved rules could not be loaded. Allotment is paused until they are available."
                 : !hydrateReady || !rulesOutcome
                   ? "Loading saved rules…"
-                  : `${examCycle.ruleVersionLabel} · same-block duties · repeat ${rules.repeat_years}y · hall ${rules.students_per_hall}/${rules.standby_percentage}%`}
+                  : `${examCycle.ruleVersionLabel} · same-block duties · repeat ${rules.repeat_years}y · hall ${rules.students_per_hall} students + ${rules.extra_halls_per_centre} extra halls + ${rules.hall_backup_staff} backup`}
             </dd>
           </div>
           <div>

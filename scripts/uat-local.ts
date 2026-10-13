@@ -769,7 +769,7 @@ async function main() {
   record(
     "UAT-19",
     "Seed rule_parameters rehydrate to the documented defaults",
-    seedParams.length === Object.keys(DEFAULT_RULE_PARAMETERS).filter(key => !["allotment_area", "area_rule_version"].includes(key)).length &&
+    seedParams.length === Object.keys(DEFAULT_RULE_PARAMETERS).filter(key => !["allotment_area", "area_rule_version", "staffing_rule_version", "extra_halls_per_centre", "hall_backup_staff"].includes(key)).length &&
       appliedSeed.parameters.allotment_area === "SAME_BLOCK" &&
       appliedSeed.parameters.area_rule_version === "BLOCK-2026-10-12" &&
       appliedSeed.applied.length === seedParams.length &&

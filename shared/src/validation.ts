@@ -585,6 +585,7 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
     schoolCode: z.string().trim().max(64).default(""),
     capacity: z.number().int().positive().optional(),
     schoolName: z.string().min(1).max(200),
+    schoolLevel: z.enum(["HIGHER_SECONDARY", "HIGH", "OTHER"]).optional(),
     blockId: z.string().min(1),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
@@ -629,13 +630,6 @@ export const manualMasterRecordBodySchema = z.discriminatedUnion("kind", [
       code: z.ZodIssueCode.custom,
       path: ["subject"],
       message: "Select a subject for teaching staff",
-    });
-  }
-  if (record.seniorityRank == null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["seniorityRank"],
-      message: "Enter a seniority rank for teaching staff",
     });
   }
 });

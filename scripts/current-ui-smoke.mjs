@@ -126,6 +126,7 @@ try {
   await entry.getByLabel('Add new or choose to edit').selectOption(schools[0].school_id);
   assert.equal(await entry.getByLabel(/latitude|longitude|coordinates|search.*place/i).count(), 0);
   await entry.getByLabel('Centre code (optional)').fill('UI-CENTRE');
+  await entry.getByLabel('School level',{exact:true}).selectOption('HIGHER_SECONDARY');
   await entry.getByLabel(/Student/).fill('100');
   await entry.getByRole('button', {name: /Save/, exact: false}).click();
   await entry.getByText('Saved.', {exact: true}).waitFor();
@@ -134,6 +135,7 @@ try {
   assert.equal(savedCentre.block_id, schools[0].block_id);
   assert.equal(savedCentre.latitude, null);
   assert.equal(savedCentre.longitude, null);
+  assert.equal((await get("/api/schools")).schools[0].school_level,"HIGHER_SECONDARY");
   await page.reload();
   await page.getByTestId('hydrate-status').getByText('saved data ready').waitFor();
   await entry.getByLabel('Record type').selectOption('teacher');
@@ -152,6 +154,7 @@ try {
   await page.reload();
   await page.getByTestId('hydrate-status').getByText('saved data ready').waitFor();
   assert.equal((await get('/api/teachers')).teachers.length, 2);
+  assert.equal((await get("/api/schools")).schools[0].school_level,"HIGHER_SECONDARY");
   await page.screenshot({path: '.data/block-only-master.png', fullPage: true});
   assert.deepEqual(errors, []);
   console.log('CURRENT_UI_SMOKE_OK: official template, import, school creation, reload, repeat import, practical counts, report controls, diagnosis, backup, block-only school/centre and office-helper entry');

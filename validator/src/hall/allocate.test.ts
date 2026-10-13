@@ -11,8 +11,8 @@ const rules = { ...DEFAULT_RULE_PARAMETERS };
 describe("hall allocate + validate", () => {
   it("calculates halls and standby with ceil", () => {
     const c = calculateHallRequirements(200, 20, 10);
-    expect(c.requiredHalls).toBe(10);
-    expect(c.standby).toBe(1);
+    expect(c.requiredHalls).toBe(12);
+    expect(c.standby).toBe(3);
   });
 
   it("allocates and validates for one centre", () => {
@@ -82,7 +82,7 @@ describe("hall allocate + validate", () => {
       },
       rules,
     );
-    expect(result.requiredHallsByCentre.c1).toBe(2);
+    expect(result.requiredHallsByCentre.c1).toBe(4);
     const v = validateHallAllocation(
       result,
       demands.map((d) => ({ centreId: d.centreId, totalStudents: d.totalStudents })),

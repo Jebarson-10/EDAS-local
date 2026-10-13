@@ -1646,6 +1646,23 @@ describe("allocation decision reasons", () => {
     expect(savedReasons?.count).toBe(500);
   });
 
+  it("replaces the chief across all timetable rows atomically without changing the department row",async()=>{
+    const {recordManualOverride}=await import("./repos.js");
+    await upsertTeachers(db,[{teacherId:"t2",employeeCode:"E2",name:"Replacement",schoolId:"s1",designation:"HM",isActive:true}]);
+    await persistAllocationRun(db,{
+      runId:"chief_full",examCycleId:"ec1",ruleVersionId:"rv-2027-1",algorithmVersion:"theory-3.0.0",module:"THEORY",validationStatus:"VALID",createdBy:"test",summaryJson:"{}",
+      results:["CHIEF_EXAMINATION","DEPARTMENT_OFFICER","CHIEF_EXAMINATION"].map((roleCode,index)=>({
+        resultId:"chief-res-"+index,usedFallback:false,teacherId:"t1",centreId:"c1",dutyTypeCode:roleCode,roleCode,examDate:index===2?"2027-03-16":"2027-03-15",sessionCode:"MORNING",score:0,
+        decisionTraceJson:JSON.stringify({requirementKey:"slot-"+index,reasons:[]}),
+      })),
+    });
+    const changed=await recordManualOverride(db,{runId:"chief_full",centreId:"c1",requirementKey:"slot-2",oldTeacherId:"t1",newTeacherId:"t2",changedBy:"test",reason:"Approved full-timetable replacement"});
+    expect(changed.ok).toBe(true);
+    const rows=sqlite.prepare("SELECT role_code,final_teacher_id FROM allocation_run_results WHERE run_id='chief_full' ORDER BY result_id").all();
+    expect(rows).toEqual([{role_code:"CHIEF_EXAMINATION",final_teacher_id:"t2"},{role_code:"DEPARTMENT_OFFICER",final_teacher_id:"t1"},{role_code:"CHIEF_EXAMINATION",final_teacher_id:"t2"}]);
+    expect(sqlite.prepare("SELECT COUNT(*) AS n FROM manual_overrides WHERE run_id='chief_full'").get()).toEqual({n:2});
+  });
+
   it("drops generate INFO-* from listed reasons after override", async () => {
     const { listAllocationDecisionReasons, recordManualOverride } =
       await import("./repos.js");

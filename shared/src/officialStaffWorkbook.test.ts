@@ -198,7 +198,7 @@ describe("official staff workbook import", () => {
     expect(parsed.rows[0]).not.toHaveProperty("subject");
   });
 
-  it("normalises block spelling variants and falls back to residential block", () => {
+  it("normalises school blocks without substituting the residential block", () => {
     const parsed = parseOfficialStaffWorkbook([
       {
         name: "PG",
@@ -221,7 +221,7 @@ describe("official staff workbook import", () => {
 
     expect(parsed.rows.map((row) => (row.officialDetails as Record<string, string> | undefined)?.["Reporting block"])).toEqual([
       "THALAVADI",
-      "BHAVANISAGAR",
+      undefined,
     ]);
   });
   it("keeps a named teacher when the school reference cell is blank", () => {

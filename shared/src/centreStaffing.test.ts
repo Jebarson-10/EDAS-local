@@ -42,7 +42,8 @@ describe("centre staffing requirements", () => {
     );
     expect(officeHelpers).toHaveLength(2);
     expect(officeHelpers.every((requirement) => requirement.staffCategory === "NON_TEACHING")).toBe(true);
-    expect(officeHelpers.every((requirement) => requirement.preferredDesignations.length === 0)).toBe(true);
+    expect(officeHelpers.map(r=>r.preferredDesignations)).toEqual([["JUNIOR_ASSISTANT"],["OFFICE_ASSISTANT"]]);
+    expect(officeHelpers[1]?.fallbackDesignations).toEqual(["RECORD_CLERK"]);
   });
 
   it("creates a second department officer above 500 students", () => {

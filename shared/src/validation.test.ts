@@ -452,3 +452,8 @@ describe("API body schemas", () => {
     }).success).toBe(false);
   });
 });
+
+it("keeps the explicit school level through manual entry request validation",()=>{
+  const parsed=manualMasterRecordBodySchema.parse({kind:"school",schoolName:"Test school",schoolCode:"",blockId:"b1",schoolLevel:"HIGHER_SECONDARY"});
+  expect(parsed).toMatchObject({schoolLevel:"HIGHER_SECONDARY"});
+});

@@ -58,7 +58,7 @@ export function CentreChecklistImport() {
       const [schools,centres,relationships] = await Promise.all([fetchMasterSchools(role),fetchMasterCentres(role,examCycle.examCycleId),fetchMasterRelationships(role,examCycle.examCycleId)]);
       if (!schools || !centres || !relationships) throw new Error("The list was saved. Reopen the app to load it before allotment.");
       setDataset({...dataset,
-        schools:schools.schools.map(s=>({schoolId:s.school_id,schoolCode:s.school_code,sourceSchoolCode:s.source_school_code??undefined,schoolName:s.school_name,blockId:s.block_id,latitude:s.latitude??NaN,longitude:s.longitude??NaN,active:s.active!==0})),
+        schools:schools.schools.map(s=>({schoolId:s.school_id,schoolCode:s.school_code,sourceSchoolCode:s.source_school_code??undefined,schoolName:s.school_name,schoolLevel:s.school_level ?? null,blockId:s.block_id,latitude:s.latitude??NaN,longitude:s.longitude??NaN,active:s.active!==0})),
         centres:centres.centres.map(c=>({centreId:c.centre_id,centreCode:c.centre_code,centreName:c.centre_name,blockId:c.block_id??"",latitude:c.latitude??NaN,longitude:c.longitude??NaN,capacity:c.capacity??undefined,active:c.active!==0})),
         relationships:relationships.relationships.map(r=>({centreId:r.centre_id!,schoolId:r.school_id!,relationshipType:r.relationship_type as "HOST"|"CLUBBED",effectiveFrom:r.effective_from!,effectiveTo:r.effective_to})),
       });

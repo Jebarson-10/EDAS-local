@@ -1,3 +1,14 @@
+## Current rule amendment — 13 October 2026
+
+For new runs, the confirmed rules in README.md under "Confirmed staffing update"
+replace conflicting legacy rules below. Same-block allotment replaces distance
+and district fallback. HSC chief: higher-secondary HM/Principal fixed for the
+whole timetable. Departmental officer: PG appointment-date seniority, one up
+to 500 students and two above 500. Halls: ceil(strength/20) + 2; backup staff:
+exactly 3. No examined-subject teacher may invigilate or provide backup that
+session. Office staff: one JA plus one OA, RC only when OA is short.
+Published history is preserved.
+
 # Rules Catalogue
 
 Rules are stored as **versioned parameters** (`rule_versions` + `rule_parameters`).  

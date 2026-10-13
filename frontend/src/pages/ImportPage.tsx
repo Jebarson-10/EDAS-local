@@ -111,9 +111,10 @@ export function ImportPage() {
             const record = row as { schoolName?: unknown; sourceSchoolCode?: unknown; officialDetails?: Record<string, unknown> };
             const schoolName = String(record.schoolName ?? "").trim();
             if (!schoolName) continue;
-            const key = schoolName.replace(/\s+/g, " ").toLocaleUpperCase();
             const sourceSchoolCode = record.sourceSchoolCode == null ? null : String(record.sourceSchoolCode);
             const blockCode = record.officialDetails?.["Reporting block"] == null ? null : String(record.officialDetails["Reporting block"]);
+            // Keep each distinct reported block so contradictory rows remain visible.
+            const key = `${sourceSchoolCode || schoolName.replace(/\s+/g, " ").toLocaleUpperCase()}|${blockCode ?? ""}`;
             const existing = bySchool.get(key);
             if (!existing) {
               bySchool.set(key, { schoolName, sourceSchoolCode, blockCode });
@@ -133,9 +134,9 @@ export function ImportPage() {
           setDataset({
             ...currentDataset,
             blocks: blocks.blocks.map((block) => ({ blockId: block.block_id, blockCode: block.block_code, blockName: block.block_name })),
-            schools: schools.schools.map((school) => ({ schoolId: school.school_id, schoolCode: school.school_code, sourceSchoolCode:school.source_school_code??undefined, schoolName: school.school_name, blockId: school.block_id, latitude: school.latitude ?? Number.NaN, longitude: school.longitude ?? Number.NaN, active: school.active !== 0 })),
+            schools: schools.schools.map((school) => ({ schoolId: school.school_id, schoolCode: school.school_code, sourceSchoolCode:school.source_school_code??undefined, schoolName: school.school_name, schoolLevel:school.school_level ?? null, blockId: school.block_id, latitude: school.latitude ?? Number.NaN, longitude: school.longitude ?? Number.NaN, active: school.active !== 0 })),
           });
-          officialMasterMessage = ` Created ${master.createdBlocks ?? 0} blocks and ${master.createdSchools ?? 0} schools; matched ${master.matchedSchools ?? 0} existing schools.${master.skippedNoBlock?.length ? ` ${master.skippedNoBlock.length} schools had no block and were not created.` : ""}`;
+          officialMasterMessage = ` Created ${master.createdBlocks ?? 0} blocks and ${master.createdSchools ?? 0} schools; matched ${master.matchedSchools ?? 0} existing schools.${master.skippedNoBlock?.length ? ` ${master.skippedNoBlock.length} schools had no block and were not created: ${master.skippedNoBlock.join(", ")}.` : ""}${master.conflictingBlocks?.length ? ` ${master.conflictingBlocks.length} schools have conflicting blocks: ${master.conflictingBlocks.join(", ")}. Select the correct school block in Schools & teachers, then import again.` : ""}`;
         }
         setFileName(file.name);
         setText(JSON.stringify(parsed.rows, null, 2));
@@ -152,7 +153,7 @@ export function ImportPage() {
           setLastImportId(up.importId);
           const baseMessage = `Read ${parsed.rows.length} staff rows. ${up.stored === false ? "The original file was not stored; keep your own copy." : "A copy of the original file was saved."}`;
           setMessage(
-            `${baseMessage}${parsed.format === "official-staff-workbook" ? " Official staff workbook recognised; all supported staff tabs were read together." : ""}${officialMasterMessage}${parsed.notes?.length ? ` ${parsed.notes[0]}` : ""}`,
+            `${baseMessage}${parsed.format === "official-staff-workbook" ? " Official staff workbook recognised; all supported staff tabs were read together." : ""}${officialMasterMessage}${parsed.notes?.length ? ` ${parsed.notes.join(" ")}` : ""}`,
           );
           return up.importId;
         }

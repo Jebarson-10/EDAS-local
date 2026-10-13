@@ -53,7 +53,7 @@ describe("hall allocation", () => {
         asOfDate: "2027-03-01",
         centreSchoolIds: new Map([["centre", new Set()]]),
       },
-      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0 },
+      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0, extra_halls_per_centre: 0, hall_backup_staff: 0 },
     );
 
     expect(result.feasible).toBe(true);
@@ -75,7 +75,7 @@ describe("hall allocation", () => {
         exemptions: [], history: [], calendar: [], academicYear: "2027", asOfDate: "2027-03-01",
         centreSchoolIds: new Map([["centre", new Set()]]),
       },
-      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0 },
+      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0, extra_halls_per_centre: 0, hall_backup_staff: 0 },
     );
     expect(result.assignments.map((assignment) => assignment.teacherId)).toEqual(["teacher"]);
   });
@@ -91,7 +91,7 @@ describe("hall allocation", () => {
         exemptions: [], history: [], calendar: [], academicYear: "2027", asOfDate: "2027-03-01",
         centreSchoolIds: new Map([["centre", new Set<string>()]]),
       },
-      { ...DEFAULT_RULE_PARAMETERS, hall_designation_allowlist: [], standby_percentage: 0 },
+      { ...DEFAULT_RULE_PARAMETERS, hall_designation_allowlist: [], standby_percentage: 0, extra_halls_per_centre: 0, hall_backup_staff: 0 },
     );
     expect(result.assignments).toHaveLength(0);
     expect(result.shortages[0]).toMatchObject({ eligible: 0, shortage: 1 });
@@ -114,14 +114,14 @@ describe("hall allocation", () => {
     const regularOnly = allocateHall(
       [{ centreId: "centre", totalStudents: 20, examDate: "2027-03-01", sessionCode: "MORNING" }],
       dataset,
-      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0 },
+      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0, extra_halls_per_centre: 0, hall_backup_staff: 0 },
     );
     expect(regularOnly.assignments.map((assignment) => assignment.teacherId)).toEqual(["regular"]);
 
     const reserveNeeded = allocateHall(
       [{ centreId: "centre", totalStudents: 40, examDate: "2027-03-01", sessionCode: "MORNING" }],
       dataset,
-      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0 },
+      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0, extra_halls_per_centre: 0, hall_backup_staff: 0 },
     );
     expect(reserveNeeded.assignments.map((assignment) => assignment.teacherId)).toEqual(["regular", "sgt"]);
   });
@@ -140,7 +140,7 @@ describe("hall allocation", () => {
         exemptions: [], history: [], calendar: [], academicYear: "2027", asOfDate: "2027-03-01",
         centreSchoolIds: new Map([["centre", new Set<string>()]]),
       },
-      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0 },
+      { ...DEFAULT_RULE_PARAMETERS, standby_percentage: 0, extra_halls_per_centre: 0, hall_backup_staff: 0 },
     );
     expect(result.assignments.map((assignment) => assignment.teacherId)).toEqual(["spl"]);
   });

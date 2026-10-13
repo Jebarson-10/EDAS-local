@@ -1571,12 +1571,13 @@ export async function transactionalRestore(
       db
         .prepare(
           `INSERT INTO schools
-            (school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at, source_school_code)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (school_id, school_code, school_name, block_id, latitude, longitude, active, data_quality, created_at, updated_at, source_school_code, school_level)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(school_id) DO UPDATE SET
              school_code=excluded.school_code,
              school_name=excluded.school_name,
              source_school_code=excluded.source_school_code,
+             school_level=excluded.school_level,
              block_id=excluded.block_id,
              latitude=excluded.latitude,
              longitude=excluded.longitude,
@@ -1596,6 +1597,7 @@ export async function transactionalRestore(
           now,
           now,
           s.sourceSchoolCode ?? s.source_school_code ?? null,
+          s.schoolLevel ?? s.school_level ?? null,
         ),
     );
   }
@@ -2357,7 +2359,7 @@ export async function listTeachers(db: DbClient, limit = 10000) {
 export async function listSchools(db: DbClient, limit = 5000) {
   const rs = await db
     .prepare(
-      `SELECT school_id, CASE WHEN substr(school_code, 1, 9) = '__school_' THEN '' ELSE school_code END AS school_code, school_name, source_school_code, block_id, latitude, longitude, active, data_quality
+      `SELECT school_id, CASE WHEN substr(school_code, 1, 9) = '__school_' THEN '' ELSE school_code END AS school_code, school_name, school_level, source_school_code, block_id, latitude, longitude, active, data_quality
        FROM schools ORDER BY school_code LIMIT ?`,
     )
     .bind(limit)
@@ -2368,12 +2370,12 @@ export async function listSchools(db: DbClient, limit = 5000) {
 /**
  * Creates the blocks and ordinary schools named in the CEO staff return.
  * The source school code is stored separately: it must never become a centre
- * code. Coordinates remain blank until the officer supplies or finds them.
+ * code. The school block must be supplied consistently across its staff rows.
  */
 export async function importOfficialSchoolMasterData(
   db: DbClient,
   rows: Array<{ schoolName: string; sourceSchoolCode?: string | null; blockCode?: string | null }>,
-): Promise<{ createdBlocks: number; createdSchools: number; matchedSchools: number; skippedNoBlock: string[]; missingLocations: string[] }> {
+): Promise<{ createdBlocks: number; createdSchools: number; matchedSchools: number; skippedNoBlock: string[]; conflictingBlocks: string[]; missingLocations: string[] }> {
   const normal = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleUpperCase();
   const existingBlocks = await listBlocks(db, 10_000) as Array<{ block_id: string; block_code: string; block_name: string }>;
   const existingSchools = await listSchools(db, 20_000) as Array<{ school_id: string; school_name: string; source_school_code?: string | null; latitude?: number | null; longitude?: number | null }>;
@@ -2382,6 +2384,10 @@ export async function importOfficialSchoolMasterData(
   const schoolsByName = new Map(existingSchools.map((item) => [normal(item.school_name), item]));
   const statements: DbStatement[] = [];
   const skippedNoBlock = new Set<string>();
+  const conflictingBlocks = new Set<string>();
+  const schoolKey = (row:typeof rows[number]) => row.sourceSchoolCode?.trim() ? schoolReferenceKey(row.sourceSchoolCode) : normal(row.schoolName);
+  const reportedBlocks = new Map<string,Set<string>>();
+  for(const row of rows){ if(!row.blockCode?.trim())continue; const key=schoolKey(row);const values=reportedBlocks.get(key)??new Set<string>();values.add(normal(row.blockCode));reportedBlocks.set(key,values);}
   const missingLocations = new Set<string>();
   let createdBlocks = 0;
   let createdSchools = 0;
@@ -2390,7 +2396,9 @@ export async function importOfficialSchoolMasterData(
 
   for (const raw of rows) {
     const schoolName = raw.schoolName.trim().replace(/\s+/g, " ");
-    const blockCode = raw.blockCode?.trim().replace(/\s+/g, " ") ?? "";
+    const schoolBlocks=reportedBlocks.get(schoolKey(raw))??new Set<string>();
+    const blockCode = schoolBlocks.size === 1 ? [...schoolBlocks][0]! : "";
+    if(schoolBlocks.size>1) conflictingBlocks.add(schoolName);
     if (!schoolName) continue;
     const sourceKey = raw.sourceSchoolCode?.trim() ? schoolReferenceKey(raw.sourceSchoolCode) : "";
     const existing = (sourceKey ? schoolsBySource.get(sourceKey) : undefined) ?? schoolsByName.get(normal(schoolName));
@@ -2403,6 +2411,7 @@ export async function importOfficialSchoolMasterData(
       if (existing.latitude == null || existing.longitude == null) missingLocations.add(schoolName);
       continue;
     }
+    if (schoolBlocks.size>1) continue;
     if (!blockCode) {
       skippedNoBlock.add(schoolName);
       continue;
@@ -2430,7 +2439,7 @@ export async function importOfficialSchoolMasterData(
     createdSchools += 1;
   }
   await runAtomic(db, statements);
-  return { createdBlocks, createdSchools, matchedSchools, skippedNoBlock: [...skippedNoBlock].sort(), missingLocations: [...missingLocations].sort() };
+  return { createdBlocks, createdSchools, matchedSchools, skippedNoBlock: [...skippedNoBlock].sort(), conflictingBlocks:[...conflictingBlocks].sort(), missingLocations: [...missingLocations].sort() };
 }
 
 export async function listCentres(db: DbClient, limit = 5000) {
@@ -2474,6 +2483,7 @@ export async function upsertMasterRecord(
         schoolCode?: string;
         capacity?: number;
         schoolName: string;
+        schoolLevel?: "HIGHER_SECONDARY" | "HIGH" | "OTHER";
         blockId: string;
         latitude?: number;
         longitude?: number;
@@ -2562,6 +2572,7 @@ export async function upsertMasterRecord(
         .bind(id, schoolCode, record.schoolName.trim(), record.blockId, record.latitude ?? null, record.longitude ?? null, record.active !== false ? 1 : 0, now, now)
       );
     }
+    if (record.schoolLevel) statements.push(db.prepare("UPDATE schools SET school_level=? WHERE school_id=?").bind(record.schoolLevel,id));
     // School and centre changes commit together; published duty rows are never changed.
     statements.push(db.prepare(`UPDATE centres SET active=0, updated_at=? WHERE centre_id IN
       (SELECT centre_id FROM centre_school_relationships WHERE school_id=? AND relationship_type='HOST' AND effective_to IS NULL)
@@ -2931,10 +2942,10 @@ export async function recordManualOverride(
   }
   const runMeta = await db
     .prepare(
-      `SELECT status, exam_cycle_id FROM allocation_runs WHERE run_id = ?`,
+      `SELECT status, exam_cycle_id, algorithm_version FROM allocation_runs WHERE run_id = ?`,
     )
     .bind(input.runId)
-    .first<{ status: string; exam_cycle_id: string }>();
+    .first<{ status: string; exam_cycle_id: string; algorithm_version: string }>();
   if (!runMeta) {
     return { ok: false, error: "Allocation run not found" };
   }
@@ -2952,81 +2963,44 @@ export async function recordManualOverride(
   );
   if (!mutable.ok) return mutable;
 
-  const row = await db
-    .prepare(
-      `SELECT result_id, teacher_id, final_teacher_id, decision_trace_json FROM allocation_run_results
-       WHERE run_id = ? AND centre_id = ? LIMIT 1`,
-    )
-    .bind(input.runId, input.centreId)
-    .first<{
-      result_id: string;
-      teacher_id: string;
-      final_teacher_id: string | null;
-      decision_trace_json: string | null;
-    }>();
-  if (!row) {
-    return {
-      ok: false,
-      error: "No persisted run result for this centre — generate+persist first",
-    };
+  const stored = await db.prepare(
+    "SELECT result_id, teacher_id, final_teacher_id, decision_trace_json, role_code FROM allocation_run_results WHERE run_id=? AND centre_id=?"
+  ).bind(input.runId,input.centreId).all<{
+    result_id:string;teacher_id:string;final_teacher_id:string|null;decision_trace_json:string|null;role_code:string;
+  }>();
+  const traceKey = (row:typeof stored.results[number]) => {
+    try { return JSON.parse(row.decision_trace_json ?? "{}").requirementKey as string | undefined; }
+    catch { return undefined; }
+  };
+  const selected = stored.results.find(row => traceKey(row)===input.requirementKey) ??
+    (stored.results.length===1 ? stored.results[0] : undefined);
+  if(!selected) return {ok:false,error:"Select an exact saved duty; the centre has several duty rows."};
+  // A chief in the new staffing version is one posting across all sessions.
+  const targets = selected.role_code==="CHIEF_EXAMINATION" && runMeta.algorithm_version==="theory-3.0.0"
+    ? stored.results.filter(row=>row.role_code==="CHIEF_EXAMINATION") : [selected];
+  const statements:DbStatement[]=[];
+  const now=new Date().toISOString();
+  let overrideId="";
+  for(const row of targets){
+    const id=crypto.randomUUID();
+    overrideId ||= id;
+    const oldTeacherId=row.final_teacher_id ?? row.teacher_id;
+    const requirementKey=traceKey(row) ?? input.requirementKey;
+    const nextTrace=mergeOverrideIntoDecisionTrace(row.decision_trace_json,{
+      newTeacherId:input.newTeacherId,oldTeacherId,requirementKey,reason:input.reason,
+    });
+    statements.push(
+      db.prepare("UPDATE allocation_run_results SET final_teacher_id = ?, is_override = 1, decision_trace_json = ? WHERE result_id=?")
+        .bind(input.newTeacherId,nextTrace,row.result_id),
+      db.prepare("DELETE FROM allocation_decision_reasons WHERE result_id=? AND rule_code LIKE 'INFO-%'").bind(row.result_id),
+      db.prepare("INSERT INTO allocation_decision_reasons (id,result_id,rule_code,severity,message,details_json) VALUES (?,?,'MANUAL_OVERRIDE','WARNING',?,?)")
+        .bind(crypto.randomUUID(),row.result_id,input.reason.trim(),JSON.stringify({teacherId:input.newTeacherId,oldTeacherId,requirementKey})),
+      db.prepare("INSERT INTO manual_overrides (override_id,run_id,result_id,changed_by,changed_at,reason,old_value,new_value) VALUES (?,?,?,?,?,?,?,?)")
+        .bind(id,input.runId,row.result_id,input.changedBy,now,input.reason.trim(),JSON.stringify({teacherId:oldTeacherId,requirementKey}),JSON.stringify({teacherId:input.newTeacherId,requirementKey})),
+    );
   }
-  const overrideId = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const nextTrace = mergeOverrideIntoDecisionTrace(row.decision_trace_json, {
-    newTeacherId: input.newTeacherId,
-    oldTeacherId: input.oldTeacherId,
-    requirementKey: input.requirementKey,
-    reason: input.reason,
-  });
-  await db
-    .prepare(
-      `UPDATE allocation_run_results
-       SET final_teacher_id = ?, is_override = 1, decision_trace_json = ?
-       WHERE result_id = ?`,
-    )
-    .bind(input.newTeacherId, nextTrace, row.result_id)
-    .run();
-  await db
-    .prepare(
-      `DELETE FROM allocation_decision_reasons
-       WHERE result_id = ? AND rule_code LIKE 'INFO-%'`,
-    )
-    .bind(row.result_id)
-    .run();
-  await insertDecisionReason(db, row.result_id, {
-    ruleCode: "MANUAL_OVERRIDE",
-    severity: "WARNING",
-    message: input.reason.trim(),
-    details: {
-      teacherId: input.newTeacherId,
-      oldTeacherId: input.oldTeacherId,
-      requirementKey: input.requirementKey,
-    },
-  });
-  await db
-    .prepare(
-      `INSERT INTO manual_overrides
-        (override_id, run_id, result_id, changed_by, changed_at, reason, old_value, new_value)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      overrideId,
-      input.runId,
-      row.result_id,
-      input.changedBy,
-      now,
-      input.reason.trim(),
-      JSON.stringify({
-        teacherId: input.oldTeacherId,
-        requirementKey: input.requirementKey,
-      }),
-      JSON.stringify({
-        teacherId: input.newTeacherId,
-        requirementKey: input.requirementKey,
-      }),
-    )
-    .run();
-  return { ok: true, overrideId };
+  await runAtomic(db,statements);
+  return {ok:true,overrideId};
 }
 
 export async function listRuleVersions(db: DbClient) {

@@ -649,6 +649,7 @@ export type ManualMasterRecord =
       capacity?: number;
       schoolCode: string;
       schoolName: string;
+      schoolLevel?: "HIGHER_SECONDARY" | "HIGH" | "OTHER";
       blockId: string;
       latitude?: number;
       longitude?: number;
@@ -714,6 +715,7 @@ export async function fetchMasterSchools(role: ApiRole) {
         school_id: string;
         school_code: string;
         school_name: string;
+        school_level?: "HIGHER_SECONDARY" | "HIGH" | "OTHER" | null;
         source_school_code?: string | null;
         block_id: string;
         latitude?: number | null;
@@ -998,6 +1000,7 @@ export async function importOfficialSchoolMasterData(
       createdSchools?: number;
       matchedSchools?: number;
       skippedNoBlock?: string[];
+      conflictingBlocks?: string[];
       missingLocations?: string[];
       error?: string;
     };

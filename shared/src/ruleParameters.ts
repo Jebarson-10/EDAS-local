@@ -97,9 +97,14 @@ export function applyStoredRuleParameters(
 
     let ok = false;
     switch (key) {
+      case "staffing_rule_version":
       case "allotment_area":
       case "area_rule_version":
         // Current rule is fixed; saved historical settings cannot re-enable distance.
+        ok = parsed === DEFAULT_RULE_PARAMETERS[key];
+        break;
+      case "extra_halls_per_centre":
+      case "hall_backup_staff":
         ok = parsed === DEFAULT_RULE_PARAMETERS[key];
         break;
       case "maximum_distance_km":
@@ -196,5 +201,15 @@ export function applyStoredRuleParameters(
     else invalid.push(key);
   }
 
+  // New runs use the confirmed staffing version even when old parameter rows
+  // remain in the database. Historical run snapshots are never rewritten.
+  Object.assign(next, {
+    staffing_rule_version: DEFAULT_RULE_PARAMETERS.staffing_rule_version,
+    students_per_hall: DEFAULT_RULE_PARAMETERS.students_per_hall,
+    extra_halls_per_centre: DEFAULT_RULE_PARAMETERS.extra_halls_per_centre,
+    hall_backup_staff: DEFAULT_RULE_PARAMETERS.hall_backup_staff,
+    department_officer_second_threshold: DEFAULT_RULE_PARAMETERS.department_officer_second_threshold,
+    office_staff_per_centre: DEFAULT_RULE_PARAMETERS.office_staff_per_centre,
+  });
   return { parameters: next, applied, ignored, invalid };
 }

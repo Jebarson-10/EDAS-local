@@ -16,7 +16,7 @@ describe("hall validator", () => {
       shortages: [],
       feasible: true,
     };
-    const validated = validateHallAllocation(result, [{ centreId: "c1", totalStudents: 20 }], DEFAULT_RULE_PARAMETERS);
+    const validated = validateHallAllocation(result, [{ centreId: "c1", totalStudents: 20 }], {...DEFAULT_RULE_PARAMETERS,extra_halls_per_centre:0,hall_backup_staff:1});
     expect(validated.status).toBe("VALID");
     expect(validated.issues.find((issue) => issue.ruleCode === "RULE-HALL-DUP")).toBeUndefined();
   });
@@ -84,7 +84,7 @@ describe("hall validator", () => {
       },
       DEFAULT_RULE_PARAMETERS,
     );
-    // 200 students / 20 = 10 halls + 1 standby = 11 needed, only 3 eligible → shortage
+    // 200 students / 20 = 10 halls + 2 extra halls + 3 backup = 15 needed, only 3 eligible → shortage
     expect(result.feasible).toBe(false);
     const v = validateHallAllocation(result, demands, DEFAULT_RULE_PARAMETERS);
     expect(v.status).toBe("INVALID");

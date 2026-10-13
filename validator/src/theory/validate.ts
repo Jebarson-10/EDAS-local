@@ -86,6 +86,19 @@ export function validateTheoryAllocation(
     }
   }
 
+  const fixedGroups = new Map<string, TheoryRequirement[]>();
+  for (const requirement of requirements) {
+    if (!requirement.continuityKey) continue;
+    const group = fixedGroups.get(requirement.continuityKey) ?? [];
+    group.push(requirement);
+    fixedGroups.set(requirement.continuityKey, group);
+  }
+  for (const group of fixedGroups.values()) {
+    const keys = new Set(group.map(r => r.requirementKey));
+    const staff = new Set(result.assignments.filter(a => keys.has(a.requirementKey)).map(a => a.teacherId));
+    if (staff.size > 1) {errors++;issues.push({ruleCode:"RULE-THEORY-CONTINUITY",severity:"ERROR",message:"The same officer must cover the centre's entire timetable.",centreId:group[0]!.centreId});}
+  }
+
   for (const a of result.assignments) {
     const req = reqByKey.get(a.requirementKey);
     const centre = centreById.get(a.centreId);
@@ -140,6 +153,18 @@ export function validateTheoryAllocation(
     }
     seenTeacherSessions.add(teacherSessionKey);
 
+    if (req.seniorityByJoiningDate && teacher.joiningDate) {
+      const group = req.continuityKey ? fixedGroups.get(req.continuityKey) ?? [req] : [req];
+      const keys = new Set(group.map(r => r.requirementKey));
+      const otherOccupied = new Set(result.assignments.filter(item => !keys.has(item.requirementKey)).map(item => `${item.teacherId}|${item.examDate}|${item.sessionCode}`));
+      const earlier = dataset.teachers.some(candidate =>
+        candidate.teacherId !== teacher.teacherId && candidate.joiningDate && candidate.joiningDate < teacher.joiningDate! &&
+        group.every(member => {
+          const target = centreById.get(member.centreId);
+          return target && validateTheoryCandidateEligibility(candidate,target,schoolById,dataset,rules,otherOccupied,member,"preferred").hardReasons.length === 0;
+        }));
+      if (earlier) {errors++;issues.push({ruleCode:"RULE-DEPARTMENT-SENIORITY",severity:"ERROR",message:"An eligible PG Assistant with an earlier appointment date was passed over.",teacherId:a.teacherId,centreId:a.centreId,date:a.examDate});}
+    }
     const band: "preferred" | "fallback" = a.usedFallbackBand
       ? "fallback"
       : "preferred";

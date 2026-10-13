@@ -149,3 +149,12 @@ it("keeps the new block area rule when older saved rules are loaded", () => {
   expect(invalid.parameters.allotment_area).toBe("SAME_BLOCK");
   expect(invalid.parameters.area_rule_version).toBe("BLOCK-2026-10-12");
 });
+
+it("uses the confirmed new staffing counts after loading older settings",()=>{
+  const result=applyStoredRuleParameters([
+    {param_key:"students_per_hall",param_value:"30",value_type:"number"},
+    {param_key:"department_officer_second_threshold",param_value:"1000",value_type:"number"},
+    {param_key:"office_staff_per_centre",param_value:"1",value_type:"number"},
+  ]);
+  expect(result.parameters).toMatchObject({students_per_hall:20,extra_halls_per_centre:2,hall_backup_staff:3,department_officer_second_threshold:500,office_staff_per_centre:2,staffing_rule_version:"STAFFING-2026-10-13"});
+});

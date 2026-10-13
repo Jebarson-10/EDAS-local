@@ -1,6 +1,6 @@
 import type { HallDataset, HallResult } from "@exam-duty/allocation-engine";
 import { type RuleParameters, type ValidationStatus } from "@exam-duty/shared";
-import { calculateHallRequirements } from "@exam-duty/allocation-engine";
+import { teachesSubject, normalizeSubject } from "@exam-duty/shared";
 import { detectSessionConflicts } from "../conflict/engine.js";
 import type { ValidationIssue, ValidationResult } from "../theory/validate.js";
 
@@ -30,6 +30,7 @@ function hallEligibilityProblems(
   assignment: HallResult["assignments"][number],
   dataset: HallValidationDataset,
   rules: RuleParameters,
+  paperSubjects?: string[],
 ): Array<{ ruleCode: string; message: string }> {
   const teacher = dataset.teachers.find((item) => item.teacherId === assignment.teacherId);
   const centre = dataset.centres.find((item) => item.centreId === assignment.centreId);
@@ -37,6 +38,10 @@ function hallEligibilityProblems(
     return [{ ruleCode: "RULE-HALL-REFERENCE", message: "Assignment references unknown staff or centre" }];
   }
   const problems: Array<{ ruleCode: string; message: string }> = [];
+  const recordedSubjects=[teacher.subject || teacher.officialDetails?.["Handling subject"] || teacher.officialDetails?.["Major subject"],teacher.officialDetails?.["Additional handling subjects"]].filter(Boolean).join(", ");
+  if (paperSubjects && (!paperSubjects.length || paperSubjects.some(subject => !subject.trim()))) problems.push({ruleCode:"RULE-HALL-PAPER",message:"Timetable subject is missing."});
+  if (paperSubjects?.some(subject => teachesSubject(recordedSubjects,subject) || (normalizeSubject(subject).code === "SCI" && ["PHY","CHE","BIO"].some(science=>teachesSubject(recordedSubjects,science))))) problems.push({ruleCode:"RULE-HALL-EXAM-SUBJECT",message:"A teacher of the examined subject cannot invigilate or serve as backup in that session."});
+  if (paperSubjects && !recordedSubjects && teacher.designation !== "SPECIAL_TEACHER") problems.push({ruleCode:"RULE-HALL-TEACHER-SUBJECT",message:"Teacher subject is missing; the exam-subject exclusion cannot be checked."});
   if (!teacher.isActive) problems.push({ ruleCode: "RULE-HALL-INACTIVE", message: "Hall staff member is inactive" });
   if ((teacher.staffCategory ?? "TEACHING") !== "TEACHING") {
     problems.push({ ruleCode: "RULE-HALL-STAFF-CATEGORY", message: "Hall invigilator must be teaching staff" });
@@ -91,7 +96,7 @@ function hallEligibilityProblems(
 
 export function validateHallAllocation(
   result: HallResult,
-  demands: Array<{ centreId: string; totalStudents: number; examDate?: string; sessionCode?: "MORNING" | "AFTERNOON" }>,
+  demands: Array<{ centreId: string; totalStudents: number; examDate?: string; sessionCode?: "MORNING" | "AFTERNOON"; subjects?: string[] }>,
   rules: RuleParameters,
   dataset?: HallValidationDataset,
 ): ValidationResult {
@@ -101,11 +106,18 @@ export function validateHallAllocation(
   let valid = 0;
 
   for (const d of demands) {
-    const expected = calculateHallRequirements(
-      d.totalStudents,
-      rules.students_per_hall,
-      rules.standby_percentage,
-    );
+    // Independent calculation; never reuse the allocator’s count helper.
+    const expected = {
+      requiredHalls: d.totalStudents > 0 ? Math.ceil(d.totalStudents / Math.max(rules.students_per_hall,1)) + rules.extra_halls_per_centre : 0,
+      standby: d.totalStudents > 0 ? rules.hall_backup_staff : 0,
+    };
+    if (d.examDate && d.sessionCode) {
+      const sessionAssignments=result.assignments.filter(a => a.centreId===d.centreId && a.examDate===d.examDate && a.sessionCode===d.sessionCode);
+      for (const [role,expectedCount] of [["HALL_INVIGILATOR",expected.requiredHalls],["HALL_STANDBY",expected.standby]] as const) {
+        const count=sessionAssignments.filter(a=>a.roleCode===role).length;
+        if (count!==expectedCount) { errors++; issues.push({ruleCode:"RULE-HALL-STAFF-COUNT",severity:"ERROR",message:`${role === "HALL_STANDBY" ? "Backup staff" : "Invigilators"}: ${count} assigned; ${expectedCount} required.`,centreId:d.centreId,date:d.examDate}); }
+      }
+    }
     const gotHalls = result.requiredHallsByCentre[d.centreId] ?? -1;
     const gotStandby = result.standbyByCentre[d.centreId] ?? -1;
     if (gotHalls !== expected.requiredHalls || gotStandby !== expected.standby) {
@@ -136,7 +148,9 @@ export function validateHallAllocation(
       valid += 1;
     }
     if (dataset) {
-      for (const problem of hallEligibilityProblems(a, dataset, rules)) {
+      const demand=demands.find(d => d.centreId===a.centreId && (!d.examDate || d.examDate===a.examDate) && (!d.sessionCode || d.sessionCode===a.sessionCode));
+      if (!demand) {errors++;issues.push({ruleCode:"RULE-HALL-SESSION",severity:"ERROR",message:"Hall assignment is outside the requested centre timetable.",teacherId:a.teacherId});}
+      for (const problem of hallEligibilityProblems(a, dataset, rules, demand?.subjects)) {
         errors += 1;
         issues.push({
           ruleCode: problem.ruleCode,

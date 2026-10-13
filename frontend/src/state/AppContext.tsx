@@ -664,6 +664,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               schoolCode: String(s.school_code),
               sourceSchoolCode: s.source_school_code ?? undefined,
               schoolName: String(s.school_name),
+              schoolLevel: s.school_level ?? null,
               blockId: String(s.block_id || prior?.blockId || "blk_restored"),
               latitude:
                 typeof s.latitude === "number"
