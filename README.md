@@ -4,7 +4,49 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 **Correctness, auditability, and historical integrity take priority over UI polish.**
 
-## Confirmed staffing update — 13 October 2026
+## Current workflow — 16 October 2026
+
+The default app now uses rule set `ERODE-2026-10-16`, replacing the older
+block-only workflow described below. Use the **10th standard / 12th standard**
+buttons at the top. School and staff inputs are shared only within the selected
+cycle; centres, timetables and duties are separated by standard.
+
+1. Select **New empty cycle**. This never copies schools, staff, imports,
+   timetable, results or history from an earlier cycle. Earlier records remain
+   saved separately. Previous cycles are not consulted by default, as confirmed
+   by the client on 16 October 2026.
+2. Import **School Master.xlsx**, then **Teacher Master.xlsx**, using their
+   existing column headings. School UDISE codes identify schools; they are not
+   examination centre codes. Numbers and text are accepted for identifiers.
+3. Select **Download input template** for the exact headings for centres,
+   timetable, custodian/collection points, routes, practical groups and optional
+   previous-duty history. Blank sheets are allowed. See
+   [the input guide](docs/workspace-input-guide.md).
+4. Correct missing appointment dates, coordinates or other required fields in
+   Schools, Staff and Exam details. Confirm Rule settings before generating.
+5. Generate Theory or Practical duties and download the centre-wise list from
+   the same screen. The theory screen also offers Chief and department only.
+   Shortages stay unfilled and are explained; incomplete lists cannot be confirmed.
+6. Backups exports the selected cycle and all its saved duty-list input snapshots.
+   Restore creates another cycle; it does not overwrite the original.
+
+Confirmed choices: school-to-duty distance is an inclusive **10 km straight-line
+radius**, DEO means **District Educational Officer**, both standards use practical
+batches of at most **30 students**, and new cycles do not consult earlier cycles.
+The two-year restriction uses history explicitly imported into the current cycle.
+
+Local data is automatically saved to the app's SQLite database after successful
+imports and saved edits. Migration `010_exam_workspaces.sql` adds isolated-cycle
+tables without deleting legacy data. Old reports remain available through the
+previous-version records link. Apply migration 010 to a hosted database before
+deploying the new web frontend; a desktop release does not migrate hosted D1.
+
+Developer checks: `npm test`, `npm run typecheck`, `npm run check:routes`,
+`npm run lint`, `npm run app:build`. The browser smoke test now targets the
+new workspace flow (`npm run smoke:ui`) and must use an empty disposable database.
+Use `APP_URL` to specify its local URL. `npm run check:responsive` follows it.
+
+## Previous workflow reference — 13 October 2026
 
 New theory/hall runs use `STAFFING-2026-10-13` and algorithm version 3.0.0.
 For 200 students the count is 10 regular halls + 2 extra halls + 3 backup staff

@@ -351,3 +351,20 @@ operator must record those separately.
 **Needed:** A field-by-field mapping and the authorised source/process for
 exemptions and prior-duty history.
 
+# Client decisions — 16 October 2026
+
+For rule profile `ERODE-2026-10-16`, the client confirmed an inclusive 10 km
+school-to-duty straight-line radius (replacing the pasted 8 km), DEO as District
+Educational Officer, 30 students per 10th practical batch, and no consultation
+of previous cycles in a new empty cycle. Earlier cycles remain stored; only
+history explicitly imported into the selected cycle participates by default.
+These decisions supersede conflicting earlier discussion for new workspaces.
+
+The editable rule review states the operational interpretation explicitly:
+Tamil/English subject exceptions; rounded-up student/20 halls plus two extra
+halls and three backups; squad rounded up per centre from ordinary halls/8;
+present-post appointment seniority; unmet requirements remain shortages.
+No DEO records or exam-specific centre/strength/timetable data are fabricated
+from the teacher/school masters. Small practical groups are sent to the manually
+selected receiving school while retaining their origin-school batch identity.
+

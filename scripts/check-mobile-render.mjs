@@ -31,16 +31,11 @@ for (const vp of viewports) {
   await page.goto(base, { waitUntil: "domcontentloaded" });
 
   try {
-    // Real content, not the skeleton: stat tiles + pipeline + provenance.
-    await page.getByTestId("dashboard-hydrate").waitFor({ timeout: 20_000 });
-    await page.getByRole("heading", { name: "Duty lists", exact: true }).waitFor({ timeout: 20_000 });
-    await page.getByRole("heading", { name: "System health", exact: true }).waitFor({ timeout: 20_000 });
-
-    // Navigation must be reachable at every width.
-    const navSelector =
-      vp.width < 768 ? "nav-mobile-theory" : "nav-theory";
-    await page.getByTestId(navSelector).click({ timeout: 10_000 });
-    await page.getByRole("heading", { name: "Theory centre duties", exact: true }).waitFor({ timeout: 20_000 });
+    await page.getByRole('status').filter({hasText:'Saved cycle loaded'}).waitFor({timeout:20000});
+    await page.getByRole('button',{name:'Theory duties',exact:true}).click();
+    await page.getByRole('heading',{name:'12th standard theory duties',exact:true}).waitFor();
+    await page.getByRole('button',{name:'10th standard',exact:true}).click();
+    await page.getByRole('heading',{name:'10th standard theory duties',exact:true}).waitFor();
 
     // No horizontal overflow of the document at any width.
     const overflow = await page.evaluate(

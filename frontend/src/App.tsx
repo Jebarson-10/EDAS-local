@@ -1,16 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./layout/AppShell";
-import { DashboardPage } from "./pages/DashboardPage";
-import { MasterDataPage } from "./pages/MasterDataPage";
-import { ImportPage } from "./pages/ImportPage";
-import { TheoryPage } from "./pages/TheoryPage";
-import { PracticalPage } from "./pages/PracticalPage";
-import { HallPage } from "./pages/HallPage";
+import { ExamWorkspacePage } from "./pages/ExamWorkspacePage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { AuditPage } from "./pages/AuditPage";
 import { BackupPage } from "./pages/BackupPage";
 import { ReportsPage } from "./pages/ReportsPage";
-import { ExamCyclePage } from "./pages/ExamCyclePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { HelpPage } from "./pages/HelpPage";
 import { AppProvider } from "./state/AppContext";
@@ -19,14 +13,14 @@ export default function App() {
   return (
     <AppProvider>
       <Routes>
+        <Route path="/" element={<ExamWorkspacePage />} />
         <Route element={<AppShell />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/master" element={<MasterDataPage />} />
-          <Route path="/imports" element={<ImportPage />} />
-          <Route path="/cycles" element={<ExamCyclePage />} />
-          <Route path="/theory" element={<TheoryPage />} />
-          <Route path="/practical" element={<PracticalPage />} />
-          <Route path="/hall" element={<HallPage />} />
+          <Route path="/master" element={<Navigate to="/" replace />} />
+          <Route path="/imports" element={<Navigate to="/" replace />} />
+          <Route path="/cycles" element={<Navigate to="/" replace />} />
+          <Route path="/theory" element={<Navigate to="/" replace />} />
+          <Route path="/practical" element={<Navigate to="/" replace />} />
+          <Route path="/hall" element={<Navigate to="/" replace />} />
           <Route path="/validation" element={<ValidationPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/audit" element={<AuditPage />} />
