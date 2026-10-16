@@ -4,6 +4,7 @@
  * Listens on http://127.0.0.1:43124
  */
 import { createServer } from "node:http";
+import { workspaceEndpoint } from "../worker/src/db/examWorkspaces.ts";
 import {
   mkdirSync,
   existsSync,
@@ -296,6 +297,14 @@ async function main() {
         return;
       }
       const a = auth(req);
+
+      if (url.pathname === "/api/workspaces" && ["GET", "POST"].includes(req.method)) {
+        if (!requirePerm(a, req.method === "GET" ? "master.read" : "master.write", res)) return;
+        try {
+          const body = req.method === "POST" ? JSON.parse((await readBody(req)).toString("utf8")) : undefined;
+          return json(res, await workspaceEndpoint(db, req.method, url.searchParams, body));
+        } catch (error) { return json(res, {error: error instanceof Error ? error.message : "Cycle could not be saved"}, 400); }
+      }
 
       if (url.pathname === "/api/health") {
         let dbOk = false;

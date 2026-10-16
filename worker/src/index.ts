@@ -5,6 +5,7 @@
  * (same code path as local better-sqlite3 API).
  */
 
+import { workspaceEndpoint } from "./db/examWorkspaces";
 import {
   countMaster,
   createExamCycle,
@@ -286,6 +287,14 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   }
   const auth = resolveAuth(request, env);
   const db = asDb(env);
+
+  if (url.pathname === "/api/workspaces" && ["GET", "POST"].includes(request.method)) {
+    const denied = requirePerm(auth, request.method === "GET" ? "master.read" : "master.write");
+    if (denied) return denied;
+    try {
+      return json(await workspaceEndpoint(db, request.method, url.searchParams, request.method === "POST" ? await request.json() : undefined));
+    } catch (error) { return json({error: error instanceof Error ? error.message : "Cycle could not be saved"}, 400); }
+  }
 
   if (url.pathname === "/api/health") {
     const environment = env.ENVIRONMENT ?? "unknown";

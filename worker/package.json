@@ -8,6 +8,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@exam-duty/validator": "*",
     "@exam-duty/shared": "*",
     "better-sqlite3": "^13.0.3",
     "exceljs": "^4.4.0",

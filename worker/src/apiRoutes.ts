@@ -14,6 +14,8 @@ export type ApiRoute =
     };
 
 export const API_ROUTES: ApiRoute[] = [
+  { method: "GET", path: "/api/workspaces" },
+  { method: "POST", path: "/api/workspaces" },
   { method: "*", path: "/api/health" },
   { method: "*", path: "/api/me" },
   { method: "GET", path: "/api/rule-versions" },
