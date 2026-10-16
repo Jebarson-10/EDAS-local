@@ -36,3 +36,5 @@ export * from "./allocationReadiness.js";
 export * from "./historicalDutyImport.js";
 
 export * from "./staffPosts.js";
+export * from "./examWorkspace.js";
+export * from "./workspaceImport.js";
