@@ -2,14 +2,18 @@ import ExcelJS from "exceljs";
 import {
   emptyExamWorkspace,
   importWorkspaceSheet,
+  compatibleXlsxBuffer,
 } from "../shared/src/index.ts";
+import {readFile} from 'node:fs/promises';
 
 async function main() {
   let workspace = emptyExamWorkspace("input-check", "Input check");
   for (const path of process.argv.slice(2)) {
     const book = new ExcelJS.Workbook();
-    await book.xlsx.readFile(path);
+    const bytes=await readFile(path);
+    await book.xlsx.load(await compatibleXlsxBuffer(Uint8Array.from(bytes).buffer));
     for (const sheet of book.worksheets) {
+      if(/^(instructions|guide|readme)$/i.test(sheet.name))continue;
       const lines: unknown[][] = [];
       sheet.eachRow({ includeEmpty: true }, (row) =>
         lines.push((row.values as unknown[]).slice(1)),

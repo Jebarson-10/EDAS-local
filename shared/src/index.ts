@@ -38,3 +38,5 @@ export * from "./historicalDutyImport.js";
 export * from "./staffPosts.js";
 export * from "./examWorkspace.js";
 export * from "./workspaceImport.js";
+export * from "./workspaceChecklist.js";
+export * from "./xlsxCompatibility.js";

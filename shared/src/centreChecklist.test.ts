@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parseCentreChecklist, schoolReferenceKey } from "./centreChecklist.js";
 
 describe("official centre checklist", () => {
+  it('reads a numeric student count when scan noise affects only registration columns',()=>{
+    const p=parseCentreChecklist(['SSLC MARCH 2026\nCentre Code : 990001 Centre Name : SYNTHETIC SCHOOL\n990 990ABCD0001 SYNTHETIC SCHOOL ~~ Q 0 34']);
+    expect(p.errors).toEqual([]);expect(p.rows[0]?.studentCount).toBe(34);expect(p.rows[0]?.schoolName).toBe('SYNTHETIC SCHOOL');
+  });
   it("keeps school strengths, continuing centres across pages", () => {
     const parsed = parseCentreChecklist([
       "SSLC - MARCH 2026 (CENTRE AND SCHOOL CHECK LIST REGULAR)\nCentre Code : 990001 Centre Name : SYNTHETIC SCHOOL\n990 990ABCD0001 SYNTHETIC SCHOOL 0 0 101",

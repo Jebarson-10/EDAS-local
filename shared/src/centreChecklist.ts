@@ -43,7 +43,7 @@ export function parseCentreChecklist(pages: string[]) {
       }
       // Three trailing columns are registration bounds and count. Preserve an
       // unreadable count for correction rather than converting it to zero.
-      const row = line.match(/^\d{3}\s+([A-Z0-9]+)\s+(.+?)\s+(?:\d+|\[1\]|[Oo])\s+(?:\d+|\[1\]|[Oo])\s+(\S+)\s*$/i);
+      const row = line.replace(/~+/g,' ').match(/^\d{3}\s+([A-Z0-9]+)\s+(.+?)\s+(?:\d+|\[1\]|[OoQ])\s+(?:\d+|\[1\]|[OoQ])\s+(\S+)\s*$/i);
       if (!row) {
         if (/^\d{3}\s/.test(line)) errors.push(`Page ${pageIndex + 1}: could not read a school row: ${line}`);
         continue;
