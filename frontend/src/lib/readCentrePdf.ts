@@ -28,10 +28,13 @@ export async function readCentrePdf(file: File, progress: (message: string) => v
           const { createWorker, PSM } = await import("tesseract.js");
           const base = new URL(`${import.meta.env.BASE_URL}ocr/`, window.location.origin).href;
           ocr = await createWorker("eng", 1, { workerPath: `${base}worker.min.js`, corePath: base, langPath: base, cacheMethod: "none" });
-          await ocr.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK, preserve_interword_spaces: "1" });
+          // Keep each printed table row together. AUTO separates the numeric
+          // columns into different blocks and loses their school association.
+          await ocr.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK, preserve_interword_spaces: "0" });
         }
         progress(`Reading scanned page ${n} of ${doc.numPages}…`);
-        const viewport = page.getViewport({scale:2.5});
+        const natural=page.getViewport({scale:1});
+        const viewport = page.getViewport({scale:2400/Math.max(natural.width,natural.height)});
         const canvas = document.createElement("canvas");
         canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
         await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;

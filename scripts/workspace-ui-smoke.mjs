@@ -99,14 +99,30 @@ try {
     1,
     "2027-02-20;2027-02-21",
   ]);
-  await page
-    .getByLabel("Import Excel workbook")
-    .setInputFiles({
-      name: "synthetic-input.xlsx",
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: Buffer.from(await book.xlsx.writeBuffer()),
-    });
+  const uploadData = {
+    name: "synthetic-input.xlsx",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: Buffer.from(await book.xlsx.writeBuffer()),
+  };
+  for (const name of [
+    "Upload School Master",
+    "Upload Teacher Master",
+    "Upload combined workbook",
+  ]) {
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name, exact: true }).click();
+    await (await chooser).setFiles(uploadData);
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Saved successfully" })
+      .waitFor();
+    if (name === "Upload School Master") {
+      const saved = await get(`?id=${(await get()).cycles[0].id}`);
+      assert.equal(saved.workspace.schools.length, 3);
+      assert.equal(saved.workspace.staff.length, 0);
+    }
+  }
   await page
     .getByRole("status")
     .filter({ hasText: "Saved successfully" })
@@ -118,6 +134,30 @@ try {
   assert.equal(data.workspace.timetable.length, 1);
   assert.equal(data.workspace.routes.length, 1);
   assert.equal(data.workspace.settings.retainHistory, false);
+  const navigation = page.getByRole("navigation", { name: "Sections" });
+  await navigation
+    .getByRole("button", { name: "Dashboard", exact: true })
+    .click();
+  await page.getByTestId("workspace-dashboard").waitFor();
+  await navigation
+    .getByRole("button", { name: "Timetable", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Upload timetable in bulk", exact: true })
+    .waitFor();
+  await navigation
+    .getByRole("button", { name: "School map", exact: true })
+    .click();
+  await page.locator(".leaflet-container").waitFor();
+  assert.equal(await page.locator(".leaflet-overlay-pane path").count(), 3);
+  await page.getByLabel("Map school", { exact: true }).selectOption("s");
+  await page.setViewportSize({ width: 420, height: 900 });
+  assert(
+    (await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    )) <= 2,
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.reload();
   await page
     .getByRole("status")

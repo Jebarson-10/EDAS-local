@@ -3,6 +3,7 @@ import {
   WORKSPACE_IMPORT_HEADERS,
   type ExamWorkspace,
   type WorkspaceRun,
+  type WorkspaceImportKind,
 } from "@exam-duty/shared";
 
 export function downloadFile(name: string, data: BlobPart, type: string) {
@@ -83,7 +84,61 @@ export const inputGuide = [
     "Delete nothing from headings. Leave unused sheets empty. Do not fill unknown values with zero or made-up details.",
   ],
 ];
-export async function downloadWorkspaceTemplate() {
+export const workspaceInputSections: {
+  kind: WorkspaceImportKind;
+  title: string;
+  description: string;
+}[] = [
+  {
+    kind: "Schools",
+    title: "1. Schools",
+    description:
+      "Upload School Master. Includes full school name, UDISE, block, educational district, school level and coordinates.",
+  },
+  {
+    kind: "Staff",
+    title: "2. Teachers and office staff",
+    description:
+      "Upload Teacher Master after schools. Use its existing Staff ID, post, subjects, class taught and present-post appointment date.",
+  },
+  {
+    kind: "Centres",
+    title: "3. Centres and student strength",
+    description:
+      "One row per centre and standard. Enter centre code, school UDISE, total students and linked schools. Individual student names are not needed.",
+  },
+  {
+    kind: "Timetable",
+    title: "4. Timetable",
+    description:
+      "One row per exam date, session and subject. Leave Centre Code blank when it applies to all centres of that standard.",
+  },
+  {
+    kind: "Points",
+    title: "5. Custodian and collection points",
+    description:
+      "Enter each point, its school location, standard and centres served. A separate row creates another point.",
+  },
+  {
+    kind: "Routes",
+    title: "6. Routes",
+    description:
+      "One row per route officer required. Enter the custodian point and the centres in that point to visit.",
+  },
+  {
+    kind: "Practical",
+    title: "7. Practical student groups",
+    description:
+      "One row per school, group and subject. Include student count, available rooms, receiving school and available exam dates.",
+  },
+  {
+    kind: "History",
+    title: "8. Previous duties (optional)",
+    description:
+      "Only duties imported here are considered for the two-year restriction. Other cycles are not consulted by default.",
+  },
+];
+export async function downloadWorkspaceTemplate(kind?: WorkspaceImportKind) {
   const book = new ExcelJS.Workbook();
   const guide = book.addWorksheet("Instructions");
   guide.addRow(["Input", "How to fill it"]);
@@ -95,6 +150,7 @@ export async function downloadWorkspaceTemplate() {
     row.height = 40;
   });
   for (const [name, headers] of Object.entries(WORKSPACE_IMPORT_HEADERS)) {
+    if (kind && name !== kind) continue;
     const sheet = book.addWorksheet(
       name === "History" ? "Previous Duties" : name,
     );
@@ -116,7 +172,7 @@ export async function downloadWorkspaceTemplate() {
     sheet.getRow(1).height = 28;
   }
   downloadFile(
-    "Erode-Exam-Inputs.xlsx",
+    kind ? `Erode-${kind}-Input.xlsx` : "Erode-Exam-Inputs.xlsx",
     (await book.xlsx.writeBuffer()) as ArrayBuffer,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );
@@ -273,13 +329,54 @@ export async function downloadWorkspaceReport(
       c.width = 27;
     });
     sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF183B4C" },
+    };
+    sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    sheet.pageSetup = {
+      paperSize: 9,
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      printTitlesRow: "1:1",
+    };
+    sheet.headerFooter = {
+      oddHeader: `${run.standard}th ${run.module.toLowerCase()} duties${run.published ? "" : " - DRAFT"}`,
+      oddFooter: "Page &P of &N",
+    };
     sheet.eachRow((row) => {
       row.alignment = { wrapText: true, vertical: "middle" };
       row.height = 42;
     });
   }
+  if (run.shortages.length || run.errors.length) {
+    const issues = book.addWorksheet("Unfilled duties");
+    issues.addRow(["Centre or point", "Duty", "Missing", "Dates", "Reason"]);
+    for (const gap of run.shortages)
+      issues.addRow([
+        gap.target,
+        workspaceRoleLabel(gap.role),
+        gap.missing,
+        gap.date,
+        Object.entries(gap.reasons)
+          .map(([reason, n]) => `${reason}: ${n}`)
+          .join("; "),
+      ]);
+    for (const error of run.errors) issues.addRow(["", "", "", "", error]);
+    issues.columns.forEach((c) => {
+      c.width = 30;
+    });
+    issues.getColumn(5).width = 75;
+    issues.eachRow((row) => {
+      row.alignment = { wrapText: true, vertical: "top" };
+      row.height = 45;
+    });
+  }
   downloadFile(
-    `${run.standard}-${run.module.toLowerCase()}-${chiefsOnly ? "chiefs-" : ""}${run.shortages.length || run.errors.length ? "DRAFT-" : ""}${run.id.slice(0, 8)}.xlsx`,
+    `${run.standard}-${run.module.toLowerCase()}-${chiefsOnly ? "chiefs-" : ""}${!run.published || run.shortages.length || run.errors.length ? "DRAFT-" : ""}${run.id.slice(0, 8)}.xlsx`,
     (await book.xlsx.writeBuffer()) as ArrayBuffer,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );

@@ -6,6 +6,34 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 ## Current workflow — 16 October 2026
 
+Local improvements prepared on 18 October 2026 add a Dashboard with school,
+teaching/non-teaching staff, centre strength and timetable totals. Import data
+now has named uploads and individual templates for Schools, Staff, Centres,
+Timetable, Points, Routes, Practical and Previous Duties. The same uploads are
+available on the corresponding data pages. Timetable is a separate tab.
+
+Centre strengths may also be read from a 13A PDF. Review the examination year,
+centre host, each linked school and student count before saving. The PDF's exam
+school code is distinct from UDISE. Only unique equivalent school names are
+matched automatically; unmatched names require a school selection. The app
+does not create a new school merely because its PDF name is abbreviated.
+
+School map shows imported coordinates and a selected school's 10 km circle
+offline. The optional street layer uses OpenStreetMap over the internet with
+attribution and ordinary browser caching, without any paid key or bulk download.
+See [OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/).
+Map imagery is not needed for allotment; distance is calculated from coordinates.
+
+The spreadsheet reader now accepts namespace-prefixed SpreadsheetML and ISO date
+cells (`t="d"`). This resolves valid-workbook `undefined (reading 'sheets')`
+failures and prevents an ISO date's year being mistaken for an Excel serial date.
+Both representations are covered by the import compatibility tests.
+
+For the client-requested practice run, dates are 19–23 October 2026, one morning
+SSLC core paper per day. These are explicitly sample dates. Real source masters,
+PDF extractions and demo results stay outside source control. Missing school
+links and genuinely unavailable staff remain visible rather than being fabricated.
+
 The default app now uses rule set `ERODE-2026-10-16`, replacing the older
 block-only workflow described below. Use the **10th standard / 12th standard**
 buttons at the top. School and staff inputs are shared only within the selected

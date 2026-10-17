@@ -191,6 +191,7 @@ function createWindow(url) {
     return { action: "deny" };
   });
 
+  win.webContents.setUserAgent(`${win.webContents.getUserAgent()} ErodeExamDuty/${app.getVersion()} (+https://github.com/Jebarson-10/EDAS-local)`);
   void win.loadURL(url);
   return win;
 }

@@ -1,4 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { WorkspaceDashboard } from "../components/WorkspaceDashboard";
+import { WorkspaceChecklistImport } from "../components/WorkspaceChecklistImport";
+import { workspaceInputErrors } from "@exam-duty/allocation-engine";
+const WorkspaceMap = lazy(() => import("../components/WorkspaceMap"));
 import {
   emptyExamWorkspace,
   workspaceSchema,
@@ -8,6 +20,7 @@ import {
   type WorkspaceRun,
   type WorkspaceStandard,
   type WorkspaceAssignment,
+  type WorkspaceImportKind,
 } from "@exam-duty/shared";
 import {
   downloadFile,
@@ -15,6 +28,7 @@ import {
   downloadWorkspaceTemplate,
   workspaceRoleLabel,
   inputGuide,
+  workspaceInputSections,
 } from "../lib/workspaceFiles";
 
 const API = import.meta.env.VITE_API_BASE ?? "";
@@ -36,6 +50,9 @@ async function request(query = "", body?: unknown) {
 }
 type CycleSummary = { id: string; name: string; revision: number };
 type Tab =
+  | "dashboard"
+  | "timetable"
+  | "locations"
   | "inputs"
   | "schools"
   | "staff"
@@ -62,8 +79,41 @@ type Field = {
 };
 const pretty = (s: string) =>
   s.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ");
+const choiceLabels: Record<string, string> = {
+  HM_HSS: "Higher secondary Headmaster (12th)",
+  HM_HS: "High school Headmaster (10th)",
+  HM: "Headmaster",
+  PRINCIPAL: "Principal",
+  PG: "PG Assistant",
+  BT: "BT Assistant",
+  PD1: "Physical Director Grade 1",
+  PD2: "Physical Director Grade 2",
+  VOCATIONAL: "Vocational teacher",
+  COMPUTER_INSTRUCTOR: "Computer Instructor",
+  DEO: "District Educational Officer",
+  JA: "Junior Assistant",
+  OA: "Office Assistant",
+  RC: "Record Clerk",
+  SGT: "Secondary Grade Teacher",
+  HIGH: "High school (up to 10th)",
+  HIGHER_SECONDARY: "Higher secondary (up to 12th)",
+  TEACHING: "Teaching staff",
+  NON_TEACHING: "Non-teaching staff",
+  GOVERNMENT: "Government",
+  AIDED: "Government aided",
+  PRIVATE: "Private",
+  UNKNOWN: "Needs checking",
+  OTHER: "Other",
+  CUSTODIAN: "Custodian point",
+  COLLECTION: "Collection point",
+  MORNING: "Morning",
+  AFTERNOON: "Afternoon",
+};
 const options = (values: string[]) =>
-  values.map((value) => ({ value, label: pretty(value) }));
+  values.map((value) => ({
+    value,
+    label: choiceLabels[value] ?? pretty(value),
+  }));
 const button =
   "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50";
 const primary = `${button} !border-transparent !bg-[#183B4C] !text-white hover:!bg-[#26556b]`;
@@ -82,8 +132,13 @@ export function ExamWorkspacePage() {
   const [cycles, setCycles] = useState<CycleSummary[]>([]);
   const [workspace, setWorkspace] = useState<ExamWorkspace | null>(null);
   const [runs, setRuns] = useState<WorkspaceRun[]>([]);
-  const [standard, setStandard] = useState<WorkspaceStandard>("12");
-  const [tab, setTab] = useState<Tab>("inputs");
+  const [standard, setStandard] = useState<WorkspaceStandard>(() =>
+    localStorage.getItem("edas-workspace-standard") === "10" ? "10" : "12",
+  );
+  const [tab, setTab] = useState<Tab>("dashboard");
+  const [uploadKind, setUploadKind] = useState<
+    WorkspaceImportKind | undefined
+  >();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -118,7 +173,9 @@ export function ExamWorkspacePage() {
   }
   async function load(id: string) {
     const data = await request(`?id=${encodeURIComponent(id)}`);
-    put(workspaceSchema.parse(data.workspace));
+    const saved=workspaceSchema.parse(data.workspace);
+    put(saved);
+    if(!localStorage.getItem('edas-workspace-standard')&&saved.centres.some(c=>c.standard==='10')&&!saved.centres.some(c=>c.standard==='12'))setStandard('10');
     setRuns(data.runs);
     setSelectedRun("");
     setWarnings([]);
@@ -206,6 +263,10 @@ export function ExamWorkspacePage() {
       worker.postMessage(input);
     });
   }
+  function chooseUpload(kind?: WorkspaceImportKind) {
+    setUploadKind(kind);
+    fileInput.current?.click();
+  }
   async function importFile(file: File) {
     if (!workspace) throw new Error("Create an exam cycle first.");
     setMessage("Reading workbook and checking rows...");
@@ -213,6 +274,7 @@ export function ExamWorkspacePage() {
       kind: "import",
       workspace,
       file: await file.arrayBuffer(),
+      expectedKind: uploadKind,
     });
     setWarnings(result.warnings ?? []);
     if (result.errors.length)
@@ -272,6 +334,11 @@ export function ExamWorkspacePage() {
     );
   }
   const activeModule = tab === "practical" ? "PRACTICAL" : "THEORY";
+  const inputIssues = useMemo(
+    () =>
+      workspace ? workspaceInputErrors(workspace, standard, activeModule) : [],
+    [workspace, standard, activeModule],
+  );
   const moduleRuns = runs.filter(
     (r) => r.standard === standard && r.module === activeModule,
   );
@@ -495,7 +562,7 @@ export function ExamWorkspacePage() {
       case "practical": {
         const allowed = (editing?.values.allowedCentreUdise as string[]) ?? [];
         return [
-          { key: "id", label: "Demand ID" },
+          { key: "id", label: "Practical group reference" },
           ...common,
           { key: "subject", label: "Practical subject" },
           { key: "students", label: "Students in this group", type: "number" },
@@ -542,7 +609,13 @@ export function ExamWorkspacePage() {
     }
   };
   const activeCollection: Collection =
-    tab === "schools" ? "schools" : tab === "staff" ? "staff" : collection;
+    tab === "schools"
+      ? "schools"
+      : tab === "staff"
+        ? "staff"
+        : tab === "timetable"
+          ? "timetable"
+          : collection;
   const entries = workspace
     ? (workspace[activeCollection] as unknown as Record<string, unknown>[])
         .map((value, index) => ({ value, index }))
@@ -642,6 +715,7 @@ export function ExamWorkspacePage() {
                 className={`rounded-lg px-4 py-2 text-sm ${standard === s ? "bg-white font-bold text-[#183B4C]" : "border border-white/40"}`}
                 onClick={() => {
                   setStandard(s);
+                  localStorage.setItem("edas-workspace-standard", s);
                   setSelectedRun("");
                   setPage(0);
                 }}
@@ -726,13 +800,28 @@ export function ExamWorkspacePage() {
           </Panel>
         ) : (
           <>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".xlsx"
+              className="hidden"
+              aria-label="Import Excel workbook"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void action(() => importFile(file));
+              }}
+            />
             <nav aria-label="Sections" className="mb-5 flex flex-wrap gap-2">
               {(
                 [
+                  ["dashboard", "Dashboard"],
                   ["inputs", "Import data"],
                   ["schools", "Schools"],
                   ["staff", "Staff"],
                   ["exam", "Exam details"],
+                  ["timetable", "Timetable"],
+                  ["locations", "School map"],
                   ["theory", "Theory duties"],
                   ["practical", "Practical duties"],
                   ["rules", "Rule settings"],
@@ -755,6 +844,21 @@ export function ExamWorkspacePage() {
             </nav>
             <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
               <div className="min-w-0 space-y-5">
+                {tab === "dashboard" && (
+                  <WorkspaceDashboard
+                    workspace={workspace}
+                    standard={standard}
+                    runs={runs}
+                    onNavigate={setTab}
+                  />
+                )}
+                {tab === "locations" && (
+                  <Panel title="Schools and centre locations">
+                    <Suspense fallback={<p>Opening map...</p>}>
+                      <WorkspaceMap workspace={workspace} standard={standard} />
+                    </Suspense>
+                  </Panel>
+                )}
                 {tab === "inputs" && (
                   <>
                     <Panel title="Import your data">
@@ -768,9 +872,9 @@ export function ExamWorkspacePage() {
                         <button
                           className={primary}
                           disabled={busy}
-                          onClick={() => fileInput.current?.click()}
+                          onClick={() => chooseUpload()}
                         >
-                          Upload Excel workbook
+                          Upload combined workbook
                         </button>
                         <button
                           className={button}
@@ -780,18 +884,51 @@ export function ExamWorkspacePage() {
                           Download input template
                         </button>
                       </div>
-                      <input
-                        ref={fileInput}
-                        type="file"
-                        accept=".xlsx"
-                        className="hidden"
-                        aria-label="Import Excel workbook"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = "";
-                          if (file) void action(() => importFile(file));
-                        }}
-                      />
+                      <p className="mt-3 text-sm text-slate-600">
+                        Choose the matching upload below for separate files. The
+                        combined option reads every supported sheet in one
+                        workbook.
+                      </p>
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {workspaceInputSections.map((section) => (
+                          <section
+                            key={section.kind}
+                            className="rounded-lg border border-slate-200 p-4"
+                          >
+                            <h3 className="font-semibold">{section.title}</h3>
+                            <p className="my-2 text-sm text-slate-600">
+                              {section.description}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                className={primary}
+                                disabled={busy}
+                                onClick={() => chooseUpload(section.kind)}
+                              >
+                                Upload{" "}
+                                {section.kind === "Staff"
+                                  ? "Teacher Master"
+                                  : section.kind === "Schools"
+                                    ? "School Master"
+                                    : section.kind === "History"
+                                      ? "previous duties"
+                                      : section.kind.toLowerCase()}
+                              </button>
+                              <button
+                                className={button}
+                                disabled={busy}
+                                onClick={() =>
+                                  void action(() =>
+                                    downloadWorkspaceTemplate(section.kind),
+                                  )
+                                }
+                              >
+                                Download {section.kind.toLowerCase()} template
+                              </button>
+                            </div>
+                          </section>
+                        ))}
+                      </div>
                       <div className="mt-5 grid grid-cols-3 gap-3">
                         {[
                           ["Schools", workspace.schools.length],
@@ -833,6 +970,14 @@ export function ExamWorkspacePage() {
                         ))}
                       </div>
                     </Panel>
+                    <WorkspaceChecklistImport
+                      key={workspace.id}
+                      workspace={workspace}
+                      disabled={busy}
+                      onSave={(next) =>
+                        save(next, "Reviewed centre strengths saved.")
+                      }
+                    />
                     <Panel title="Uploaded files">
                       {workspace.imports.length ? (
                         workspace.imports.map((f, i) => (
@@ -847,14 +992,18 @@ export function ExamWorkspacePage() {
                     </Panel>
                   </>
                 )}
-                {(["schools", "staff", "exam"] as Tab[]).includes(tab) && (
+                {(["schools", "staff", "exam", "timetable"] as Tab[]).includes(
+                  tab,
+                ) && (
                   <Panel
                     title={
-                      tab === "exam"
-                        ? `${standard}th standard exam details`
-                        : tab === "schools"
-                          ? "School master"
-                          : "Staff master"
+                      tab === "timetable"
+                        ? `${standard}th standard timetable`
+                        : tab === "exam"
+                          ? `${standard}th standard exam details`
+                          : tab === "schools"
+                            ? "School master"
+                            : "Staff master"
                     }
                   >
                     {tab === "exam" && (
@@ -905,12 +1054,77 @@ export function ExamWorkspacePage() {
                       </button>
                       <button
                         className={button}
-                        onClick={() => void action(downloadWorkspaceTemplate)}
+                        onClick={() =>
+                          void action(() =>
+                            downloadWorkspaceTemplate(
+                              (
+                                {
+                                  schools: "Schools",
+                                  staff: "Staff",
+                                  centres: "Centres",
+                                  timetable: "Timetable",
+                                  points: "Points",
+                                  routes: "Routes",
+                                  practical: "Practical",
+                                  history: "History",
+                                } as const
+                              )[activeCollection],
+                            ),
+                          )
+                        }
                       >
                         Download template
                       </button>
+                      <button
+                        className={button}
+                        disabled={busy}
+                        onClick={() =>
+                          chooseUpload(
+                            (
+                              {
+                                schools: "Schools",
+                                staff: "Staff",
+                                centres: "Centres",
+                                timetable: "Timetable",
+                                points: "Points",
+                                routes: "Routes",
+                                practical: "Practical",
+                                history: "History",
+                              } as const
+                            )[activeCollection],
+                          )
+                        }
+                      >
+                        Upload{" "}
+                        {tab === "schools"
+                          ? "School Master"
+                          : tab === "staff"
+                            ? "Teacher Master"
+                            : tab === "timetable"
+                              ? "timetable"
+                              : "these details"}{" "}
+                        in bulk
+                      </button>
                     </div>
                     <p className="mb-3 text-sm text-slate-600">
+                      {
+                        workspaceInputSections.find(
+                          (s) =>
+                            s.kind ===
+                            (
+                              {
+                                schools: "Schools",
+                                staff: "Staff",
+                                centres: "Centres",
+                                timetable: "Timetable",
+                                points: "Points",
+                                routes: "Routes",
+                                practical: "Practical",
+                                history: "History",
+                              } as const
+                            )[activeCollection],
+                        )?.description
+                      }{" "}
                       {entries.length} records. Select Edit to update a record.
                       Changes save when you select Save.
                     </p>
@@ -1023,6 +1237,28 @@ export function ExamWorkspacePage() {
                 {(tab === "theory" || tab === "practical") && (
                   <>
                     <Panel title={`${standard}th standard ${tab} duties`}>
+                      {inputIssues.length > 0 && (
+                        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+                          <b>Complete these inputs first</b>
+                          <ul className="mt-2 list-disc space-y-1 pl-5">
+                            {inputIssues.slice(0, 10).map((issue, i) => (
+                              <li key={i}>{issue}</li>
+                            ))}
+                          </ul>
+                          {inputIssues.length > 10 && (
+                            <p className="mt-2">
+                              {inputIssues.length - 10} more centre links need
+                              attention in Exam details.
+                            </p>
+                          )}
+                          <p className="mt-3">
+                            Use Timetable for dates and subjects. Use Exam
+                            details for centres, points, routes and practical
+                            groups. Each page has an upload button for bulk
+                            entry.
+                          </p>
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-2">
                         <button
                           className={primary}
@@ -1030,6 +1266,7 @@ export function ExamWorkspacePage() {
                           onClick={() =>
                             void action(() => generate(activeModule))
                           }
+                          aria-describedby="generation-input-note"
                         >
                           Generate duties
                         </button>
@@ -1081,7 +1318,10 @@ export function ExamWorkspacePage() {
                           Confirm duty list
                         </button>
                       </div>
-                      <p className="mt-3 text-sm text-slate-600">
+                      <p
+                        id="generation-input-note"
+                        className="mt-3 text-sm text-slate-600"
+                      >
                         Downloads are arranged centre-wise. A saved version is
                         kept every time duties are generated. Lists with
                         shortages are marked Draft.

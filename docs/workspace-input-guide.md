@@ -5,6 +5,23 @@ input sheets. Your original School Master and Teacher Master files can also be
 uploaded directly, including their title row above the headings. All original
 master columns are retained with each record; recognised fields drive allotment.
 
+Import data also has separate upload buttons and templates for each category.
+Use Upload School Master first and Upload Teacher Master second. Timetable has
+its own navigation tab and bulk upload. Exam details provides bulk entry for
+centres, points, routes, practical groups and optional history. No individual
+student roster is needed: theory uses centre totals, practical uses group totals.
+
+For a 13A PDF, use Upload centre-strength PDF. Check all school selections and
+counts, including linked schools, before selecting Save reviewed centres. The
+school selector shows the full master school name followed by its numeric UDISE
+code. Exam-school codes printed in the PDF are a different coding system and must
+not be entered as UDISE. An unrecognised school name requires a manual link.
+
+High school means education through 10th; Higher secondary means through 12th.
+This school level does not by itself declare the school an exam centre. A higher
+secondary school can also host an SSLC centre when the centre input says so.
+Staff ID is the existing identifier in Teacher Master, not a second employee code.
+
 | Sheet | Information to enter |
 |---|---|
 | Schools | UDISE Code, School Name, Block, Educational District, Category, Management Type, Latitude, Longitude |
