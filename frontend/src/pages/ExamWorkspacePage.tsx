@@ -140,6 +140,7 @@ export function ExamWorkspacePage() {
     localStorage.getItem("edas-workspace-standard") === "10" ? "10" : "12",
   );
   const [tab, setTab] = useState<Tab>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [uploadKind, setUploadKind] = useState<
     WorkspaceImportKind | undefined
   >();
@@ -818,7 +819,18 @@ export function ExamWorkspacePage() {
                 if (file) void action(() => importFile(file));
               }}
             />
-            <nav aria-label="Sections" className="mb-5 flex flex-wrap gap-2">
+            <button className={button + " mb-4 lg:hidden"} aria-label="Open section menu" aria-expanded={sidebarOpen}
+              aria-controls="workspace-section-sidebar" onClick={() => setSidebarOpen((open) => !open)}>Menu</button>
+            <div className="grid items-start gap-5 lg:grid-cols-[200px_minmax(0,1fr)]">
+            {sidebarOpen && <button aria-label="Close section menu" className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+            <aside id="workspace-section-sidebar" data-testid="workspace-sidebar"
+              className={`${sidebarOpen ? "fixed inset-y-0 left-0 z-40 w-60 p-4 shadow-xl" : "hidden"} rounded-xl border border-slate-200 bg-white lg:sticky lg:top-28 lg:z-auto lg:block lg:max-h-[calc(100vh-8rem)] lg:w-auto lg:overflow-y-auto lg:p-3 lg:shadow-sm`}
+              onKeyDown={(e) => { if (e.key === "Escape") setSidebarOpen(false); }}>
+            <div className="mb-3 flex items-center justify-between px-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sections</span>
+              <button aria-label="Close menu" className="px-2 py-1 lg:hidden" onClick={() => setSidebarOpen(false)}>Close</button>
+            </div>
+            <nav aria-label="Sections" className="flex flex-col gap-1">
               {(
                 [
                   ["dashboard", "Dashboard"],
@@ -836,18 +848,22 @@ export function ExamWorkspacePage() {
               ).map(([id, title]) => (
                 <button
                   key={id}
-                  className={tab === id ? primary : button}
+                  className={(tab === id ? primary : button) + " w-full text-left"}
+                  aria-current={tab === id ? "page" : undefined}
                   onClick={() => {
                     setTab(id);
                     setPage(0);
                     setSearch("");
                     setEditing(null);
+                    setSidebarOpen(false);
                   }}
                 >
                   {title}
                 </button>
               ))}
             </nav>
+            </aside>
+            <div className="min-w-0">
             <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
               <div className="min-w-0 space-y-5">
                 {tab === "dashboard" && (
@@ -1329,9 +1345,9 @@ export function ExamWorkspacePage() {
                         id="generation-input-note"
                         className="mt-3 text-sm text-slate-600"
                       >
-                        Downloads are arranged centre-wise. A saved version is
-                        kept every time duties are generated. Lists with
-                        shortages are marked Draft.
+                        This download contains only the selected standard and examination.
+                        Theory files have one tab per centre. Practical files list both examiners by subject and batch.
+                        Lists with shortages are marked Draft.
                       </p>
                       {moduleRuns.length > 0 && (
                         <select
@@ -1726,7 +1742,8 @@ export function ExamWorkspacePage() {
                       run.shortages.reduce(
                         (totals, s) => ({
                           ...totals,
-                          [s.role]: (totals[s.role] ?? 0) + s.missing,
+                          [workspaceRoleLabel(s.role)]:
+                            (totals[workspaceRoleLabel(s.role)] ?? 0) + s.missing,
                         }),
                         {} as Record<string, number>,
                       ),
@@ -1762,6 +1779,8 @@ export function ExamWorkspacePage() {
                   </Panel>
                 )}
               </aside>
+            </div>
+            </div>
             </div>
             {editing && (
               <div

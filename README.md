@@ -6,6 +6,15 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 ## Current workflow — 16 October 2026
 
+The section menu is now a left sidebar (Menu drawer on small screens). Downloads
+remain four separate examination files: 10th Theory, 12th Theory, 10th Practical
+and 12th Practical. Each theory workbook has one tab per centre, headed by the
+centre code and full school name. The optional combined chief/department-only
+download remains available. Practical files list subjects, batches and both examiners.
+Reserve-role staff appear simply as **Hall invigilator**, with dates combined if
+the same person alternates ordinary/reserve roles. This is a report-label change,
+not a change to required numbers, assignments or the internal reserve calculation.
+
 Updates on 18 October 2026 add a Dashboard with school,
 teaching/non-teaching staff, centre strength and timetable totals. Import data
 now has named uploads and individual templates for Schools, Staff, Centres,

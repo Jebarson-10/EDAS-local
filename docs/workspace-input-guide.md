@@ -90,12 +90,19 @@ that they are geographically accurate; review source coordinates before allotmen
 
 ## Reports and preservation
 
-Theory reports group chief, departmental officers, invigilators, backups and
-JA/OA staff by centre. A second sheet lists custodian, liaison, route and squad
+Theory reports have one tab per centre with its code and full school name. Each
+tab groups chief, departmental officers, all hall invigilators and JA/OA staff.
+Reserve-role staff are labelled Hall invigilator too; their assignments and counts
+are unchanged. One person's ordinary/reserve dates are combined to avoid duplicate
+rows. A separate sheet lists custodian, liaison, route and squad
 officers. The optional chief/department download excludes other roles.
 Practical reports include internal and external names, subject, batch, student
 count, date and session. Each generation stores a separate input snapshot.
 Editing today's master does not change an old download's names or data.
+
+Download 10th Theory, 12th Theory, 10th Practical and 12th Practical separately by
+selecting the standard at the top, opening its duty section in the left sidebar,
+then choosing Download duty list. On a phone, Menu opens the same sidebar.
 
 Back up before installing updates. A new cycle is a fresh workspace, not a
 command to erase historical cycles. A backup restore creates a separate cycle.

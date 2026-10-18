@@ -1,4 +1,7 @@
 import ExcelJS from "exceljs";
+import { buildWorkspaceReportWorkbook } from "./workspaceReportWorkbook";
+import { workspaceReportFilename } from "./workspaceReportData";
+export { workspaceRoleLabel } from "./workspaceReportData";
 import {
   WORKSPACE_IMPORT_HEADERS,
   WORKSPACE_PRACTICAL_SUBJECTS,
@@ -179,23 +182,6 @@ export async function downloadWorkspaceTemplate(kind?: WorkspaceImportKind) {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );
 }
-const roleLabel: Record<string, string> = {
-  CHIEF: "Chief superintendent",
-  DEPARTMENT: "Departmental officer",
-  INVIGILATOR: "Hall invigilator",
-  BACKUP: "Backup invigilator",
-  JUNIOR_ASSISTANT: "Junior assistant",
-  OFFICE_ASSISTANT: "Office assistant",
-  CUSTODIAN: "Custodian",
-  SECONDARY_CUSTODIAN: "Secondary custodian",
-  LIAISON: "Liaison officer",
-  SECONDARY_LIAISON: "Secondary liaison officer",
-  ROUTE: "Route officer",
-  SQUAD: "Squad",
-  INTERNAL: "Internal examiner",
-  EXTERNAL: "External examiner",
-};
-export const workspaceRoleLabel = (role: string) => roleLabel[role] ?? role;
 export async function downloadPracticalSubjects() {
   const book = new ExcelJS.Workbook();
   const sheet = book.addWorksheet("Practical subjects");
@@ -218,195 +204,9 @@ export async function downloadWorkspaceReport(
   run: WorkspaceRun,
   chiefsOnly = false,
 ) {
-  const book = new ExcelJS.Workbook();
-  const staff = new Map(w.staff.map((t) => [t.staffId, t]));
-  const schools = new Map(w.schools.map((s) => [s.udise, s]));
-  if (run.module === "PRACTICAL") {
-    const sheet = book.addWorksheet("Practical duties");
-    sheet.addRow([
-      "Centre code",
-      "Receiving school",
-      "Student school",
-      "Subject",
-      "Batch",
-      "Students",
-      "Date",
-      "Session",
-      "Internal examiner",
-      "External examiner",
-      "External school",
-    ]);
-    for (const a of run.assignments
-      .filter((a) => a.role === "EXTERNAL")
-      .sort(
-        (a, b) =>
-          a.centreUdise.localeCompare(b.centreUdise) ||
-          a.date.localeCompare(b.date) ||
-          a.subject.localeCompare(b.subject) ||
-          (a.batch ?? 0) - (b.batch ?? 0),
-      )) {
-      const internal = run.assignments.find(
-        (i) =>
-          i.demandId === a.demandId &&
-          i.batch === a.batch &&
-          i.role === "INTERNAL",
-      );
-      const demand = w.practical.find(
-        (p) => p.id === a.demandId && p.standard === run.standard,
-      );
-      sheet.addRow([
-        a.centreCode,
-        schools.get(a.centreUdise)?.name,
-        schools.get(demand?.udise ?? "")?.name,
-        a.subject,
-        a.batch,
-        a.students,
-        a.date,
-        a.session,
-        staff.get(internal?.staffId ?? "")?.name,
-        staff.get(a.staffId)?.name,
-        schools.get(staff.get(a.staffId)?.udise ?? "")?.name,
-      ]);
-    }
-  } else {
-    const sheet = book.addWorksheet(
-      chiefsOnly ? "Chief and department" : "Centre duties",
-    );
-    sheet.addRow([
-      "Centre code",
-      "Centre school",
-      "Duty",
-      "Staff name",
-      "Staff post",
-      "From school",
-      "Dates",
-      "Session",
-    ]);
-    const order = [
-      "CHIEF",
-      "DEPARTMENT",
-      "INVIGILATOR",
-      "BACKUP",
-      "JUNIOR_ASSISTANT",
-      "OFFICE_ASSISTANT",
-    ];
-    const rows = run.assignments.filter((a) =>
-      (chiefsOnly ? ["CHIEF", "DEPARTMENT"] : order).includes(a.role),
-    );
-    const grouped = new Map<string, typeof rows>();
-    for (const a of rows) {
-      const k = `${a.centreCode}|${a.role}|${a.staffId}|${a.session}`;
-      const values = grouped.get(k) ?? [];
-      values.push(a);
-      grouped.set(k, values);
-    }
-    for (const group of [...grouped.values()].sort(
-      (a, b) =>
-        a[0]!.centreCode.localeCompare(b[0]!.centreCode, "en", {
-          numeric: true,
-        }) ||
-        order.indexOf(a[0]!.role) - order.indexOf(b[0]!.role) ||
-        a[0]!.staffId.localeCompare(b[0]!.staffId),
-    )) {
-      const a = group[0]!,
-        teacher = staff.get(a.staffId);
-      sheet.addRow([
-        a.centreCode,
-        schools.get(a.centreUdise)?.name,
-        workspaceRoleLabel(a.role),
-        teacher?.name,
-        teacher?.originalPost,
-        schools.get(teacher?.udise ?? "")?.name,
-        [...new Set(group.map((g) => g.date))].sort().join(", "),
-        a.session,
-      ]);
-    }
-    if (!chiefsOnly) {
-      const officers = book.addWorksheet("Other officers");
-      officers.addRow([
-        "Point or centre",
-        "Duty",
-        "Staff",
-        "School",
-        "Date",
-        "Session",
-      ]);
-      for (const a of run.assignments.filter((a) => !order.includes(a.role)))
-        officers.addRow([
-          a.centreCode,
-          workspaceRoleLabel(a.role),
-          staff.get(a.staffId)?.name,
-          schools.get(staff.get(a.staffId)?.udise ?? "")?.name,
-          a.date,
-          a.session,
-        ]);
-    }
-  }
-  for (const sheet of book.worksheets) {
-    sheet.views = [{ state: "frozen", ySplit: 1 }];
-    sheet.columns.forEach((c) => {
-      c.width = 27;
-    });
-    sheet.getRow(1).font = { bold: true };
-    sheet.getRow(1).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF183B4C" },
-    };
-    sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-    sheet.pageSetup = {
-      paperSize: 9,
-      orientation: "landscape",
-      fitToPage: true,
-      fitToWidth: 1,
-      fitToHeight: 0,
-      printTitlesRow: "1:1",
-    };
-    sheet.headerFooter = {
-      oddHeader: `${run.standard}th ${run.module.toLowerCase()} duties${run.published ? "" : " - DRAFT"}`,
-      oddFooter: "Page &P of &N",
-    };
-    sheet.eachRow((row) => {
-      row.alignment = { wrapText: true, vertical: "middle" };
-      row.height = 42;
-    });
-  }
-  const manual = run.assignments.filter((a) => a.manual);
-  if (manual.length) {
-    const changes = book.addWorksheet("Manual changes");
-    changes.addRow(["Centre or point", "Duty", "Staff", "Date", "Session", "Distance exception", "Reason", "Approved at", "Previous list"]);
-    for (const a of manual) changes.addRow([a.centreCode, workspaceRoleLabel(a.role), staff.get(a.staffId)?.name,
-      a.date, a.session, a.manual!.distanceException ? "Approved" : "No", a.manual!.reason, a.manual!.approvedAt, a.manual!.parentRunId]);
-    changes.views = [{ state: "frozen", ySplit: 1 }];
-    changes.columns.forEach((c) => { c.width = 28; });
-    changes.getColumn(7).width = 65;
-    changes.getRow(1).font = { bold: true };
-  }
-  if (run.shortages.length || run.errors.length) {
-    const issues = book.addWorksheet("Unfilled duties");
-    issues.addRow(["Centre or point", "Duty", "Missing", "Dates", "Reason"]);
-    for (const gap of run.shortages)
-      issues.addRow([
-        gap.target,
-        workspaceRoleLabel(gap.role),
-        gap.missing,
-        gap.date,
-        Object.entries(gap.reasons)
-          .map(([reason, n]) => `${reason}: ${n}`)
-          .join("; "),
-      ]);
-    for (const error of run.errors) issues.addRow(["", "", "", "", error]);
-    issues.columns.forEach((c) => {
-      c.width = 30;
-    });
-    issues.getColumn(5).width = 75;
-    issues.eachRow((row) => {
-      row.alignment = { wrapText: true, vertical: "top" };
-      row.height = 45;
-    });
-  }
+  const book = buildWorkspaceReportWorkbook(w, run, chiefsOnly);
   downloadFile(
-    `${run.standard}-${run.module.toLowerCase()}-${chiefsOnly ? "chiefs-" : ""}${!run.published || run.shortages.length || run.errors.length ? "DRAFT-" : ""}${run.id.slice(0, 8)}.xlsx`,
+    workspaceReportFilename(run, chiefsOnly),
     (await book.xlsx.writeBuffer()) as ArrayBuffer,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );

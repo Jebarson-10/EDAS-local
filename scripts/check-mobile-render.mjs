@@ -32,6 +32,7 @@ for (const vp of viewports) {
 
   try {
     await page.getByRole('status').filter({hasText:'Saved cycle loaded'}).waitFor({timeout:20000});
+    if(vp.width<1024)await page.getByRole('button',{name:'Open section menu',exact:true}).click();
     await page.getByRole('navigation',{name:'Sections'}).getByRole('button',{name:'Theory duties',exact:true}).click();
     await page.getByRole('heading',{name:'12th standard theory duties',exact:true}).waitFor();
     await page.getByRole('button',{name:'10th standard',exact:true}).click();
