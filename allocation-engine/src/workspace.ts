@@ -149,6 +149,8 @@ export function workspaceInputErrors(
     if (!demands.length)
       errors.push("Import practical student groups and available dates.");
     for (const p of demands) {
+      if (standard === "10" && p.subject !== "SCI")
+        errors.push(`Practical ${p.id}: SSLC has one Science practical paper. Use Science as the subject, not separate Physics or Chemistry papers.`);
       const school = w.schools.find((s) => s.udise === p.udise);
       const centre = w.schools.find((s) => s.udise === p.centreUdise);
       if (!school || !centre) {
@@ -394,6 +396,17 @@ export function allocateWorkspace(
         date: slot.dates.map((d) => d.date).join(", "),
         missing: 1,
         reasons: tallies,
+        vacancy: slot.dates.map((d) => ({
+          key: `${slot.key}|${d.date}|${d.session}`,
+          standard,
+          date: d.date,
+          session: d.session,
+          targetId: slot.targetId,
+          centreCode: slot.code,
+          centreUdise: slot.udise,
+          role: slot.role,
+          subject: d.subjects.join(", "),
+        })),
       });
       return;
     }

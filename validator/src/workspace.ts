@@ -55,6 +55,8 @@ export function validateWorkspaceRun(
   }
   for (const a of run.assignments) {
     const fail = (message: string) => issues.add(`${a.key}: ${message}`);
+    if (a.manual && (!a.manual.parentRunId || a.manual.reason.trim().length < 3 || !Number.isFinite(Date.parse(a.manual.approvedAt)) || a.manual.policyVersion !== "ERODE-MANUAL-2026-10-18"))
+      fail("Manual assignment needs a saved reason, original list and approval date.");
     if (keys.has(a.key)) fail("Repeated assignment key.");
     keys.add(a.key);
     if (a.standard !== run.standard)
@@ -117,7 +119,8 @@ export function validateWorkspaceRun(
             Math.cos(destination.latitude! * r) *
             Math.sin(dLon / 2) ** 2;
         const km = 12742 * Math.asin(Math.sqrt(Math.min(1, Math.max(0, x))));
-        if (km > 10 + 1e-9) fail("Duty is outside the 10 km school radius.");
+        if (km > 10 + 1e-9 && !a.manual?.distanceException)
+          fail("Duty is outside the 10 km school radius.");
       }
       if (a.role !== "INTERNAL") {
         const cutoff = new Date(`${a.date}T00:00:00Z`);
@@ -220,6 +223,8 @@ export function validateWorkspaceRun(
         fail("Practical input is missing.");
         continue;
       }
+      if (run.standard === "10" && p.subject !== "SCI")
+        fail("SSLC practical input must use the combined Science paper.");
       if (
         a.centreUdise !== p.centreUdise ||
         !p.dates.includes(a.date) ||

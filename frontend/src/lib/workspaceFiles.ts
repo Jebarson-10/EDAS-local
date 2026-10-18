@@ -1,6 +1,8 @@
 import ExcelJS from "exceljs";
 import {
   WORKSPACE_IMPORT_HEADERS,
+  WORKSPACE_PRACTICAL_SUBJECTS,
+  WORKSPACE_PRACTICAL_SOURCES,
   type ExamWorkspace,
   type WorkspaceRun,
   type WorkspaceImportKind,
@@ -194,6 +196,23 @@ const roleLabel: Record<string, string> = {
   EXTERNAL: "External examiner",
 };
 export const workspaceRoleLabel = (role: string) => roleLabel[role] ?? role;
+export async function downloadPracticalSubjects() {
+  const book = new ExcelJS.Workbook();
+  const sheet = book.addWorksheet("Practical subjects");
+  sheet.addRow(["Standard", "Subject", "Examiner guidance"]);
+  for (const standard of ["10", "12"] as const)
+    for (const subject of WORKSPACE_PRACTICAL_SUBJECTS[standard])
+      sheet.addRow([standard, subject, standard === "10" ? "BT Assistant handling Class 10 Science" : "Eligible post and matching subject from Teacher Master; confirm the school's offered subjects"]);
+  sheet.getRow(1).font = { bold: true };
+  sheet.columns = [{ width: 12 }, { width: 48 }, { width: 95 }];
+  const sources = book.addWorksheet("Sources");
+  sources.addRow(["Reference", "Source"]);
+  sources.addRows(WORKSPACE_PRACTICAL_SOURCES.map((s) => [s.title, s.url]));
+  sources.addRow(["Use", "Subject names are a reference, not student enrolment or an official timetable. Import the actual student counts, groups, rooms and permitted dates before official allotment."]);
+  sources.columns = [{ width: 85 }, { width: 130 }];
+  downloadFile("Tamil-Nadu-Practical-Subject-Reference.xlsx", (await book.xlsx.writeBuffer()) as ArrayBuffer,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+}
 export async function downloadWorkspaceReport(
   w: ExamWorkspace,
   run: WorkspaceRun,
@@ -351,6 +370,17 @@ export async function downloadWorkspaceReport(
       row.alignment = { wrapText: true, vertical: "middle" };
       row.height = 42;
     });
+  }
+  const manual = run.assignments.filter((a) => a.manual);
+  if (manual.length) {
+    const changes = book.addWorksheet("Manual changes");
+    changes.addRow(["Centre or point", "Duty", "Staff", "Date", "Session", "Distance exception", "Reason", "Approved at", "Previous list"]);
+    for (const a of manual) changes.addRow([a.centreCode, workspaceRoleLabel(a.role), staff.get(a.staffId)?.name,
+      a.date, a.session, a.manual!.distanceException ? "Approved" : "No", a.manual!.reason, a.manual!.approvedAt, a.manual!.parentRunId]);
+    changes.views = [{ state: "frozen", ySplit: 1 }];
+    changes.columns.forEach((c) => { c.width = 28; });
+    changes.getColumn(7).width = 65;
+    changes.getRow(1).font = { bold: true };
   }
   if (run.shortages.length || run.errors.length) {
     const issues = book.addWorksheet("Unfilled duties");

@@ -74,6 +74,14 @@ export function exampleWorkspace(standard: "10" | "12" = "12"): ExamWorkspace {
   return w;
 }
 describe("new standard-specific theory rules", () => {
+  it("rejects a separate SSLC Physics practical paper instead of assigning Science teachers to it", () => {
+    const w = exampleWorkspace("10");
+    w.practical = [{ id: "wrong-paper", standard: "10", udise: "source", subject: "PHY", students: 30,
+      cohort: "A", centreUdise: "source", allowedCentreUdise: [], halls: 1, dates: ["2027-03-01"] }];
+    const run = allocateWorkspace(w, "10", "PRACTICAL", "paper-check");
+    expect(run.assignments).toEqual([]);
+    expect(run.errors.some((e) => e.includes("one Science practical paper"))).toBe(true);
+  });
   it.each([9, 10, 10.001])(
     "enforces the inclusive 10 km boundary at %s km",
     (distance) => {

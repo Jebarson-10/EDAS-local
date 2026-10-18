@@ -99,3 +99,27 @@ Editing today's master does not change an old download's names or data.
 
 Back up before installing updates. A new cycle is a fresh workspace, not a
 command to erase historical cycles. A backup restore creates a separate cycle.
+
+## Filling theory shortages
+
+Choose **Fill unfilled posts** under the theory Generate/Download buttons. Select
+the empty post, then search available staff by name, post or school. Only people
+free for all its dates and sessions are offered. Staff-post and subject checks
+remain in force. Someone outside 10 km requires your distance-exception approval
+and a written reason. This is a per-assignment exception, not a wider automatic
+radius. Selecting them saves a new draft; earlier lists are retained unchanged.
+The approval appears in the downloaded Manual changes sheet and cycle backup.
+Generate a new list once if an older list does not contain selectable vacancies.
+
+## Practical subject reference and demo inputs
+
+On Practical duties, **Download practical subject list** provides subject names
+and references. SSLC uses one combined Science practical, not separate Physics
+and Chemistry entries. HSC inputs must match the actual school's subject groups.
+Exact spelling variants such as Micro-Biology/Microbiology are normalised, but a
+different subject or staff qualification is never silently substituted.
+
+The five-day demo uses illustrative groups of 30 students and one room per subject,
+not actual enrolment. Replace these counts and dates with the schools' returns for
+official use. Reused SSLC centre strengths are not official HSC strengths. Shortages
+are retained in every report and must not be interpreted as successful appointments.

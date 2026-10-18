@@ -74,6 +74,10 @@ export function workspacePost(value: string): string {
 }
 export function workspaceSubject(v: string): string {
   const k = key(v);
+  if (k === "microbiology") return "MICROBIOLOGY";
+  if (["generalnursing", "nursinggeneral"].includes(k)) return "GENERAL NURSING";
+  if (["agriculturescience", "agriculturalscience"].includes(k)) return "AGRICULTURAL SCIENCE";
+  if (["textileanddressdesigning", "textilesanddressdesigning", "textiledressdesigning", "textilesdressdesigning"].includes(k)) return "TEXTILES AND DRESS DESIGNING";
   if (["computerapplication", "computerapplications", "ca"].includes(k))
     return "CA";
   if (["botany", "bot"].includes(k)) return "BOT";

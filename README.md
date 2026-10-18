@@ -6,7 +6,7 @@ Production-oriented historical decision engine for theory, practical, and hall e
 
 ## Current workflow — 16 October 2026
 
-Local improvements prepared on 18 October 2026 add a Dashboard with school,
+Updates on 18 October 2026 add a Dashboard with school,
 teaching/non-teaching staff, centre strength and timetable totals. Import data
 now has named uploads and individual templates for Schools, Staff, Centres,
 Timetable, Points, Routes, Practical and Previous Duties. The same uploads are
@@ -29,10 +29,26 @@ cells (`t="d"`). This resolves valid-workbook `undefined (reading 'sheets')`
 failures and prevents an ISO date's year being mistaken for an Excel serial date.
 Both representations are covered by the import compatibility tests.
 
-For the client-requested practice run, dates are 19–23 October 2026, one morning
-SSLC core paper per day. These are explicitly sample dates. Real source masters,
-PDF extractions and demo results stay outside source control. Missing school
-links and genuinely unavailable staff remain visible rather than being fabricated.
+**Fill unfilled posts** on Theory duties lists eligible staff free for every date
+and session of the selected post, including other standards and practical runs.
+Automatic allotment still enforces 10 km. A manual distance exception requires an
+explicit checkbox and written reason; wrong posts, missing coordinates, history,
+subject exclusions and double-booking cannot be bypassed. A new draft is saved,
+the original is unchanged, and the approval is retained in backups and the report's
+Manual changes sheet. Older lists need one regeneration to store exact vacancy
+dates. This feature currently fills theory posts, not practical examiner pairs.
+
+Practical entry offers Tamil Nadu subject suggestions, including a single combined
+Science paper for SSLC, and a downloadable subject reference with its sources.
+The reference includes a mirrored DGE 2026 circular and is not an official school
+enrolment return. Actual student groups, subject rooms and dates are still required.
+
+The private four-module demo uses 19–23 October 2026 for practicals, 26–30 October
+for SSLC theory, and 2–6 November for HSC theory. Dates and practical group/room
+counts are explicit demonstration assumptions. Resolved SSLC centres are reused
+for HSC only in the demo. No sample data is installed in the application. Real
+source masters, PDF extractions and demo results stay outside source control.
+Missing school links, DEO staff and genuinely unavailable staff remain visible.
 
 The default app now uses rule set `ERODE-2026-10-16`, replacing the older
 block-only workflow described below. Use the **10th standard / 12th standard**

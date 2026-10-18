@@ -137,6 +137,13 @@ export interface WorkspaceAssignment {
   cohort?: string;
   demandId?: string;
   fallback?: boolean;
+  manual?: {
+    parentRunId: string;
+    reason: string;
+    distanceException: boolean;
+    approvedAt: string;
+    policyVersion: "ERODE-MANUAL-2026-10-18";
+  };
 }
 export interface WorkspaceShortage {
   key: string;
@@ -145,6 +152,8 @@ export interface WorkspaceShortage {
   date: string;
   missing: number;
   reasons: Record<string, number>;
+  /** Exact empty theory post, including every date of a fixed-period duty. */
+  vacancy?: Omit<WorkspaceAssignment, "staffId" | "manual">[];
 }
 export interface WorkspaceRun {
   id: string;
@@ -158,6 +167,7 @@ export interface WorkspaceRun {
   shortages: WorkspaceShortage[];
   errors: string[];
   published: boolean;
+  parentRunId?: string;
 }
 export const workspaceBaseSchema = z.object({
   id,

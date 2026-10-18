@@ -368,3 +368,23 @@ No DEO records or exam-specific centre/strength/timetable data are fabricated
 from the teacher/school masters. Small practical groups are sent to the manually
 selected receiving school while retaining their origin-school batch identity.
 
+# Client decisions — 18 October 2026
+
+Manual theory shortage filling may exceed the 10 km radius only after an explicit
+approval and written reason. This exception does not change automatic generation,
+staff-post rules (10th BT / 12th PG for assistant posts), office-post eligibility,
+coordinates, history, subject exclusions or simultaneous-duty restrictions.
+Policy identifier: `ERODE-MANUAL-2026-10-18`. Each change creates an unpublished
+successor with its original immutable input snapshot and saved approval details.
+
+The client authorised demonstration practical groups and dates within five days,
+and reuse of resolved SSLC centres for an HSC demo. Reused centre strengths,
+points/routes and invented demonstration group/room counts are explicitly labelled
+as demo inputs, not official HSC information. No staff identities or qualifications
+are invented. DEO and official HSC strengths remain client-supplied later.
+
+The 2026 DGE practical-subject circular appendix was discoverable as a mirrored
+document, not directly in the official notification index. It is labelled as such
+in the subject reference; the current official school subject return must still
+determine which papers are offered. This reference never broadens examiner posts.
+

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { WorkspaceDashboard } from "../components/WorkspaceDashboard";
 import { WorkspaceChecklistImport } from "../components/WorkspaceChecklistImport";
+import { WorkspaceManualAssignment } from "../components/WorkspaceManualAssignment";
 import { workspaceInputErrors } from "@exam-duty/allocation-engine";
 const WorkspaceMap = lazy(() => import("../components/WorkspaceMap"));
 import {
@@ -16,6 +17,7 @@ import {
   workspaceSchema,
   workspacePost,
   workspaceSubject,
+  WORKSPACE_PRACTICAL_SUBJECTS,
   type ExamWorkspace,
   type WorkspaceRun,
   type WorkspaceStandard,
@@ -26,6 +28,7 @@ import {
   downloadFile,
   downloadWorkspaceReport,
   downloadWorkspaceTemplate,
+  downloadPracticalSubjects,
   workspaceRoleLabel,
   inputGuide,
   workspaceInputSections,
@@ -76,6 +79,7 @@ type Field = {
   type?: "number" | "date" | "list" | "dates";
   options?: { value: string; label: string }[];
   hint?: string;
+  suggestions?: readonly string[];
 };
 const pretty = (s: string) =>
   s.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ");
@@ -564,7 +568,9 @@ export function ExamWorkspacePage() {
         return [
           { key: "id", label: "Practical group reference" },
           ...common,
-          { key: "subject", label: "Practical subject" },
+          { key: "subject", label: "Practical subject", suggestions: WORKSPACE_PRACTICAL_SUBJECTS[standard],
+            hint: standard === "10" ? "Science is the single SSLC practical paper. Choose a BT Assistant who handles Class 10 Science."
+              : "Choose the actual subject offered by the school. The examiner must have the eligible post and matching subject in Teacher Master. You can also type a new authorised subject." },
           { key: "students", label: "Students in this group", type: "number" },
           {
             key: "cohort",
@@ -1286,6 +1292,7 @@ export function ExamWorkspacePage() {
                             Chief and department only
                           </button>
                         )}
+                        {tab === "practical" && <button className={button} disabled={busy} onClick={() => void action(downloadPracticalSubjects)}>Download practical subject list</button>}
                         <button
                           className={button}
                           disabled={
@@ -1342,6 +1349,16 @@ export function ExamWorkspacePage() {
                         </select>
                       )}
                     </Panel>
+                    {run && (
+                      <WorkspaceManualAssignment run={run} busy={busy}
+                        candidates={async (key) => (await request(`?id=${encodeURIComponent(workspace.id)}&runId=${encodeURIComponent(run.id)}&shortageKey=${encodeURIComponent(key)}`)).candidates}
+                        assign={async (choice) => action(async () => {
+                          const data = await request("", { action: "assign", workspaceId: workspace.id, runId: run.id, choice });
+                          setRuns((previous) => [data.run, ...previous]);
+                          setSelectedRun(data.run.id);
+                          setMessage("Staff assigned. A new checked list was saved; the original is unchanged.");
+                        })} />
+                    )}
                     {run && (
                       <Panel
                         title={
@@ -1813,6 +1830,7 @@ export function ExamWorkspacePage() {
                         ) : (
                           <input
                             className={control + " mt-1"}
+                            list={f.suggestions ? `workspace-suggestions-${f.key}` : undefined}
                             type={
                               f.type === "date"
                                 ? "date"
@@ -1850,6 +1868,7 @@ export function ExamWorkspacePage() {
                             }
                           />
                         )}
+                        {f.suggestions && <datalist id={`workspace-suggestions-${f.key}`}>{f.suggestions.map((v) => <option key={v} value={v} />)}</datalist>}
                         {f.hint && (
                           <span className="mt-1 block text-xs leading-5 text-slate-500">
                             {f.hint}

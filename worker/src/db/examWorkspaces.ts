@@ -5,7 +5,8 @@ import {
   type WorkspaceHistory,
 } from "@exam-duty/shared";
 import type { DbClient } from "./client.js";
-import { validateWorkspaceRun } from "@exam-duty/validator";
+import { runAtomic } from "./client.js";
+import { validateWorkspaceRun, workspaceManualCandidates, fillWorkspaceShortage } from "@exam-duty/validator";
 
 async function writeSnapshot(db: DbClient, value: unknown): Promise<string> {
   const snapshotId = crypto.randomUUID();
@@ -106,7 +107,7 @@ export async function listWorkspaceRuns(db: DbClient, id: string) {
   const records = (
     await db
       .prepare(
-        "SELECT result_snapshot_id,published FROM exam_workspace_runs WHERE workspace_id=? ORDER BY created_at DESC",
+        "SELECT result_snapshot_id,published FROM exam_workspace_runs WHERE workspace_id=? ORDER BY rowid DESC",
       )
       .bind(id)
       .all<{ result_snapshot_id: string; published: number }>()
@@ -157,6 +158,8 @@ export async function saveWorkspaceRun(
   workspaceId: string,
   run: WorkspaceRun,
 ) {
+  if (run?.parentRunId || run?.assignments?.some((a) => a.manual))
+    throw new Error("Use the manual assignment action to record a staff choice and its reason.");
   if (
     !run ||
     !run.id ||
@@ -200,6 +203,39 @@ export async function saveWorkspaceRun(
       run.createdAt,
     )
     .run();
+}
+async function manualContext(db: DbClient, workspaceId: string, runId: string) {
+  const row = await db.prepare("SELECT input_snapshot_id,result_snapshot_id FROM exam_workspace_runs WHERE workspace_id=? AND run_id=?")
+    .bind(workspaceId, runId).first<{ input_snapshot_id: string; result_snapshot_id: string }>();
+  if (!row) throw new Error("Saved duty list not found.");
+  const run = await readSnapshot<WorkspaceRun>(db, row.result_snapshot_id);
+  const runs = await listWorkspaceRuns(db, workspaceId);
+  if (runs.find((r) => r.standard === run.standard && r.module === run.module)?.id !== run.id)
+    throw new Error("A newer duty list exists. Open the latest list before assigning staff.");
+  const workspace = await readSnapshot<ExamWorkspace>(db, row.input_snapshot_id);
+  if ((await readWorkspace(db, workspaceId)).revision !== run.inputRevision)
+    throw new Error("The input changed. Generate a new list before filling shortages.");
+  const latest = new Map<string, WorkspaceRun>();
+  for (const r of runs) {
+    const key = `${r.standard}|${r.module}`;
+    if (!latest.has(key)) latest.set(key, r);
+  }
+  const other = [...latest.values()].filter((r) => r.standard !== run.standard || r.module !== run.module).flatMap((r) => r.assignments);
+  return { workspace, run, other, inputSnapshot: row.input_snapshot_id };
+}
+
+export async function assignWorkspaceShortage(db: DbClient, workspaceId: string, runId: string,
+  choice: { shortageKey: string; staffId: string; reason: string; distanceException: boolean }) {
+  const context = await manualContext(db, workspaceId, runId);
+  const next = fillWorkspaceShortage(context.workspace, context.run, choice, context.other);
+  const snapshot = await writeSnapshot(db, next);
+  await runAtomic(db, [
+    db.prepare("INSERT INTO exam_workspace_manual_changes(parent_run_id,new_run_id,workspace_id,shortage_key,staff_id,reason,distance_exception,approved_at) VALUES (?,?,?,?,?,?,?,?)")
+      .bind(runId, next.id, workspaceId, choice.shortageKey, choice.staffId, choice.reason.trim(), next.assignments.find((a) => a.manual?.parentRunId === runId)!.manual!.distanceException ? 1 : 0, next.createdAt),
+    db.prepare("INSERT INTO exam_workspace_runs(run_id,workspace_id,input_snapshot_id,result_snapshot_id,standard,module,created_at) VALUES (?,?,?,?,?,?,?)")
+      .bind(next.id, workspaceId, context.inputSnapshot, snapshot, next.standard, next.module, next.createdAt),
+  ]);
+  return next;
 }
 export async function publishWorkspaceRun(
   db: DbClient,
@@ -245,6 +281,10 @@ export async function workspaceEndpoint(
   if (method === "GET") {
     if (!id) return { cycles: await listWorkspaces(db) };
     if (query.get("runId")) {
+      if (query.has("shortageKey")) {
+        const context = await manualContext(db, id, query.get("runId")!);
+        return { candidates: workspaceManualCandidates(context.workspace, context.run, query.get("shortageKey")!, context.other) };
+      }
       const row = await db
         .prepare(
           "SELECT input_snapshot_id FROM exam_workspace_runs WHERE workspace_id=? AND run_id=?",
@@ -282,6 +322,7 @@ export async function workspaceEndpoint(
     workspaceId?: string;
     run?: WorkspaceRun;
     runId?: string;
+    choice?: { shortageKey: string; staffId: string; reason: string; distanceException: boolean };
     backup?: {
       format: string;
       workspace: unknown;
@@ -307,7 +348,8 @@ export async function workspaceEndpoint(
       input: workspaceSchema.parse(backup.inputs[run.id]),
     }));
     const saved = await saveWorkspace(db, restored);
-    for (const item of prepared) {
+    // Backup lists are newest first; insert oldest first to retain save order.
+    for (const item of prepared.reverse()) {
       const run = { ...item.run, id: crypto.randomUUID() };
       const inputSnapshot = await writeSnapshot(db, {
         ...item.input,
@@ -334,6 +376,8 @@ export async function workspaceEndpoint(
   }
   if (input.action === "save")
     return { ok: true, ...(await saveWorkspace(db, input.workspace)) };
+  if (input.action === "assign" && input.workspaceId && input.runId && input.choice)
+    return { ok: true, run: await assignWorkspaceShortage(db, input.workspaceId, input.runId, input.choice) };
   if (input.action === "run" && input.workspaceId && input.run) {
     await saveWorkspaceRun(db, input.workspaceId, input.run);
     return { ok: true };

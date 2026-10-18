@@ -12,6 +12,7 @@ import {
   workspaceEndpoint,
   workspaceHistoryReference,
   publishWorkspaceRun,
+  assignWorkspaceShortage,
 } from "./examWorkspaces.js";
 
 describe("isolated cycle storage", () => {
@@ -23,6 +24,25 @@ describe("isolated cycle storage", () => {
     await applyMigrations(db, join(process.cwd(), ".."));
   });
   afterEach(() => sqlite.close());
+  it("saves manual choices as immutable successors with an audit record and rejects stale choices", async () => {
+    const w = emptyExamWorkspace("manual", "Synthetic manual cycle");
+    w.schools = ["staff-school", "target"].map((udise, i) => ({ udise, name: udise, block: "B", educationalDistrict: "D", level: "HIGH", management: "GOVERNMENT", latitude: 11.3 + i * 0.2, longitude: 77.7, raw: {} }));
+    w.staff = [{ staffId: "oa", name: "Synthetic office staff", udise: "staff-school", post: "OA", originalPost: "OA", category: "NON_TEACHING", appointedSubject: "", handlingSubjects: [], standards: [], serviceDate: "2000-01-01", postDate: "2000-01-01", raw: {} }];
+    await saveWorkspace(db, w);
+    const run: WorkspaceRun = { id: "before", standard: "10", module: "THEORY", createdAt: "2099-10-18", ruleVersion: w.ruleVersion, seed: "s", inputRevision: 1, assignments: [], errors: [], published: false,
+      shortages: [{ key: "gap", role: "OFFICE_ASSISTANT", target: "100", date: "2027-03-01", missing: 1, reasons: {}, vacancy: [{ key: "oa-1", standard: "10", date: "2027-03-01", session: "MORNING", targetId: "100", centreCode: "100", centreUdise: "target", role: "OFFICE_ASSISTANT", subject: "" }] }] };
+    await saveWorkspaceRun(db, w.id, run);
+    const choice = { shortageKey: "gap", staffId: "oa", reason: "Approved coverage beyond radius", distanceException: true };
+    const next = await assignWorkspaceShortage(db, w.id, run.id, choice);
+    expect(next.shortages).toEqual([]);
+    const stored = await listWorkspaceRuns(db, w.id);
+    expect(stored).toHaveLength(2);
+    expect(stored[0]!.id).toBe(next.id);
+    expect(stored.find((r) => r.id === run.id)!.shortages).toHaveLength(1);
+    expect(sqlite.prepare("SELECT reason FROM exam_workspace_manual_changes").get()).toEqual({ reason: choice.reason });
+    await expect(assignWorkspaceShortage(db, w.id, run.id, choice)).rejects.toThrow("newer duty list");
+    await expect(saveWorkspaceRun(db, w.id, { ...next, id: "forged" })).rejects.toThrow("manual assignment action");
+  });
   it("does not confirm an empty result even if its client reports no errors", async () => {
     const w = emptyExamWorkspace("empty", "Empty");
     w.settings.confirmed = true;
@@ -44,6 +64,17 @@ describe("isolated cycle storage", () => {
       "non-empty duty list",
     );
     expect((await listWorkspaceRuns(db, w.id))[0]!.published).toBe(false);
+  });
+  it("keeps save order across equal/future timestamps and backup restoration", async () => {
+    const w = emptyExamWorkspace("order", "Synthetic ordering cycle");
+    await saveWorkspace(db, w);
+    const run: WorkspaceRun = { id: "first", standard: "10", module: "THEORY", createdAt: "2099-01-01", ruleVersion: w.ruleVersion, seed: "older", inputRevision: 1, published: false, assignments: [], shortages: [], errors: ["Incomplete"] };
+    await saveWorkspaceRun(db, w.id, run);
+    await saveWorkspaceRun(db, w.id, { ...run, id: "second", createdAt: "2026-01-01", seed: "newer" });
+    expect((await listWorkspaceRuns(db, w.id))[0]!.seed).toBe("newer");
+    const backup = await workspaceEndpoint(db, "GET", new URLSearchParams({ id: w.id, backup: "1" }));
+    const restored = await workspaceEndpoint(db, "POST", new URLSearchParams(), { action: "restore", backup }) as { id: string };
+    expect((await listWorkspaceRuns(db, restored.id)).map((r) => r.seed)).toEqual(["newer", "older"]);
   });
   it("saves a large master across chunks and reopens without losing records", async () => {
     const w = emptyExamWorkspace("a", "A");

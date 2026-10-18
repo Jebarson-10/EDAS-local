@@ -143,4 +143,11 @@ describe("School and Teacher Master inputs", () => {
     expect(b.history).toEqual([]);
     expect(b.imports).toEqual([]);
   });
+  it("matches spelling variants of practical papers without guessing a different qualification", () => {
+    expect(workspaceSubject("Micro-Biology")).toBe(workspaceSubject("Microbiology"));
+    expect(workspaceSubject("Nursing (General)")).toBe(workspaceSubject("General Nursing"));
+    expect(workspaceSubject("Agriculture Science")).toBe(workspaceSubject("Agricultural Science"));
+    expect(workspaceSubject("Nutrition")).not.toBe(workspaceSubject("Nutrition and Dietetics"));
+    expect(workspaceSubject("Computer Technology")).not.toBe(workspaceSubject("Computer Science"));
+  });
 });
